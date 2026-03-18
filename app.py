@@ -23,7 +23,7 @@ import streamlit as st
 
 # ── Page config (must be first Streamlit call) ────────────────────────────────
 st.set_page_config(
-    page_title="מערכת ניהול PMCC · NextOffice",
+    page_title="מערכת ניהול PMCC · NextOffice (v1.0)",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
