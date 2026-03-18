@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.db
+*.sqlite3
+*.log
+.env
+.idea/
+.vscode/
+debug_logs.json
+diagnostic_trades.json
+tws_missing_order.txt

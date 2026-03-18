@@ -1,0 +1,659 @@
+/* ══════════════════════════════════════════════════════════
+   PMCC NextOffice — Ultra-Dark, High-Contrast Fintech Theme
+   Font: Inter from Google Fonts
+══════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ── Root Variables ─────────────────────────────────── */
+:root {
+  --bg: #050810;
+  /* near-black background */
+  --bg2: #090d1a;
+  --panel: #0e1525;
+  --panel2: #111c30;
+  --border: #1a2540;
+  --accent: #38bdf8;
+  /* bright sky-blue */
+  --accent2: #818cf8;
+  /* lavender */
+  --green: #34d399;
+  /* bright emerald */
+  --red: #f87171;
+  /* bright coral-red */
+  --yellow: #fbbf24;
+  /* warm amber */
+  --orange: #fb923c;
+  --text: #f1f5f9;
+  /* near-white main text */
+  --text-md: #cbd5e1;
+  /* medium text */
+  --muted: #64748b;
+  /* muted labels */
+  --glass-bg: rgba(14, 21, 37, 0.85);
+  --glass-b: rgba(56, 189, 248, 0.12);
+  --glow-blue: 0 0 28px rgba(56, 189, 248, 0.22);
+  --glow-green: 0 0 24px rgba(52, 211, 153, 0.22);
+  --glow-red: 0 0 24px rgba(248, 113, 113, 0.22);
+  --glow-amber: 0 0 24px rgba(251, 191, 36, 0.22);
+}
+
+/* ── Global ─────────────────────────────────────────── */
+html,
+body,
+[class*="css"],
+.stApp {
+  font-family: 'Inter', sans-serif !important;
+  background-color: var(--bg) !important;
+  color: var(--text) !important;
+}
+
+/* Dynamic Radial background for Video Showcase */
+.stApp>header {
+  background: transparent !important;
+}
+
+.stApp {
+  background: radial-gradient(circle at 15% 50%, rgba(20, 30, 50, 0.6), rgba(5, 8, 16, 1) 60%) !important;
+  background-attachment: fixed !important;
+}
+
+#MainMenu,
+footer,
+header {
+  visibility: hidden;
+}
+
+.stDeployButton {
+  display: none;
+}
+
+.main .block-container {
+  padding: 0.5rem 2rem 3rem 2rem !important;
+  max-width: 1700px !important;
+  background: var(--bg) !important;
+}
+
+/* ── Scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--panel);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent2);
+  border-radius: 4px;
+}
+
+/* ── Sidebar ─────────────────────────────────────────── */
+[data-testid="stSidebar"] {
+  background: linear-gradient(180deg, #080f1e 0%, var(--bg) 100%) !important;
+  border-right: 1px solid var(--border) !important;
+}
+
+[data-testid="stSidebar"] * {
+  color: var(--text) !important;
+}
+
+/* ── Tabs ────────────────────────────────────────────── */
+.stTabs [data-baseweb="tab-list"] {
+  background: var(--panel2) !important;
+  border-radius: 14px !important;
+  padding: 5px !important;
+  gap: 4px !important;
+  border: 1px solid var(--border) !important;
+}
+
+.stTabs [data-baseweb="tab"] {
+  background: transparent !important;
+  border-radius: 10px !important;
+  color: var(--muted) !important;
+  font-weight: 600 !important;
+  font-size: 0.82rem !important;
+  transition: all 0.2s !important;
+  padding: 6px 14px !important;
+}
+
+.stTabs [aria-selected="true"] {
+  background: linear-gradient(135deg, var(--accent2), #6d28d9) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 12px rgba(129, 140, 248, 0.4) !important;
+}
+
+.stTabs [data-baseweb="tab-panel"] {
+  background: transparent !important;
+  padding-top: 1.2rem !important;
+}
+
+/* ── Buttons ─────────────────────────────────────────── */
+.stButton>button {
+  background: linear-gradient(135deg, var(--accent2), #6d28d9) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.85rem !important;
+  letter-spacing: 0.02em !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 14px rgba(109, 40, 217, 0.35) !important;
+}
+
+.stButton>button:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 22px rgba(109, 40, 217, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Primary YouTube Video Glow Button */
+.stButton>button[kind="primary"] {
+  background: linear-gradient(135deg, #0ea5e9, #6366f1) !important;
+  animation: neon-pulse 3s infinite alternate !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+@keyframes neon-pulse {
+  0% {
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+  }
+
+  100% {
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.7);
+  }
+}
+
+/* Panic */
+.panic-btn>button {
+  background: linear-gradient(135deg, #dc2626, #7f1d1d) !important;
+  box-shadow: 0 4px 20px rgba(248, 113, 113, 0.45) !important;
+  animation: panic-pulse 2s infinite !important;
+}
+
+@keyframes panic-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 4px 20px rgba(248, 113, 113, 0.45);
+  }
+
+  50% {
+    box-shadow: 0 4px 32px rgba(248, 113, 113, 0.85);
+  }
+}
+
+/* ── Inputs ──────────────────────────────────────────── */
+.stSelectbox>div>div,
+.stNumberInput>div>div>input,
+.stTextInput>div>div>input {
+  background: var(--panel2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  border-radius: 9px !important;
+  font-size: 0.9rem !important;
+}
+
+.stSelectbox>div>div:focus-within,
+.stNumberInput>div>div>input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25) !important;
+}
+
+/* ── Signal Cards (the new portfolio cards) ────────── */
+.sig-card {
+  border-radius: 18px;
+  padding: 1.3rem 1.5rem;
+  margin-bottom: 0.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.sig-card:hover {
+  transform: translateY(-3px);
+}
+
+.sig-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  opacity: 0.06;
+  pointer-events: none;
+}
+
+/* Color variants */
+.sig-no-trade {
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  box-shadow: var(--glow-red);
+}
+
+.sig-no-trade::before {
+  background: var(--red);
+}
+
+.sig-defensive {
+  background: rgba(251, 191, 36, 0.07);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  box-shadow: var(--glow-amber);
+}
+
+.sig-defensive::before {
+  background: var(--yellow);
+}
+
+.sig-normal {
+  background: rgba(52, 211, 153, 0.07);
+  border: 1px solid rgba(52, 211, 153, 0.30);
+  box-shadow: var(--glow-green);
+}
+
+.sig-normal::before {
+  background: var(--green);
+}
+
+.sig-aggressive {
+  background: rgba(56, 189, 248, 0.07);
+  border: 1px solid rgba(56, 189, 248, 0.30);
+  box-shadow: var(--glow-blue);
+}
+
+.sig-aggressive::before {
+  background: var(--accent);
+}
+
+/* Card content */
+.sig-ticker {
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+}
+
+.sig-signal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-left: 10px;
+}
+
+.sig-badge-no-trade {
+  background: rgba(248, 113, 113, 0.2);
+  color: var(--red);
+  border: 1px solid var(--red);
+}
+
+.sig-badge-defensive {
+  background: rgba(251, 191, 36, 0.2);
+  color: var(--yellow);
+  border: 1px solid var(--yellow);
+}
+
+.sig-badge-normal {
+  background: rgba(52, 211, 153, 0.2);
+  color: var(--green);
+  border: 1px solid var(--green);
+}
+
+.sig-badge-aggressive {
+  background: rgba(56, 189, 248, 0.2);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.sig-price {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.sig-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.sig-value {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-md);
+}
+
+.sig-reason {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-md);
+  line-height: 1.6;
+  margin-top: 0.7rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 0.7rem;
+}
+
+.sig-action-text {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-top: 0.5rem;
+}
+
+.sig-action-no-trade {
+  color: var(--red);
+}
+
+.sig-action-defensive {
+  color: var(--yellow);
+}
+
+.sig-action-normal {
+  color: var(--green);
+}
+
+.sig-action-aggressive {
+  color: var(--accent);
+}
+
+/* ── Stat chips ──────────────────────────────────────── */
+.chip-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  color: var(--text-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip strong {
+  color: var(--text);
+}
+
+/* ── Summary metrics ─────────────────────────────────── */
+.metric-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1rem 1.2rem;
+  text-align: center;
+  backdrop-filter: blur(12px);
+  transition: border-color 0.2s;
+}
+
+.metric-card:hover {
+  border-color: var(--accent);
+}
+
+.metric-val {
+  font-size: 1.7rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  margin-top: 4px;
+}
+
+/* ── Section headers ─────────────────────────────────── */
+.section-hdr {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.8rem;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 900;
+  background: linear-gradient(120deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+}
+
+/* ── Console ─────────────────────────────────────────── */
+.console-box {
+  background: #020509;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem 1.2rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  max-height: 440px;
+  overflow-y: auto;
+  line-height: 1.8;
+}
+
+.log-INFO {
+  color: var(--accent);
+}
+
+.log-WARN {
+  color: var(--yellow);
+}
+
+.log-BLOCK {
+  color: var(--red);
+  font-weight: 700;
+}
+
+.log-ACTION {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.log-ts {
+  color: var(--muted);
+  margin-right: 8px;
+  font-size: 0.72rem;
+}
+
+/* ── Matrix cards ────────────────────────────────────── */
+.matrix-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.matrix-card:hover {
+  border-color: var(--accent);
+  box-shadow: var(--glow-blue);
+  transform: translateY(-2px);
+}
+
+.matrix-card.selected {
+  border-color: var(--green);
+  box-shadow: var(--glow-green);
+  background: rgba(52, 211, 153, 0.07);
+}
+
+.matrix-strike {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.matrix-delta {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.matrix-prem {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--green);
+}
+
+.matrix-exp {
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+/* ── Progress / misc ─────────────────────────────────── */
+.stProgress>div>div>div>div {
+  background: linear-gradient(90deg, var(--accent2), var(--accent)) !important;
+  border-radius: 4px !important;
+}
+
+.pmcc-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-b);
+  border-radius: 16px;
+  padding: 1.2rem 1.4rem;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: var(--glow-blue);
+  margin-bottom: 1rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.badge-green {
+  background: rgba(52, 211, 153, 0.15);
+  color: var(--green);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.badge-red {
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--red);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.badge-yellow {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--yellow);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+}
+
+.badge-cyan {
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--accent);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+/* pmcc-table kept for order/reports tabs */
+.pmcc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+  color: var(--text-md);
+}
+
+.pmcc-table th {
+  background: var(--panel2);
+  color: var(--accent);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+
+.pmcc-table td {
+  padding: 10px 14px;
+  text-align: center;
+  border-bottom: 1px solid rgba(26, 37, 64, 0.6);
+}
+
+.pmcc-table tr:hover td {
+  background: rgba(56, 189, 248, 0.04);
+}
+
+.pmcc-header {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+
+.pmcc-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── YouTube High-Contrast Overrides ─────────────────── */
+
+/* Force all form labels to be bright white */
+[data-testid="stWidgetLabel"] p,
+[data-testid="stWidgetLabel"] div,
+.stRadio label,
+.stCheckbox label {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Force Radio buttons / Checkbox selections to be bright */
+[data-baseweb="radio"] div {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+/* Envelop the radio selections into a cyber-pill */
+[data-testid="stRadio"]>div {
+  background: rgba(14, 21, 37, 0.7) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  padding: 10px 15px !important;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Make general markdown text slightly brighter */
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] span {
+  color: #f8fafc !important;
+}
+
+/* Card refinements for depth */
+.pmcc-card {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 15px rgba(56, 189, 248, 0.05) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
