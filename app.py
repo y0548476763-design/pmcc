@@ -1,188 +1,199 @@
 """
-app.py — GRAVITI PMCC Quant-Dashboard
-Main Streamlit entry point.
-Run with: streamlit run app.py
+app.py — PMCC NextOffice v3.0 — RTL, Clean
 """
-import asyncio
-import os
-import sys
-
-# ── AsyncIO patch for Streamlit's non-main thread ────────────────────────────
-# ib_insync/eventkit tries to get the running event loop at import time.
-# Streamlit runs scripts in a worker thread with no event loop → RuntimeError.
-# Fix: create and set a new event loop for this thread before importing ib_insync.
+import asyncio, os, time
 try:
     loop = asyncio.get_event_loop()
-    if loop.is_closed():
-        raise RuntimeError("closed")
+    if loop.is_closed(): raise RuntimeError
 except RuntimeError:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    asyncio.set_event_loop(asyncio.new_event_loop())
 
 import streamlit as st
 
-# ── Page config (must be first Streamlit call) ────────────────────────────────
 st.set_page_config(
-    page_title="מערכת ניהול PMCC · NextOffice (v1.0)",
+    page_title="PMCC NextOffice — נדל\"ן דיגיטלי",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
-# ── Load Custom CSS ───────────────────────────────────────────────────────────
-CSS_PATH = os.path.join(os.path.dirname(__file__), "ui", "styles.css")
-with open(CSS_PATH, encoding="utf-8") as f:
+# ── CSS ──
+CSS = os.path.join(os.path.dirname(__file__), "ui", "styles.css")
+with open(CSS, encoding="utf-8") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-# ── Backend imports ────────────────────────────────────────────────────────────
-import config
-from tws_client  import get_client
+import config, settings_manager
+from tws_client   import get_client
 from quant_engine import get_engine
+from ui.portfolio_tab   import render_portfolio_tab
+from ui.short_calls_tab import render_short_calls_tab
+from ui.roll_tab        import render_roll_tab
+from ui.cash_tab        import render_cash_tab
+from ui.bot_tab         import render_bot_tab
 
-# ── UI imports ────────────────────────────────────────────────────────────────
-from ui.sidebar        import render_sidebar
-from ui.portfolio_tab  import render_portfolio_tab
-from ui.matrix_tab     import render_matrix_tab
-from ui.payoff_tab     import render_payoff_tab
-from ui.theta_tab      import render_theta_tab
-from ui.console_tab    import render_console_tab
-from ui.order_tab      import render_order_tab
-from ui.reports_tab    import render_reports_tab
+# ── Session Init (with DTE calculation for Demo) ──
+def _init_positions():
+    from datetime import datetime
+    raw = list(config.DEMO_POSITIONS)
+    for p in raw:
+        if "expiry" in p and p["expiry"] != "—":
+            try:
+                exp = datetime.strptime(p["expiry"].replace("-",""), "%Y%m%d")
+                p["dte"] = (exp.date() - datetime.utcnow().date()).days
+            except: p["dte"] = 0
+        else: p["dte"] = 9999
+    return raw
 
+_DEFAULTS = {
+    "connected": False, 
+    "positions": _init_positions(),
+    "positions_source": "DEMO", 
+    "quant_results": {},
+    "console_logs": [], 
+    "tws_cash": 0.0,
+    "tws_netliq": 0.0, 
+    "tws_account_id": "—",
+    "last_live_refresh": 0,
+    "first_analysis_done": False,
+}
+for k, v in _DEFAULTS.items():
+    st.session_state.setdefault(k, v)
 
-# ── Session State Defaults ────────────────────────────────────────────────────
-def _init_session() -> None:
-    defaults = {
-        "mode":               "DEMO",
-        "connected":          False,
-        "positions":          list(config.DEMO_POSITIONS),
-        "quant_results":      {},
-        "console_logs":       [],
-        "show_panic_confirm": False,
-        "matrix_chain":       [],
-        "matrix_selected_idx": -1,
-        "escalation_mins":    config.ESCALATION_WAIT_MINUTES,
-        "delta_target":       0.30,
-        "order_ticker":       "AAPL",
-        "order_strike":       220.0,
-        "order_expiry":       "2026-04-17",
-        "order_mid":          5.00,
-        "order_ask":          5.30,
-        "order_delta":        0.30,
-    }
-    for k, v in defaults.items():
-        if k not in st.session_state:
-            st.session_state[k] = v
+if "tws"    not in st.session_state: st.session_state["tws"]    = get_client()
+if "engine" not in st.session_state: st.session_state["engine"] = get_engine()
 
+tws    = st.session_state["tws"]
+engine = st.session_state["engine"]
 
-_init_session()
+def _log(lvl, msg):
+    from datetime import datetime
+    logs = st.session_state.get("console_logs", [])
+    logs.insert(0, {"level": lvl, "msg": msg, "ts": datetime.utcnow().strftime("%H:%M:%S")})
+    st.session_state["console_logs"] = logs[:200]
 
-# ── Singletons ────────────────────────────────────────────────────────────────
-if "tws_client_instance" not in st.session_state:
-    st.session_state["tws_client_instance"] = get_client()
-if "quant_engine_instance" not in st.session_state:
-    st.session_state["quant_engine_instance"] = get_engine()
+engine.set_log_callback(_log)
+tws.set_log_callback(_log)
 
-tws    = st.session_state["tws_client_instance"]
-engine = st.session_state["quant_engine_instance"]
+# ── Auto Connect Logic ──
+if not st.session_state["connected"]:
+    # Throttled auto-connect (every 5 mins if failed)
+    if time.time() - st.session_state.get("last_auto_conn", 0) > 300:
+        st.session_state["last_auto_conn"] = time.time()
+        mode = settings_manager.get_connection_profile().get("mode", "DEMO")
+        # Try primary mode then fallback
+        modes_to_try = [mode, "DEMO" if mode == "LIVE" else "LIVE"]
+        for m in modes_to_try:
+            try:
+                if tws.connect(m):
+                    st.session_state["connected"] = True
+                    st.session_state["positions_source"] = m
+                    _log("INFO", f"✅ חיבור אוטומטי הוקם: {m}")
+                    break
+            except: pass
 
-def _engine_log_cb(level: str, msg: str):
-    import datetime
-    if "console_logs" not in st.session_state:
-        st.session_state["console_logs"] = []
-        
-    ts = datetime.datetime.utcnow().strftime("%H:%M:%S")
-    entry = {"level": level, "msg": msg, "ts": ts}
-    
-    # Prepend to the top of the list so newest is first, matching original behavior
-    st.session_state["console_logs"].insert(0, entry)
-    st.session_state["console_logs"] = st.session_state["console_logs"][:200]
-    try:
-        import json
-        with open("C:/Users/User/Desktop/pmcc1/debug_logs.json", "w", encoding="utf-8") as f:
-            json.dump(st.session_state["console_logs"][-30:], f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
-
-engine.set_log_callback(_engine_log_cb)
-tws.set_log_callback(_engine_log_cb)
-
-# ── Positions & account: pull from TWS every render when connected ─────────────
+# ── Live Data Sync ──
 if st.session_state["connected"] and tws.connected:
-    # Refresh account numbers on every render
-    tws._refresh_account()
-    st.session_state["tws_account_id"] = tws.account_id
-    st.session_state["tws_cash"]       = tws.cash_balance
-    st.session_state["tws_netliq"]     = tws.net_liquidation
+    now = time.time()
+    if now - st.session_state["last_live_refresh"] > 60:
+        try:
+            tws._refresh_account()
+            st.session_state.update({
+                "tws_account_id": tws.account_id,
+                "tws_cash":       tws.cash_balance,
+                "tws_netliq":     tws.net_liquidation,
+            })
+            live_data = tws.get_positions()
+            if live_data:
+                st.session_state["positions"] = live_data
+                st.session_state["positions_source"] = "LIVE" if tws.mode == "LIVE" else "DEMO"
+            st.session_state["last_live_refresh"] = now
+        except Exception as e:
+            _log("ERROR", f"סנכרון נכשל: {e}")
 
-    live_positions = tws.get_positions()
-    # Use live data if available; keep demo only if account is genuinely empty
-    if live_positions:
-        st.session_state["positions"] = live_positions
-    # If no positions returned (empty paper account), keep whatever is in session
+# ── Initial Analysis ──
+if not st.session_state["first_analysis_done"] and st.session_state["positions"]:
+    try:
+        wl = settings_manager.get_watchlist()
+        res = engine.analyse_portfolio(st.session_state["positions"], watchlist=wl)
+        st.session_state["quant_results"] = res
+        st.session_state["first_analysis_done"] = True
+    except: pass
 
+positions  = st.session_state["positions"]
+qr         = st.session_state.get("quant_results", {})
+bot_mode   = settings_manager.get_bot_mode()
+is_conn    = st.session_state.get("connected", False)
 
-positions     = st.session_state["positions"]
-quant_results = st.session_state.get("quant_results", {})
+# ── UI: Status Bar ──
+from datetime import datetime
+try:    from zoneinfo import ZoneInfo
+except: from backports.zoneinfo import ZoneInfo
+ny   = datetime.now(ZoneInfo("America/New_York"))
+mkt  = (ny.weekday() < 5) and (ny.replace(hour=9,minute=30,second=0) <= ny <= ny.replace(hour=16,minute=0,second=0))
+bm   = {0:"🔴 בוט כבוי", 1:"🟡 בוט מעקב", 2:"🟢 בוט פעיל"}
+src  = st.session_state.get("positions_source","DEMO")
 
-# ── Sidebar ────────────────────────────────────────────────────────────────────
-render_sidebar(tws)
+st.markdown(f"""
+<div class="status-bar">
+  <span class="brand">PMCC NextOffice</span>
+  <span class="status-chip {'online' if mkt else 'offline'}">
+    {'🟢 שוק פתוח' if mkt else '🔴 שוק סגור'} &nbsp;{ny.strftime('%H:%M')} NY
+  </span>
+  <span class="status-chip {'online' if is_conn else 'offline'}">
+    {'🟢 ' + st.session_state.get('tws_account_id','—') if is_conn else '🔴 לא מחובר'}
+  </span>
+  <span class="status-chip">📡 {src}</span>
+  <span class="status-chip {'online' if bot_mode==2 else ('warning' if bot_mode==1 else 'offline')}">
+    {bm.get(bot_mode)}
+  </span>
+  <span class="status-chip" style="margin-right:auto;color:var(--text-sm)">
+    {len(positions)} פוזיציות · {ny.strftime('%H:%M:%S')}
+  </span>
+</div>
+""", unsafe_allow_html=True)
 
-# ── Main Header ───────────────────────────────────────────────────────────────
-col_title, col_status = st.columns([6, 1])
-with col_title:
-    mode_badge = (
-        '<span class="badge badge-green" style="font-size:0.75rem;">● LIVE</span>'
-        if st.session_state["connected"]
-        else '<span class="badge badge-yellow" style="font-size:0.75rem;">● DEMO</span>'
-    )
-    n_pos = len(positions)
+# ── UI: Header ──
+bBadge = '<span class="badge badge-green">● LIVE</span>' if is_conn else '<span class="badge badge-amber">● DEMO</span>'
+c1, c2, c3 = st.columns([5, 1, 1])
+with c1:
     st.markdown(f"""
-    <div style="display:flex;align-items:center;gap:1rem;padding:0.2rem 0 1rem 0;">
-      <div>
-        <div class="page-title">מערכת ניהול PMCC — NextOffice</div>
-        <div style="font-size:0.72rem;color:#64748b;letter-spacing:0.1em;
-             text-transform:uppercase;margin-top:3px;">
-          PMCC Quant-Dashboard &nbsp; {mode_badge}
-          &nbsp; <span style="color:#475569;">{n_pos} positions loaded</span>
-        </div>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col_status:
-    if st.button("🔄 Refresh", use_container_width=True, key="global_refresh"):
+    <div class="page-header">
+      <div class="page-title">מערכת ניהול PMCC | נדל"ן דיגיטלי {bBadge}</div>
+    </div>""", unsafe_allow_html=True)
+with c2:
+    if not is_conn:
+        if st.button("🔗 חבר", key="header_connect", use_container_width=True):
+            with st.spinner("מתחבר..."):
+                if tws.connect("LIVE") or tws.connect("DEMO"):
+                    st.session_state["connected"] = True
+                    st.rerun()
+                else:
+                    st.error("חיבור נכשל")
+    else:
+        st.write("")
+with c3:
+    if st.button("🔄 רענן", key="refresh", use_container_width=True):
+        if is_conn and tws.ib: 
+            tws.ib.reqPositions()
+            tws.ib.sleep(0.5)
+        st.session_state["last_live_refresh"] = 0
         st.rerun()
 
-# ── Tabs ───────────────────────────────────────────────────────────────────────
-tab_portfolio, tab_matrix, tab_payoff, tab_theta, tab_console, tab_orders, tab_reports = \
-    st.tabs([
-        "📊 Portfolio",
-        "🎯 Matrix",
-        "📈 Payoff",
-        "⏳ Theta",
-        "🤖 Console",
-        "📤 Orders",
-        "📑 Reports",
-    ])
+# ── UI: Tabs ──
+t1, t2, t3, t4, t5 = st.tabs(["📊 פרוטפוליו", "📞 שורט קולים", "🔄 גלגול LEAPS", "💰 מזומן", "🤖 בוט"])
 
-with tab_portfolio:
-    render_portfolio_tab(positions, quant_results)
+with t1:
+    col_q, _ = st.columns([1,4])
+    with col_q:
+        if st.button("⚡ נתח תיק", type="primary", key="run_quant", use_container_width=True):
+            with st.spinner("מנתח..."):
+                wl = settings_manager.get_watchlist()
+                res = engine.analyse_portfolio(positions, watchlist=wl)
+                st.session_state["quant_results"] = res
+            st.rerun()
+    render_portfolio_tab(positions, qr)
 
-with tab_matrix:
-    render_matrix_tab()
-
-with tab_payoff:
-    render_payoff_tab(positions)
-
-with tab_theta:
-    render_theta_tab(positions)
-
-with tab_console:
-    render_console_tab(quant_engine=engine, positions=positions)
-
-with tab_orders:
-    render_order_tab(positions, tws_client=tws)
-
-with tab_reports:
-    render_reports_tab()
+with t2: render_short_calls_tab(positions, qr, tws)
+with t3: render_roll_tab(tws)
+with t4: render_cash_tab(positions, qr, tws)
+with t5: render_bot_tab(tws)

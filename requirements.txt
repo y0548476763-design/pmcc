@@ -1,7 +1,6 @@
 streamlit>=1.32.0
 ib_insync>=0.9.86
 yfinance>=0.2.36
-pandas_ta>=0.3.14b
 pandas>=2.0.0
 numpy>=1.26.0
 plotly>=5.18.0

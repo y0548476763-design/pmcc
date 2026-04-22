@@ -1,13 +1,10 @@
-"""
-db.py — Local SQLite database using stdlib sqlite3 (no external dependencies)
-"""
 import sqlite3
-import os
+import config
 from datetime import datetime
 from typing import Optional
 import pandas as pd
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pmcc_data.db")
+DB_PATH = config.DB_PATH
 
 DDL = """
 CREATE TABLE IF NOT EXISTS trades (

@@ -85,7 +85,9 @@ def render_console_tab(quant_engine=None, positions=None) -> None:
         _push_log("INFO", "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         _push_log("INFO", f"🧠 Starting analysis of {len(positions)} positions...")
 
-        results = quant_engine.analyse_portfolio(positions)
+        import settings_manager
+        wl = settings_manager.get_watchlist()
+        results = quant_engine.analyse_portfolio(positions, watchlist=wl)
         # Flush engine logs to session state
         new_entries = quant_engine.flush_logs()
         existing   = st.session_state.get("console_logs", [])

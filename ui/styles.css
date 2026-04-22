@@ -1,659 +1,474 @@
 /* ══════════════════════════════════════════════════════════
-   PMCC NextOffice — Ultra-Dark, High-Contrast Fintech Theme
-   Font: Inter from Google Fonts
+   PMCC NextOffice — עיצוב נקי, RTL, נעים
+   גרסה 3.0 | עברית מימין לשמאל
 ══════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
 
-/* ── Root Variables ─────────────────────────────────── */
+/* ── משתני צבעים ──────────────────────────────────────── */
 :root {
-  --bg: #050810;
-  /* near-black background */
-  --bg2: #090d1a;
-  --panel: #0e1525;
-  --panel2: #111c30;
-  --border: #1a2540;
-  --accent: #38bdf8;
-  /* bright sky-blue */
-  --accent2: #818cf8;
-  /* lavender */
-  --green: #34d399;
-  /* bright emerald */
-  --red: #f87171;
-  /* bright coral-red */
-  --yellow: #fbbf24;
-  /* warm amber */
-  --orange: #fb923c;
-  --text: #f1f5f9;
-  /* near-white main text */
-  --text-md: #cbd5e1;
-  /* medium text */
-  --muted: #64748b;
-  /* muted labels */
-  --glass-bg: rgba(14, 21, 37, 0.85);
-  --glass-b: rgba(56, 189, 248, 0.12);
-  --glow-blue: 0 0 28px rgba(56, 189, 248, 0.22);
-  --glow-green: 0 0 24px rgba(52, 211, 153, 0.22);
-  --glow-red: 0 0 24px rgba(248, 113, 113, 0.22);
-  --glow-amber: 0 0 24px rgba(251, 191, 36, 0.22);
+  --bg:         #0d1117;
+  --bg2:        #161b22;
+  --bg3:        #1c2333;
+  --card:       #1a2233;
+  --border:     #2d3748;
+  --border2:    #3a4a66;
+
+  --indigo:     #7c3aed;
+  --sky:        #0ea5e9;
+  --emerald:    #10b981;
+  --amber:      #f59e0b;
+  --rose:       #f43f5e;
+  --violet:     #8b5cf6;
+
+  --text:       #e2e8f0;
+  --text-md:    #a0aec0;
+  --text-sm:    #718096;
+
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  18px;
+  --radius-xl:  24px;
 }
 
-/* ── Global ─────────────────────────────────────────── */
-html,
-body,
-[class*="css"],
+/* ── בסיסי ────────────────────────────────────────────── */
+html, body, * { font-family: 'Heebo', sans-serif !important; box-sizing: border-box; }
+
 .stApp {
-  font-family: 'Inter', sans-serif !important;
-  background-color: var(--bg) !important;
+  background: var(--bg) !important;
   color: var(--text) !important;
+  direction: rtl !important;
 }
 
-/* Dynamic Radial background for Video Showcase */
-.stApp>header {
-  background: transparent !important;
-}
-
-.stApp {
-  background: radial-gradient(circle at 15% 50%, rgba(20, 30, 50, 0.6), rgba(5, 8, 16, 1) 60%) !important;
-  background-attachment: fixed !important;
-}
-
-#MainMenu,
-footer,
-header {
-  visibility: hidden;
-}
-
-.stDeployButton {
-  display: none;
-}
+.stApp > header, #MainMenu, footer { visibility: hidden !important; display: none !important; }
+.stDeployButton { display: none !important; }
 
 .main .block-container {
-  padding: 0.5rem 2rem 3rem 2rem !important;
-  max-width: 1700px !important;
-  background: var(--bg) !important;
+  padding: 0 1.5rem 4rem 1.5rem !important;
+  max-width: 1600px !important;
+  direction: rtl !important;
 }
 
-/* ── Scrollbar ──────────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+/* RTL גלובלי */
+[data-testid="stVerticalBlock"],
+[data-testid="stHorizontalBlock"],
+[data-testid="stMarkdownContainer"] {
+  direction: rtl !important;
+  text-align: right !important;
 }
 
-::-webkit-scrollbar-track {
-  background: var(--panel);
+/* שדות טקסט */
+input, textarea, select { direction: rtl !important; text-align: right !important; }
+
+/* ── סרגל מצב עליון ────────────────────────────────────── */
+.status-bar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  font-size: 0.72rem;
+  color: var(--text-sm);
+  direction: rtl;
+  position: sticky; top: 0; z-index: 100;
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--accent2);
-  border-radius: 4px;
+.status-bar .brand {
+  font-weight: 800;
+  font-size: 0.85rem;
+  background: linear-gradient(135deg, var(--sky), var(--violet));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-left: auto;
 }
 
-/* ── Sidebar ─────────────────────────────────────────── */
-[data-testid="stSidebar"] {
-  background: linear-gradient(180deg, #080f1e 0%, var(--bg) 100%) !important;
-  border-right: 1px solid var(--border) !important;
+.status-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  border-radius: 20px; padding: 2px 10px;
+  font-size: 0.7rem; font-weight: 600; color: var(--text-md);
 }
 
-[data-testid="stSidebar"] * {
-  color: var(--text) !important;
+.status-chip.online  { border-color: rgba(16,185,129,0.4); color: var(--emerald); background: rgba(16,185,129,0.08); }
+.status-chip.offline { border-color: rgba(244,63,94,0.4);  color: var(--rose);    background: rgba(244,63,94,0.08); }
+.status-chip.warning { border-color: rgba(245,158,11,0.4); color: var(--amber);   background: rgba(245,158,11,0.08); }
+
+/* ── כותרת עמוד ────────────────────────────────────────── */
+.page-header {
+  padding: 1rem 0 0.8rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.2rem;
+  direction: rtl;
 }
 
-/* ── Tabs ────────────────────────────────────────────── */
+.page-title {
+  font-size: 1.5rem; font-weight: 800; letter-spacing: -0.01em;
+  background: linear-gradient(135deg, var(--sky) 0%, var(--violet) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.page-sub {
+  font-size: 0.68rem; color: var(--text-sm);
+  letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px;
+}
+
+/* ── טאבים ─────────────────────────────────────────────── */
 .stTabs [data-baseweb="tab-list"] {
-  background: var(--panel2) !important;
-  border-radius: 14px !important;
+  background: var(--bg2) !important;
+  border-radius: var(--radius-lg) !important;
   padding: 5px !important;
-  gap: 4px !important;
+  gap: 3px !important;
   border: 1px solid var(--border) !important;
+  direction: rtl !important;
 }
 
 .stTabs [data-baseweb="tab"] {
   background: transparent !important;
-  border-radius: 10px !important;
-  color: var(--muted) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--text-sm) !important;
   font-weight: 600 !important;
   font-size: 0.82rem !important;
-  transition: all 0.2s !important;
-  padding: 6px 14px !important;
+  padding: 7px 16px !important;
+  transition: all 0.2s ease !important;
 }
+
+.stTabs [data-baseweb="tab"]:hover { color: var(--text) !important; background: rgba(255,255,255,0.04) !important; }
 
 .stTabs [aria-selected="true"] {
-  background: linear-gradient(135deg, var(--accent2), #6d28d9) !important;
+  background: linear-gradient(135deg, #1a2a5e, #2d1660) !important;
   color: #fff !important;
-  box-shadow: 0 2px 12px rgba(129, 140, 248, 0.4) !important;
+  box-shadow: 0 2px 12px rgba(124,58,237,0.3) !important;
 }
 
-.stTabs [data-baseweb="tab-panel"] {
-  background: transparent !important;
-  padding-top: 1.2rem !important;
-}
+.stTabs [data-baseweb="tab-panel"] { background: transparent !important; padding-top: 1.2rem !important; }
 
-/* ── Buttons ─────────────────────────────────────────── */
-.stButton>button {
-  background: linear-gradient(135deg, var(--accent2), #6d28d9) !important;
-  color: #fff !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 10px !important;
-  font-weight: 700 !important;
-  font-family: 'Inter', sans-serif !important;
+/* ── כפתורים ────────────────────────────────────────────── */
+.stButton > button {
+  background: var(--bg3) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  font-weight: 600 !important;
+  font-family: 'Heebo', sans-serif !important;
   font-size: 0.85rem !important;
-  letter-spacing: 0.02em !important;
   transition: all 0.2s ease !important;
-  box-shadow: 0 4px 14px rgba(109, 40, 217, 0.35) !important;
+  padding: 0.4rem 1rem !important;
 }
 
-.stButton>button:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 6px 22px rgba(109, 40, 217, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+.stButton > button:hover {
+  border-color: var(--indigo) !important;
+  background: rgba(124,58,237,0.1) !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 1px rgba(124,58,237,0.3) !important;
 }
 
-/* Primary YouTube Video Glow Button */
-.stButton>button[kind="primary"] {
-  background: linear-gradient(135deg, #0ea5e9, #6366f1) !important;
-  animation: neon-pulse 3s infinite alternate !important;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+.stButton > button[kind="primary"] {
+  background: linear-gradient(135deg, #4f1d96, #1e3a8a) !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 14px rgba(124,58,237,0.35) !important;
 }
 
-@keyframes neon-pulse {
-  0% {
-    box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
-  }
-
-  100% {
-    box-shadow: 0 0 30px rgba(99, 102, 241, 0.7);
-  }
+.stButton > button[kind="primary"]:hover {
+  box-shadow: 0 6px 20px rgba(124,58,237,0.55) !important;
+  transform: translateY(-1px) !important;
 }
 
-/* Panic */
-.panic-btn>button {
-  background: linear-gradient(135deg, #dc2626, #7f1d1d) !important;
-  box-shadow: 0 4px 20px rgba(248, 113, 113, 0.45) !important;
-  animation: panic-pulse 2s infinite !important;
-}
-
-@keyframes panic-pulse {
-
-  0%,
-  100% {
-    box-shadow: 0 4px 20px rgba(248, 113, 113, 0.45);
-  }
-
-  50% {
-    box-shadow: 0 4px 32px rgba(248, 113, 113, 0.85);
-  }
-}
-
-/* ── Inputs ──────────────────────────────────────────── */
-.stSelectbox>div>div,
-.stNumberInput>div>div>input,
-.stTextInput>div>div>input {
-  background: var(--panel2) !important;
+/* ── Inputs ─────────────────────────────────────────────── */
+.stSelectbox > div > div,
+.stNumberInput > div > div > input,
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea {
+  background: var(--bg2) !important;
   border: 1px solid var(--border) !important;
   color: var(--text) !important;
-  border-radius: 9px !important;
-  font-size: 0.9rem !important;
+  border-radius: var(--radius-sm) !important;
+  direction: rtl !important;
 }
 
-.stSelectbox>div>div:focus-within,
-.stNumberInput>div>div>input:focus {
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25) !important;
+.stSelectbox > div > div:focus-within,
+.stNumberInput > div > div > input:focus,
+.stTextInput > div > div > input:focus {
+  border-color: var(--indigo) !important;
+  box-shadow: 0 0 0 2px rgba(124,58,237,0.2) !important;
+  outline: none !important;
 }
 
-/* ── Signal Cards (the new portfolio cards) ────────── */
-.sig-card {
-  border-radius: 18px;
-  padding: 1.3rem 1.5rem;
-  margin-bottom: 0.5rem;
+/* Labels */
+[data-testid="stWidgetLabel"] p,
+[data-testid="stWidgetLabel"] div,
+.stRadio label, .stCheckbox label {
+  color: var(--text-md) !important;
+  font-weight: 500 !important;
+  font-size: 0.82rem !important;
+  direction: rtl !important;
+}
+
+/* ── Expander ────────────────────────────────────────────── */
+[data-testid="stExpander"] {
+  background: var(--bg2) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  direction: rtl !important;
+}
+
+[data-testid="stExpander"] summary {
+  color: var(--text-md) !important;
+  font-weight: 600 !important;
+  font-size: 0.82rem !important;
+  direction: rtl !important;
+}
+
+/* ── כרטיסי LEAPS ────────────────────────────────────────── */
+.leaps-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.2rem 1.4rem;
+  direction: rtl;
   position: relative;
+  transition: border-color 0.2s, box-shadow 0.2s;
   overflow: hidden;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
 }
 
-.sig-card:hover {
-  transform: translateY(-3px);
-}
-
-.sig-card::before {
+.leaps-card::before {
   content: '';
   position: absolute;
-  inset: 0;
-  border-radius: 18px;
-  opacity: 0.06;
-  pointer-events: none;
+  top: 0; right: 0;
+  width: 4px; height: 100%;
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
 }
 
-/* Color variants */
-.sig-no-trade {
-  background: rgba(248, 113, 113, 0.08);
-  border: 1px solid rgba(248, 113, 113, 0.35);
-  box-shadow: var(--glow-red);
+.leaps-card.covered::before   { background: var(--emerald); }
+.leaps-card.uncovered::before { background: var(--amber);   }
+.leaps-card.hot::before       { background: var(--rose);    }
+
+.leaps-card:hover { border-color: var(--border2); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+
+.leaps-ticker {
+  font-size: 1.5rem; font-weight: 900; color: #fff;
+  letter-spacing: -0.02em; margin-bottom: 2px;
 }
 
-.sig-no-trade::before {
-  background: var(--red);
+.leaps-type-badge {
+  display: inline-block; font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 6px; margin-bottom: 10px;
 }
 
-.sig-defensive {
-  background: rgba(251, 191, 36, 0.07);
-  border: 1px solid rgba(251, 191, 36, 0.35);
-  box-shadow: var(--glow-amber);
+.leaps-type-badge.leaps-badge { background: rgba(14,165,233,0.12); color: var(--sky); border: 1px solid rgba(14,165,233,0.2); }
+.leaps-type-badge.short-badge { background: rgba(139,92,246,0.12); color: var(--violet); border: 1px solid rgba(139,92,246,0.2); }
+
+/* מד דלתא ויזואלי */
+.delta-meter {
+  width: 100%;
+  height: 6px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 8px 0;
+  direction: ltr;
 }
 
-.sig-defensive::before {
-  background: var(--yellow);
+.delta-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
 }
 
-.sig-normal {
-  background: rgba(52, 211, 153, 0.07);
-  border: 1px solid rgba(52, 211, 153, 0.30);
-  box-shadow: var(--glow-green);
+/* ── כרטיסי KPI ──────────────────────────────────────────── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.8rem;
+  margin-bottom: 1.2rem;
+  direction: rtl;
 }
 
-.sig-normal::before {
-  background: var(--green);
-}
-
-.sig-aggressive {
-  background: rgba(56, 189, 248, 0.07);
-  border: 1px solid rgba(56, 189, 248, 0.30);
-  box-shadow: var(--glow-blue);
-}
-
-.sig-aggressive::before {
-  background: var(--accent);
-}
-
-/* Card content */
-.sig-ticker {
-  font-size: 2rem;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  color: #ffffff;
-  font-family: 'Inter', sans-serif;
-}
-
-.sig-signal-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  margin-left: 10px;
-}
-
-.sig-badge-no-trade {
-  background: rgba(248, 113, 113, 0.2);
-  color: var(--red);
-  border: 1px solid var(--red);
-}
-
-.sig-badge-defensive {
-  background: rgba(251, 191, 36, 0.2);
-  color: var(--yellow);
-  border: 1px solid var(--yellow);
-}
-
-.sig-badge-normal {
-  background: rgba(52, 211, 153, 0.2);
-  color: var(--green);
-  border: 1px solid var(--green);
-}
-
-.sig-badge-aggressive {
-  background: rgba(56, 189, 248, 0.2);
-  color: var(--accent);
-  border: 1px solid var(--accent);
-}
-
-.sig-price {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
-.sig-label {
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 2px;
-}
-
-.sig-value {
-  font-size: 0.88rem;
-  font-weight: 500;
-  color: var(--text-md);
-}
-
-.sig-reason {
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--text-md);
-  line-height: 1.6;
-  margin-top: 0.7rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding-top: 0.7rem;
-}
-
-.sig-action-text {
-  font-size: 0.9rem;
-  font-weight: 700;
-  margin-top: 0.5rem;
-}
-
-.sig-action-no-trade {
-  color: var(--red);
-}
-
-.sig-action-defensive {
-  color: var(--yellow);
-}
-
-.sig-action-normal {
-  color: var(--green);
-}
-
-.sig-action-aggressive {
-  color: var(--accent);
-}
-
-/* ── Stat chips ──────────────────────────────────────── */
-.chip-row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 0.5rem;
-}
-
-.chip {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 4px 10px;
-  font-size: 0.75rem;
-  color: var(--text-md);
-  font-variant-numeric: tabular-nums;
-}
-
-.chip strong {
-  color: var(--text);
-}
-
-/* ── Summary metrics ─────────────────────────────────── */
-.metric-card {
-  background: var(--glass-bg);
+.kpi-card {
+  background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   padding: 1rem 1.2rem;
-  text-align: center;
-  backdrop-filter: blur(12px);
+  text-align: right;
+  direction: rtl;
   transition: border-color 0.2s;
 }
 
-.metric-card:hover {
-  border-color: var(--accent);
+.kpi-card:hover { border-color: var(--border2); }
+
+.kpi-label {
+  font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-sm); margin-bottom: 6px;
 }
 
-.metric-val {
-  font-size: 1.7rem;
-  font-weight: 800;
+.kpi-val {
+  font-size: 1.7rem; font-weight: 800;
+  color: #fff; line-height: 1.1;
   font-variant-numeric: tabular-nums;
+}
+
+.kpi-sub {
+  font-size: 0.65rem; color: var(--text-sm); margin-top: 3px;
+}
+
+/* ── Section Headers ─────────────────────────────────────── */
+.sec-hdr {
+  font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-sm); padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.9rem; direction: rtl; text-align: right;
+}
+
+/* ── Alert Cards ─────────────────────────────────────────── */
+.alert-card {
+  border-radius: var(--radius-md);
+  padding: 0.8rem 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.82rem;
   color: var(--text);
-  margin-top: 4px;
+  line-height: 1.6;
+  direction: rtl; text-align: right;
+  display: flex; align-items: flex-start; gap: 8px;
 }
 
-/* ── Section headers ─────────────────────────────────── */
-.section-hdr {
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 0.8rem;
+.alert-card.info    { background: rgba(14,165,233,0.06);  border-right: 3px solid var(--sky);     border: 1px solid rgba(14,165,233,0.15); }
+.alert-card.success { background: rgba(16,185,129,0.06);  border-right: 3px solid var(--emerald); border: 1px solid rgba(16,185,129,0.15); }
+.alert-card.warning { background: rgba(245,158,11,0.06);  border-right: 3px solid var(--amber);   border: 1px solid rgba(245,158,11,0.15); }
+.alert-card.danger  { background: rgba(244,63,94,0.06);   border-right: 3px solid var(--rose);    border: 1px solid rgba(244,63,94,0.15);  }
+
+/* ── Tank Bar ────────────────────────────────────────────── */
+.tank-wrap { background: rgba(255,255,255,0.04); border-radius: 999px; height: 12px; overflow: hidden; border: 1px solid var(--border); }
+.tank-fill { height: 100%; border-radius: 999px; transition: width 0.6s ease; }
+
+/* ── Badge ───────────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 9px; border-radius: 20px;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em;
 }
 
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 900;
-  background: linear-gradient(120deg, var(--accent), var(--accent2));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.02em;
-}
+.badge-sky    { background: rgba(14,165,233,0.12); color: var(--sky);     border: 1px solid rgba(14,165,233,0.25); }
+.badge-green  { background: rgba(16,185,129,0.12); color: var(--emerald); border: 1px solid rgba(16,185,129,0.25); }
+.badge-amber  { background: rgba(245,158,11,0.12); color: var(--amber);   border: 1px solid rgba(245,158,11,0.25); }
+.badge-rose   { background: rgba(244,63,94,0.12);  color: var(--rose);    border: 1px solid rgba(244,63,94,0.25);  }
+.badge-violet { background: rgba(139,92,246,0.12); color: var(--violet);  border: 1px solid rgba(139,92,246,0.25); }
 
-/* ── Console ─────────────────────────────────────────── */
-.console-box {
-  background: #020509;
+/* ── ה-Console ───────────────────────────────────────────── */
+.log-box {
+  background: #0a0e16;
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 1rem 1.2rem;
+  border-radius: var(--radius-md);
+  padding: 1rem;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.8rem;
-  max-height: 440px;
+  font-size: 0.76rem;
+  max-height: 420px;
   overflow-y: auto;
-  line-height: 1.8;
+  line-height: 1.9;
+  direction: rtl; text-align: right;
 }
 
-.log-INFO {
-  color: var(--accent);
-}
+.log-ts     { color: var(--text-sm); font-size: 0.65rem; margin-left: 8px; }
+.log-INFO   { color: var(--sky); }
+.log-ACTION { color: var(--emerald); font-weight: 600; }
+.log-WARN   { color: var(--amber); }
+.log-BLOCK  { color: var(--rose); font-weight: 700; }
 
-.log-WARN {
-  color: var(--yellow);
-}
-
-.log-BLOCK {
-  color: var(--red);
-  font-weight: 700;
-}
-
-.log-ACTION {
-  color: var(--green);
-  font-weight: 700;
-}
-
-.log-ts {
-  color: var(--muted);
-  margin-right: 8px;
-  font-size: 0.72rem;
-}
-
-/* ── Matrix cards ────────────────────────────────────── */
-.matrix-card {
-  background: var(--glass-bg);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 1.1rem;
+/* ── Bot Mode Cards ──────────────────────────────────────── */
+.bot-card {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.2rem;
   text-align: center;
+  direction: rtl;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.matrix-card:hover {
-  border-color: var(--accent);
-  box-shadow: var(--glow-blue);
-  transform: translateY(-2px);
+.bot-card:hover { transform: translateY(-2px); }
+.bot-card.mode-off     { border-color: rgba(244,63,94,0.5);  background: rgba(244,63,94,0.05);  }
+.bot-card.mode-monitor { border-color: rgba(245,158,11,0.5); background: rgba(245,158,11,0.05); }
+.bot-card.mode-execute { border-color: rgba(16,185,129,0.5); background: rgba(16,185,129,0.05); }
+
+/* ── Streamlit Progress ──────────────────────────────────── */
+.stProgress > div > div > div > div {
+  background: linear-gradient(90deg, var(--indigo), var(--sky)) !important;
 }
 
-.matrix-card.selected {
-  border-color: var(--green);
-  box-shadow: var(--glow-green);
-  background: rgba(52, 211, 153, 0.07);
+/* ── Sidebar ─────────────────────────────────────────────── */
+[data-testid="stSidebar"] {
+  background: var(--bg2) !important;
+  border-left: 1px solid var(--border) !important;
+  direction: rtl !important;
 }
 
-.matrix-strike {
-  font-size: 1.4rem;
-  font-weight: 800;
-  color: var(--text);
+/* ── Divider ─────────────────────────────────────────────── */
+hr { border-color: var(--border) !important; margin: 0.8rem 0 !important; }
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ── Grid helper ─────────────────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.8rem; }
+
+/* ── Pairs display ───────────────────────────────────────── */
+.pair-row {
+  display: flex; gap: 8px; align-items: stretch;
+  margin-bottom: 0.7rem; direction: rtl;
 }
 
-.matrix-delta {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--accent);
+.pair-chip {
+  flex: 1;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.8rem;
+  font-size: 0.75rem;
+  direction: rtl; text-align: right;
 }
 
-.matrix-prem {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--green);
-}
+/* ── Pulse dot ───────────────────────────────────────────── */
+.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
+.dot-green  { background: var(--emerald); animation: pulse-g 2s infinite; }
+.dot-red    { background: var(--rose);    }
+.dot-amber  { background: var(--amber);   animation: pulse-a 2s infinite; }
 
-.matrix-exp {
-  font-size: 0.7rem;
-  color: var(--muted);
-}
+@keyframes pulse-g { 0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,0.5);} 50%{box-shadow:0 0 0 5px rgba(16,185,129,0);} }
+@keyframes pulse-a { 0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,0.5);} 50%{box-shadow:0 0 0 5px rgba(245,158,11,0);} }
 
-/* ── Progress / misc ─────────────────────────────────── */
-.stProgress>div>div>div>div {
-  background: linear-gradient(90deg, var(--accent2), var(--accent)) !important;
-  border-radius: 4px !important;
-}
-
-.pmcc-card {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-b);
-  border-radius: 16px;
-  padding: 1.2rem 1.4rem;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: var(--glow-blue);
-  margin-bottom: 1rem;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-}
-
-.badge-green {
-  background: rgba(52, 211, 153, 0.15);
-  color: var(--green);
-  border: 1px solid rgba(52, 211, 153, 0.35);
-}
-
-.badge-red {
-  background: rgba(248, 113, 113, 0.15);
-  color: var(--red);
-  border: 1px solid rgba(248, 113, 113, 0.35);
-}
-
-.badge-yellow {
-  background: rgba(251, 191, 36, 0.15);
-  color: var(--yellow);
-  border: 1px solid rgba(251, 191, 36, 0.35);
-}
-
-.badge-cyan {
-  background: rgba(56, 189, 248, 0.15);
-  color: var(--accent);
-  border: 1px solid rgba(56, 189, 248, 0.35);
-}
-
-/* pmcc-table kept for order/reports tabs */
-.pmcc-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.84rem;
-  color: var(--text-md);
-}
-
-.pmcc-table th {
-  background: var(--panel2);
-  color: var(--accent);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding: 9px 14px;
-  border-bottom: 1px solid var(--border);
-  text-align: center;
-}
-
-.pmcc-table td {
-  padding: 10px 14px;
-  text-align: center;
-  border-bottom: 1px solid rgba(26, 37, 64, 0.6);
-}
-
-.pmcc-table tr:hover td {
-  background: rgba(56, 189, 248, 0.04);
-}
-
-.pmcc-header {
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 0.5rem;
-}
-
-.pmcc-title {
-  font-size: 1.4rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ── YouTube High-Contrast Overrides ─────────────────── */
-
-/* Force all form labels to be bright white */
-[data-testid="stWidgetLabel"] p,
-[data-testid="stWidgetLabel"] div,
-.stRadio label,
-.stCheckbox label {
-  color: #ffffff !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.03em !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8) !important;
-}
-
-/* Force Radio buttons / Checkbox selections to be bright */
-[data-baseweb="radio"] div {
-  color: #ffffff !important;
-  font-weight: 600 !important;
-}
-
-/* Envelop the radio selections into a cyber-pill */
-[data-testid="stRadio"]>div {
-  background: rgba(14, 21, 37, 0.7) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: 12px !important;
-  padding: 10px 15px !important;
-  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3) !important;
-}
-
-/* Make general markdown text slightly brighter */
-[data-testid="stMarkdownContainer"] p,
-[data-testid="stMarkdownContainer"] span {
-  color: #f8fafc !important;
-}
-
-/* Card refinements for depth */
-.pmcc-card {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 15px rgba(56, 189, 248, 0.05) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-left: 1px solid rgba(255, 255, 255, 0.04) !important;
-}
+/* ── Legacy aliases (portfolio position cards) ───────────────── */
+.sig-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.2rem 1.4rem; margin-bottom: 0.9rem; direction: rtl; }
+.sig-ticker { font-size: 1.5rem; font-weight: 900; color: #fff; letter-spacing: -0.02em; }
+.sig-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-sm); }
+.sig-price { font-size: 1.1rem; font-weight: 800; }
+.sig-reason { font-size: 0.78rem; color: var(--text-md); margin-top: 0.6rem; }
+.sig-action-text { font-size: 0.78rem; font-weight: 600; margin-top: 4px; }
+.sig-signal-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1px solid; }
+.sig-badge-no-trade  { color: #f43f5e; border-color: rgba(244,63,94,0.3);  background: rgba(244,63,94,0.08); }
+.sig-badge-defensive { color: #f59e0b; border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.08); }
+.sig-badge-normal    { color: #10b981; border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); }
+.sig-badge-aggressive{ color: #0ea5e9; border-color: rgba(14,165,233,0.3); background: rgba(14,165,233,0.08); }
+.sig-action-no-trade   { color: #f43f5e; }
+.sig-action-defensive  { color: #f59e0b; }
+.sig-action-normal     { color: #10b981; }
+.sig-action-aggressive { color: #0ea5e9; }
+.sig-no-trade   { border-right: 4px solid #f43f5e !important; }
+.sig-defensive  { border-right: 4px solid #f59e0b !important; }
+.sig-normal     { border-right: 4px solid #10b981 !important; }
+.sig-aggressive { border-right: 4px solid #0ea5e9 !important; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; direction: rtl; }
+.chip { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 20px; padding: 2px 10px; font-size: 0.72rem; color: var(--text-md); }
+.chip strong { color: var(--text-sm); }
+.metric-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 0.8rem 1rem; }
+.metric-val { font-size: 1.4rem; font-weight: 800; }
+.market-status-bar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0.45rem 1.4rem; display: flex; align-items: center; gap: 0.8rem; font-size: 0.72rem; color: var(--text-sm); direction: rtl; position: sticky; top: 0; z-index: 100; }
+.market-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.3); color: #10b981; }
+.market-pill.closed { background: rgba(244,63,94,0.08); border-color: rgba(244,63,94,0.3); color: #f43f5e; }

@@ -32,6 +32,8 @@ class ManagedOrder:
     filled_price:  Optional[float] = None
     order_type:    str = "LMT"
     escalation_count: int = 0
+    is_combo:      bool = False
+    legs:          List[Dict] = field(default_factory=list)
 
 
 class OrderManager:
@@ -77,7 +79,8 @@ class OrderManager:
     def submit_order(self, ticker: str, right: str, strike: float, expiry: str,
                      action: str, qty: int, limit_price: float, escalation_step_pct: float,
                      algo_speed: str = "Normal", escalation_wait_mins: int = 1,
-                     order_type: str = "LMT") -> str:
+                     order_type: str = "LMT", is_combo: bool = False, legs: List[Dict] = None,
+                     tif: str = "DAY") -> str:
         """
         Submit a new order.
         For BUY:  limit_price increases by escalation_step_pct every N minutes.
@@ -90,17 +93,28 @@ class OrderManager:
         order_id = None
         initial_status = "PENDING"
         if self._tws and getattr(self._tws, "ib", None) and self._tws.ib.isConnected():
-            order_id = self._tws.place_adaptive_order(
-                action=action,
-                qty=qty,
-                ticker=ticker,
-                right=right,
-                strike=strike,
-                expiry=expiry,
-                limit_price=limit_price,
-                algo_speed=algo_speed,
-                order_type=order_type
-            )
+            if is_combo and legs:
+                order_id = self._tws.place_combo_order(
+                    ticker=ticker,
+                    legs=legs,
+                    action=action,
+                    qty=qty,
+                    limit_price=limit_price,
+                    tif=tif
+                )
+            else:
+                order_id = self._tws.place_adaptive_order(
+                    action=action,
+                    qty=qty,
+                    ticker=ticker,
+                    right=right,
+                    strike=strike,
+                    expiry=expiry,
+                    limit_price=limit_price,
+                    algo_speed=algo_speed,
+                    order_type=order_type,
+                    tif=tif
+                )
             if order_id is None:
                 initial_status = "REJECTED"
 
@@ -118,7 +132,9 @@ class OrderManager:
             status=initial_status,
             escalation_count=0,
             submitted_at=datetime.utcnow(),
-            order_type=order_type
+            order_type=order_type,
+            is_combo=is_combo,
+            legs=legs or []
         )
         # Store custom properties required for our escalation logic
         mo.__dict__["_escalation_step_pct"] = escalation_step_pct
@@ -196,34 +212,37 @@ class OrderManager:
         """Modifies the order natively in TWS with the new stepped price."""
         step_pct = mo.__dict__.get("_escalation_step_pct", 1.0) / 100.0
         
+        # Logic for combo spreads: 
+        # If BUY (debit), we increase the price we are willing to pay.
+        # If SELL (credit), we decrease the price we are demanding.
         if mo.action == "BUY":
             escalation_price = mo.current_price * (1.0 + step_pct)
         else:
             escalation_price = mo.current_price * (1.0 - step_pct)
             
-        escalation_price = max(0.01, round(escalation_price, 2))
+        escalation_price = max(0.01, round(escalation_price, 2)) if not mo.is_combo else round(escalation_price, 2)
 
         wait_mins = mo.__dict__.get("_escalation_wait_mins", config.ESCALATION_WAIT_MINUTES)
+        order_label = "Combo" if mo.is_combo else "LMT"
 
         self._log(
             "WARN",
-            f"⏱️  Order {internal_id} unfilled after "
-            f"{wait_mins}min → Escalating (+{step_pct*100:.1f}%) "
+            f"⏱️ {order_label} Order {internal_id} unfilled after "
+            f"{wait_mins}min → Escalating ({'spread' if mo.is_combo else ''} {step_pct*100:.1f}%) "
             f"(${mo.current_price:.2f} → ${escalation_price:.2f})"
         )
 
         # Attempt native modification if live
         modified = False
         if self._tws and mo.order_id and getattr(self._tws, "ib", None) and self._tws.ib.isConnected():
+            # For combos, modify_order works the same (updates the limit price of the Bag order)
             modified = self._tws.modify_order(mo.order_id, escalation_price)
         
-        # If native modification failed/unavailable or it's DEMO, we still track it internally
         if not modified:
             self._log("WARN", f"Order {internal_id} native modification failed (or DEMO mode). Tracking artificially.")
 
         with self._lock:
             mo.status = "ESCALATED"
-            # Keep the old order_id because we modified it natively
             mo.current_price = escalation_price
             mo.escalated_at = datetime.utcnow()
             mo.escalation_count += 1

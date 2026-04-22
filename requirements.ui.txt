@@ -1,0 +1,15 @@
+# PMCC Dashboard — UI-only requirements for Cloud Run
+# These are the ONLY packages needed to render the Streamlit dashboard
+# Heavy packages like ib_insync are still included because tws_client imports them
+streamlit>=1.40.0
+ib_insync>=0.9.86
+pandas>=2.0.0
+numpy>=1.26.0
+plotly>=5.18.0
+yfinance>=0.2.36
+openpyxl>=3.1.2
+fpdf2>=2.7.9
+sqlalchemy>=2.0.0
+scipy>=1.12.0
+python-dateutil>=2.8.2
+requests>=2.31.0

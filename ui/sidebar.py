@@ -39,7 +39,7 @@ def render_sidebar(tws_client) -> None:
 
         col_a, col_b = st.columns(2)
         with col_a:
-            if st.button("🔗 Connect", use_container_width=True):
+            if st.button("🔗 Connect", width='stretch'):
                 with st.spinner("Connecting..."):
                     ok = tws_client.connect(mode)
                     st.session_state["connected"] = ok
@@ -52,7 +52,7 @@ def render_sidebar(tws_client) -> None:
                         st.rerun()
                     # If not ok: stays in demo, no rerun needed
         with col_b:
-            if st.button("⏏ Disconnect", use_container_width=True):
+            if st.button("⏏ Disconnect", width='stretch'):
                 tws_client.disconnect()
                 st.session_state["connected"] = False
                 st.session_state.pop("tws_account_id", None)
@@ -61,8 +61,6 @@ def render_sidebar(tws_client) -> None:
                 st.session_state["positions"] = list(config.DEMO_POSITIONS)
                 st.rerun()
 
-        # Connection status badge
-        # Verify true socket connectivity rather than stale session state
         is_socket_connected = getattr(tws_client, "ib", None) is not None and tws_client.ib.isConnected()
         connected = st.session_state.get("connected", False) and is_socket_connected
         status_html = (
@@ -70,8 +68,36 @@ def render_sidebar(tws_client) -> None:
             if connected else
             '<span class="badge badge-yellow">● DEMO</span>'
         )
-        st.markdown(status_html, unsafe_allow_html=True)
-        st.markdown("")
+
+        st.markdown(f'<div style="margin-bottom:1rem;">{status_html}</div>', unsafe_allow_html=True)
+
+        # ── Remote Management (GCP Bridge) ───────────────────────────────────
+        if config.REMOTE_TWS_HOST:
+            st.markdown('<div class="pmcc-header">🌐 Remote IB Gateway</div>', unsafe_allow_html=True)
+            
+            # Restart/Initialize Button
+            if st.button("🔄 Restart & Login", width='stretch', help="אתחול השרת המרוחק כדי להתחיל תהליך התחברות חדש"):
+                with st.spinner("Mailing restart request to GCP..."):
+                    if tws_client.restart_remote_gateway():
+                        st.success("שרת אותחל. המתן לקוד 2FA בטלפון.")
+                    else:
+                        st.error("כשל באיתחול השרת.")
+
+            # 2FA Entry
+            code_2fa = st.text_input("GCP 2FA Code", placeholder="הזן קוד (למשל 123456)", help="הזן את הקוד שקיבלת ב-SMS/Push")
+            if st.button("💉 Inject Code", width='stretch', type="primary"):
+                if code_2fa:
+                    with st.spinner("Injecting code to GCP via Secure Tunnel..."):
+                        if tws_client.inject_remote_2fa(code_2fa):
+                            st.success("הקוד הופקד בשרת. נסה להתחבר כעת.")
+                            # Optionally wait and try to auto-connect
+                            st.toast("מזרים פקודת חיבור...")
+                        else:
+                            st.error("הזרקת קוד נכשלה.")
+                else:
+                    st.warning("נא להזין קוד לפני ההזרקה.")
+            
+            st.markdown('<hr style="border-color:#1a2540; margin:1rem 0;">', unsafe_allow_html=True)
 
         # ── Account Summary ───────────────────────────────────────────────────
         st.markdown('<div class="pmcc-header">💼 Account</div>',
@@ -111,14 +137,11 @@ def render_sidebar(tws_client) -> None:
 
         # ── Settings ──────────────────────────────────────────────────────────
         with st.expander("⚙️ Settings", expanded=False):
-            st.session_state["escalation_mins"] = st.slider(
-                "Escalation wait (min)", 1, 15,
-                st.session_state.get("escalation_mins", config.ESCALATION_WAIT_MINUTES)
-            )
             st.session_state["delta_target"] = st.slider(
-                "Default delta target", 0.05, 0.50,
+                "Default delta target (Short Calls)", 0.05, 0.50,
                 st.session_state.get("delta_target", 0.30), step=0.05
             )
+            st.caption("הגדרות אסלמה לגלגול ליפסים — בטאב 🔄 Roll")
 
         st.markdown('<hr style="border-color:#1e293b;">', unsafe_allow_html=True)
 
@@ -127,7 +150,7 @@ def render_sidebar(tws_client) -> None:
                     unsafe_allow_html=True)
         st.markdown('<div class="panic-btn">', unsafe_allow_html=True)
 
-        if st.button("💀  PANIC — CLOSE ALL", use_container_width=True,
+        if st.button("💀  PANIC — CLOSE ALL", width='stretch',
                      type="primary"):
             st.session_state["show_panic_confirm"] = True
 
@@ -137,7 +160,7 @@ def render_sidebar(tws_client) -> None:
             st.warning("⚠️ This will close ALL option positions at market price!")
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("✅ CONFIRM", use_container_width=True):
+                if st.button("✅ CONFIRM", width='stretch'):
                     n = tws_client.panic_close_all()
                     if n == 0:
                         st.error("BLOCKED — Demo mode (no real orders sent)")
@@ -150,7 +173,7 @@ def render_sidebar(tws_client) -> None:
                             f"🚨 PANIC: Closed {n} position(s) at market.")
                     st.session_state["show_panic_confirm"] = False
             with col2:
-                if st.button("❌ Cancel", use_container_width=True):
+                if st.button("❌ Cancel", width='stretch'):
                     st.session_state["show_panic_confirm"] = False
 
         # ── App version ───────────────────────────────────────────────────────

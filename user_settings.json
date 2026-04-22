@@ -1,0 +1,73 @@
+{
+    "external_cash": 20000.0,
+    "bot_active": true,
+    "bot_mode": 1,
+    "portfolio_DEMO": {
+        "positions": [
+            {
+                "ticker": "GOOGL",
+                "type": "SHORT_CALL",
+                "strike": 365.0,
+                "expiry": "20260515",
+                "qty": -2,
+                "delta": 0.0,
+                "cost_basis": 199.58465,
+                "current_price": 3.65047265,
+                "premium_received": 0.0,
+                "underlying_price": -730.09
+            },
+            {
+                "ticker": "GOOGL",
+                "type": "LEAPS",
+                "strike": 200.0,
+                "expiry": "20280616",
+                "qty": 2,
+                "delta": 0.0,
+                "cost_basis": 16750.55795,
+                "current_price": 162.30108645,
+                "premium_received": 0.0,
+                "underlying_price": 32460.22
+            },
+            {
+                "ticker": "META",
+                "type": "SHORT_CALL",
+                "strike": 795.0,
+                "expiry": "20260522",
+                "qty": -2,
+                "delta": 0.0,
+                "cost_basis": 344.22165,
+                "current_price": 3.7515683,
+                "premium_received": 0.0,
+                "underlying_price": -750.31
+            },
+            {
+                "ticker": "META",
+                "type": "LEAPS",
+                "strike": 490.0,
+                "expiry": "20280616",
+                "qty": 1,
+                "delta": 0.0,
+                "cost_basis": 27600.768,
+                "current_price": 272.0706482,
+                "premium_received": 0.0,
+                "underlying_price": 27207.06
+            }
+        ],
+        "updated_at": "2026-04-22T07:34:51.681881"
+    },
+    "watchlist": [
+        "AAPL",
+        "MSFT",
+        "GOOGL",
+        "AMZN",
+        "META",
+        "NVDA",
+        "QQQ",
+        "ASML",
+        "QQQM"
+    ],
+    "rules": {
+        "dip_trigger_a_pct": 20,
+        "dip_trigger_b_pct": 30
+    }
+}

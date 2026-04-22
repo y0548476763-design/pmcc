@@ -5,6 +5,10 @@ import asyncio
 import logging
 from typing import List, Dict, Optional, Callable
 from datetime import datetime
+import subprocess
+import os
+import requests
+import streamlit as st
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +16,7 @@ logger = logging.getLogger(__name__)
 try:
     from ib_insync import (
         IB, Contract, Option, Stock, LimitOrder, MarketOrder,
-        PortfolioItem, Position, Order, Trade
+        PortfolioItem, Position, Order, Trade, ComboLeg, Bag
     )
     IB_AVAILABLE = True
 except ImportError:
@@ -61,54 +65,39 @@ class TWSClient:
         if self._log_callback:
             self._log_callback(level, msg)
 
-    def connect(self, mode: str = "DEMO") -> bool:
+    def connect(self, mode: str = "DEMO", host: str = "127.0.0.1", port: int = None, client_id: int = None, timeout: int = 3) -> bool:
         """Try to connect to TWS. Returns True if successful."""
         if not IB_AVAILABLE:
-            self._log("WARN", "ib_insync not installed. Staying in Demo mode.")
+            self._log("WARN", "⚠️ ספריית ib_insync לא מותקנת. המערכת תישאר במצב DEMO בלבד.")
             return False
 
-        # Always cleanly tear down any previous connection first
+        if self.connected and self.mode == mode and self.ib and self.ib.isConnected():
+            return True
+
         if self.ib is not None:
-            try:
-                self.ib.disconnect()
-            except Exception:
-                pass
+            try: self.ib.disconnect()
+            except: pass
             self.ib = None
             self.connected = False
 
         self.mode = mode
-        port = config.TWS_PORT_DEMO if mode == "DEMO" else config.TWS_PORT_LIVE
+        port = port or (config.TWS_PORT_DEMO if mode == "DEMO" else config.TWS_PORT_LIVE)
+        host = host or (config.REMOTE_TWS_HOST if config.REMOTE_TWS_HOST else config.TWS_HOST)
+        cid  = client_id or config.TWS_CLIENT_ID
 
-        # Try clientIds 42, 43, 44, 45, 46 in case a previous session is still holding one
-        base_id = config.TWS_CLIENT_ID
-        for attempt, cid in enumerate(range(base_id, base_id + 5)):
-            try:
-                self.ib = IB()
-                self.ib.connect(config.TWS_HOST, port, clientId=cid,
-                                timeout=8, readonly=False)
-                self.connected = True
-                # Critical: Pull all active TWS orders into memory so modify_order works after reconnect!
-                self.ib.reqAllOpenOrders()
-                self.ib.sleep(0.5)
-                self._refresh_account()
-                self._log("INFO",
-                          f"✅ Connected to TWS [{mode}] on port {port} "
-                          f"(clientId={cid}). Account: {self.account_id}")
-                return True
-            except Exception as e:
-                err_str = str(e)
-                self._log("WARN",
-                          f"⚠️  Connect attempt {attempt+1} (clientId={cid}): {err_str}")
-                try:
-                    self.ib.disconnect()
-                except Exception:
-                    pass
-                self.ib = None
-                # If it's not a clientId conflict, don't retry
-                if "clientId" not in err_str.lower() and attempt > 0:
-                    break
-
-        self._log("WARN", "❌ All TWS connect attempts failed → Demo mode active.")
+        # For auto-connect, we only try once and with a short timeout to prevent UI hang
+        try:
+            self.ib = IB()
+            self.ib.connect(host, port, clientId=cid, timeout=timeout)
+            self.connected = True
+            self.ib.reqAllOpenOrders()
+            self.ib.sleep(0.2)
+            self._refresh_account()
+            self._log("INFO", f"✅ חיבור הוקם: {mode} @ {host}:{port}")
+            return True
+        except Exception as e:
+            self._log("WARN", f"חיבור ל-{mode} נכשל: {e}")
+        
         self.connected = False
         return False
 
@@ -116,70 +105,105 @@ class TWSClient:
         if self.ib and self.connected:
             self.ib.disconnect()
         self.connected = False
-        self._log("INFO", "Disconnected from TWS.")
-
-    # ─── Account & Positions ─────────────────────────────────────────────────
+        self._log("INFO", "🔌 נותק מ-TWS.")
 
     def _refresh_account(self) -> None:
-        if not self.connected or not self.ib:
-            return
+        if not self.connected or not self.ib: return
         try:
-            # managedAccounts() is the reliable way to get the account ID
             accounts = self.ib.managedAccounts()
-            if accounts:
-                self.account_id = accounts[0]
-
-            # Now pull cash + net liq from accountValues
+            if accounts: self.account_id = accounts[0]
             vals = self.ib.accountValues(self.account_id)
             for v in vals:
-                if v.tag == "TotalCashValue" and v.currency == "USD":
-                    self.cash_balance = float(v.value)
-                if v.tag == "NetLiquidation" and v.currency == "USD":
-                    self.net_liquidation = float(v.value)
-
-            self._log("INFO",
-                      f"Account: {self.account_id} | "
-                      f"Cash: ${self.cash_balance:,.0f} | "
-                      f"NetLiq: ${self.net_liquidation:,.0f}")
+                if v.tag == "TotalCashValue" and v.currency == "USD": self.cash_balance = float(v.value)
+                if v.tag == "NetLiquidation" and v.currency == "USD": self.net_liquidation = float(v.value)
         except Exception as e:
             self._log("WARN", f"Account refresh error: {e}")
 
     def get_positions(self) -> List[Dict]:
-        """Returns list of position dicts matching DEMO_POSITIONS schema."""
-        if not self.connected or not self.ib:
-            return []  # Caller should fall back to demo data
-
+        if not self.connected or not self.ib: return []
         positions = []
         try:
             for pos in self.ib.portfolio():
                 c = pos.contract
-                if c.secType != "OPT":
-                    continue
-                positions.append({
-                    "ticker": c.symbol,
-                    "type": "LEAPS" if (
-                        (datetime.strptime(c.lastTradeDateOrContractMonth, "%Y%m%d")
-                         - datetime.utcnow()).days > 270
-                    ) else "SHORT_CALL",
-                    "strike": float(c.strike),
-                    "expiry": c.lastTradeDateOrContractMonth,
-                    "qty": int(pos.position),
-                    "delta": 0.0,          # will be enriched by data_feed
-                    "cost_basis": float(pos.averageCost),
-                    "current_price": float(pos.marketPrice),
-                    "premium_received": 0.0,
-                    "underlying_price": float(pos.marketValue),
-                })
+                qty = int(pos.position)
+                if qty == 0: continue
+
+                if c.secType == "OPT":
+                    raw_exp = c.lastTradeDateOrContractMonth
+                    try:
+                        # Handle both YYYYMMDD and YYYY-MM-DD
+                        clean_exp = str(raw_exp).replace("-", "").replace("/", "")
+                        exp = datetime.strptime(clean_exp, "%Y%m%d")
+                        dte = (exp.date() - datetime.utcnow().date()).days
+                    except: 
+                        dte = 0
+                    
+                    opt_type = "LEAPS" if (dte > 270 and qty > 0) else ("SHORT_CALL" if qty < 0 else "OTHER")
+                    
+                    positions.append({
+                        "conId": c.conId, "ticker": c.symbol, "type": opt_type,
+                        "strike": float(c.strike), "expiry": raw_exp,
+                        "qty": qty, "dte": dte, "delta": 0.0,
+                        "cost_basis": float(pos.averageCost), "current_price": float(pos.marketPrice),
+                        "premium_received": 0.0, "underlying_price": float(pos.marketValue),
+                    })
+                elif c.secType in ("STK", "ETF"):
+                    positions.append({
+                        "conId": c.conId, "ticker": c.symbol, "type": "STOCK",
+                        "strike": 0.0, "expiry": "—", "qty": qty, "dte": 9999, "delta": 1.0,
+                        "cost_basis": float(pos.averageCost), "current_price": float(pos.marketPrice),
+                        "premium_received": 0.0, "underlying_price": float(pos.marketValue),
+                    })
         except Exception as e:
             self._log("WARN", f"get_positions error: {e}")
         return positions
 
     def get_option_chain(self, ticker: str, right: str = "C",
-                         min_dte: int = 14, max_dte: int = 60,
-                         target_delta: float = 0.30,
-                         n_strikes: int = 6) -> List[Dict]:
-        """Fetch real option chain from Yahoo Finance to bypass IBKR data fees."""
-        # This completely replaces the need for paid IBKR real-time data subscriptions!
+                          min_dte: int = 14, max_dte: int = 60,
+                          target_delta: float = 0.30,
+                          n_strikes: int = 6) -> List[Dict]:
+        try:
+            import yfinance as yf
+            from datetime import datetime as dt
+            from dateutil.parser import parse
+            stock = yf.Ticker(ticker)
+            expiries = stock.options
+            if not expiries: return []
+            today = dt.today()
+            valid = []
+            for e in expiries:
+                try:
+                    dte = (parse(e) - today).days
+                    if min_dte <= dte <= max_dte: valid.append((e, dte))
+                except: continue
+            if not valid: return []
+            valid.sort(key=lambda x: abs(x[1] - 45))
+            target_expiry, dte = valid[0]
+            chain = stock.option_chain(target_expiry)
+            calls_or_puts = chain.calls if right.upper() == "C" else chain.puts
+            if calls_or_puts.empty: return []
+            underlying = float(stock.fast_info.last_price or 100.0)
+            results = []
+            for idx, row in calls_or_puts.iterrows():
+                strike = float(row['strike'])
+                mid = (float(row.get('bid',0)) + float(row.get('ask',0)))/2 or float(row.get('lastPrice',0))
+                moneyness = strike / underlying if underlying > 0 else 1.0
+                delta = 1.0 - (moneyness-0.8)*2.5 if right.upper()=="C" else (moneyness-0.8)*2.5
+                delta = max(0.01, min(0.99, delta))
+                results.append({
+                    "ticker": ticker, "strike": strike, "expiry": target_expiry, "right": right.upper(),
+                    "delta": round(delta, 3), "mid": round(mid, 2), "dte": dte
+                })
+            results.sort(key=lambda x: abs(x["delta"] - target_delta))
+            return results[:n_strikes]
+        except Exception as e:
+            self._log("WARN", f"get_option_chain error: {e}")
+            return []
+
+    def get_leaps_options(self, ticker: str, min_dte: int = 540,
+                          target_delta: float = 0.80,
+                          n_options: int = 5) -> List[Dict]:
+        self._log("INFO", f"🔍 סורק LEAPS עבור {ticker} (מינימום {min_dte} ימים)...")
         try:
             import yfinance as yf
             from datetime import datetime as dt
@@ -187,357 +211,88 @@ class TWSClient:
             
             stock = yf.Ticker(ticker)
             expiries = stock.options
-            
             if not expiries:
-                self._log("WARN", f"Yahoo Finance returned no options for {ticker}.")
+                self._log("WARN", f"❌ לא נמצאו פקיעות עבור {ticker} ביאהו פיננס.")
                 return []
-                
-            today = dt.today()
             
-            # Filter valid real expiries by DTE
-            valid_expiries = []
+            self._log("INFO", f"מצאתי {len(expiries)} פקיעות פוטנציאליות.")
+            today = dt.today()
+            valid = []
             for e in expiries:
                 try:
                     dte = (parse(e) - today).days
-                    if min_dte <= dte <= max_dte:
-                        valid_expiries.append((e, dte))
-                except Exception:
-                    continue
-                    
-            if not valid_expiries:
-                self._log("WARN", f"No valid YF expiries in {min_dte}-{max_dte} DTE range.")
-                return []
-                
-            # Pick the earliest expiry in range
-            valid_expiries.sort(key=lambda x: x[1])
-            target_expiry, dte = valid_expiries[0]
+                    if dte >= min_dte: valid.append((e, dte))
+                except: continue
             
-            # Fetch the real chain for this specific real expiry!
+            if not valid:
+                self._log("WARN", f"לא נמצאו פקיעות מעל {min_dte} ימים. מחפש את הפקיעה הכי רחוקה...")
+                valid = sorted([(e, (parse(e)-today).days) for e in expiries], key=lambda x: x[1], reverse=True)[:1]
+            
+            if not valid: return []
+            
+            valid.sort(key=lambda x: x[1])
+            target_expiry, dte = valid[0]
+            self._log("INFO", f"נבחרה פקיעה: {target_expiry} ({dte} ימים)")
+            
             chain = stock.option_chain(target_expiry)
-            calls_or_puts = chain.calls if right.upper() == "C" else chain.puts
-            
-            if calls_or_puts.empty:
+            calls = chain.calls
+            if calls.empty:
+                self._log("WARN", f"שרשרת האופציות עבור {target_expiry} ריקה.")
                 return []
-                
-            # Get underlying price
-            underlying = float(stock.fast_info.last_price or stock.fast_info.previous_close or 200.0)
+            
+            underlying = float(stock.fast_info.last_price or 0)
+            if underlying <= 0:
+                # Fallback for price
+                underlying = float(calls['strike'].iloc[len(calls)//2]) # rough estimate
+            
+            self._log("INFO", f"מחיר נכס בסיס: ${underlying:.2f}")
             
             results = []
-            for idx, row in calls_or_puts.iterrows():
+            for idx, row in calls.iterrows():
                 strike = float(row['strike'])
-                bid = float(row.get('bid', 0.0))
-                ask = float(row.get('ask', 0.0))
-                iv = float(row.get('impliedVolatility', 0.0))
+                bid, ask = float(row.get('bid',0)), float(row.get('ask',0))
+                mid = (bid+ask)/2 if (bid>0 and ask>0) else float(row.get('lastPrice',0))
                 
-                # Approximate delta via moneyness for basic sorting
-                if underlying > 0:
-                    moneyness = strike / underlying
-                    # Very rough synthetical delta for sorting (actual delta requires Black-Scholes)
-                    if right.upper() == "C":
-                        delta = max(0.01, min(0.99, 1.0 - (moneyness - 0.8) * 2.5)) if moneyness > 0.8 else 0.99
-                    else:
-                        delta = max(0.01, min(0.99, (moneyness - 0.8) * 2.5)) if moneyness > 0.8 else 0.01
-                else:
-                    delta = 0.50
-                    
-                mid = (bid + ask) / 2 if (bid > 0 and ask > 0) else float(row.get('lastPrice', 0.0))
+                if mid <= 0: continue
+                
+                # Approximate delta: 1.0 - (strike/underlying - 0.8)*2.5 for calls
+                moneyness = strike / underlying if underlying > 0 else 1.0
+                approx_delta = max(0.05, min(0.99, 1.25 - moneyness * 0.75))
                 
                 results.append({
-                    "ticker": ticker,
-                    "strike": strike,
-                    "expiry": target_expiry, # YYYY-MM-DD
-                    "right": right.upper(),
-                    "delta": round(delta, 3),
-                    "bid": round(bid, 2),
-                    "ask": round(ask, 2),
-                    "mid": round(mid, 2),
-                    "premium": round(mid, 2),
-                    "theta": -0.05, # YF doesn't provide Greeks directly
-                    "iv": round(iv, 3),
-                    "dte": dte
+                    "ticker": ticker, "strike": strike, "expiry": target_expiry, "right": "C",
+                    "delta": round(approx_delta, 2), "mid": round(mid, 2), "bid": round(bid, 2), "ask": round(ask, 2),
+                    "dte": dte, "source": "Yahoo Finance"
                 })
-                
-            # Sort by proximity to target delta
-            results.sort(key=lambda x: abs(x["delta"] - target_delta))
-            return results[:n_strikes]
             
+            # Filter results to be around the target delta
+            results.sort(key=lambda x: abs(x["delta"] - target_delta))
+            final_results = results[:n_options]
+            self._log("INFO", f"סריקה הושלמה. נמצאו {len(final_results)} מועמדים.")
+            return final_results
         except Exception as e:
-            self._log("WARN", f"Yahoo Finance Option Chain Error: {e}")
+            self._log("ERROR", f"שגיאה בסריקת LEAPS: {e}")
             return []
 
     def place_adaptive_order(self, ticker: str, right: str, strike: float, expiry: str,
-                             action: str, qty: int, limit_price: float, algo_speed: str = "Normal",
-                             order_type: str = "LMT") -> Optional[int]:
-        """
-        Place option order via TWS API.
-        Because Streamlit runs synchronously, ib.qualifyContracts blocks.
-        By providing the exact Option contract (including multiplier='100'),
-        TWS accepts the order directly without needing prior qualification.
-        """
-        if not self.connected or not self.ib:
-            self._log("WARN", "Not connected to TWS - order NOT placed (Demo mode).")
-            return None
-
-        from datetime import datetime as _dt
-        expiry_norm = expiry.replace("-", "").replace("/", "").replace(" ", "")
+                             action: str, qty: int, limit_price: float, algo_speed: str = "Normal") -> Optional[int]:
+        if not self.connected or not self.ib: return None
         try:
-            exp_date = _dt.strptime(expiry_norm, "%Y%m%d")
-            if exp_date.date() < _dt.utcnow().date():
-                self._log("WARN", f"Order rejected: expiry {expiry} is in the PAST.")
-                return None
-        except ValueError:
-            self._log("WARN", f"Invalid expiry format: {expiry}. Use YYYY-MM-DD.")
-            return None
-
-        try:
-            self._log("INFO",
-                      f"[System] Validating and Formulating Contract: "
-                      f"{action} {qty}x {ticker} ${strike:.0f}{right} "
-                      f"{expiry_norm} @ ${limit_price:.2f}")
-
-            # Auto-Correct Synthetic Contracts to Nearest REAL Listed Contract
-            try:
-                from ib_insync import Stock
-                underlying = Stock(ticker, 'SMART', 'USD')
-                self.ib.qualifyContracts(underlying)
-                chains = self.ib.reqSecDefOptParams(underlying.symbol, '', underlying.secType, underlying.conId)
-                if chains:
-                    chain = next((c for c in chains if c.exchange in ('SMART', 'NASDAQ', 'CBOE', 'AMEX', 'BATS', 'ISE')), chains[0])
-                    # Snap Expiry
-                    if expiry_norm not in set(chain.expirations):
-                        valid_exp = sorted(list(chain.expirations), key=lambda x: abs((_dt.strptime(x, "%Y%m%d") - exp_date).days))
-                        if valid_exp:
-                            expiry_norm = valid_exp[0]
-                    
-                    # Snap Strike
-                    f_strike = float(strike)
-                    if f_strike not in set(chain.strikes):
-                        valid_stri = sorted(list(chain.strikes), key=lambda x: abs(x - f_strike))
-                        if valid_stri:
-                            strike = valid_stri[0]
-            except Exception as qc_err:
-                self._log("WARN", f"Contract validation fallback error: {qc_err}")
-
-            # Fully specified contract - currency='USD' is required to avoid ambiguous routing
-            contract = Option(
-                symbol=ticker,
-                lastTradeDateOrContractMonth=expiry_norm,
-                strike=float(strike),
-                right=right,
-                exchange="SMART",
-                currency="USD",
-                multiplier="100",
-            )
-
-            if order_type == "MKT":
-                from ib_insync import MarketOrder
-                order = MarketOrder(action, qty)
-            else:
-                order = LimitOrder(action, qty, round(limit_price, 2))
-                order.tif = "DAY"
-                try:
-                    from ib_insync import TagValue
-                    speed_map = {"Patient": "Patient", "Normal": "Normal",
-                                 "Urgent": "Urgent", "patient": "Patient",
-                                 "normal": "Normal", "urgent": "Urgent"}
-                    order.algoStrategy = "Adaptive"
-                    order.algoParams = [TagValue("adaptivePriority",
-                                                 speed_map.get(algo_speed, "Normal"))]
-                except Exception:
-                    pass  # plain LimitOrder fallback
-
-            self._log("INFO", "[System] Submitting Order directly to TWS...")
-            
-            # Place order - use plain time.sleep so the ib_insync background
-            # thread can process TWS responses without deadlocking Streamlit.
-            import time as _time
+            exp_norm = str(expiry).replace("-", "")
+            contract = Option(ticker, exp_norm, strike, right, 'SMART', 'USD', multiplier='100')
+            order = LimitOrder(action, qty, round(limit_price, 2))
             trade = self.ib.placeOrder(contract, order)
-            _time.sleep(1.0)  # background ib thread processes responses during this window
-            
-            oid    = trade.order.orderId
-            status = trade.orderStatus.status
-            
-            if status in ("Cancelled", "Inactive"):
-                err_msg = ""
-                if trade.log and any("Error" in str(l) for l in trade.log):
-                    err_msg = " | " + " ".join(str(l.message) for l in trade.log if "Error" in str(l))
-                
-                # FALLBACK: If a Market Order is rejected (e.g., TWS Demo lacks instant quotes), auto-convert to LMT Ask + 1%
-                if order_type == "MKT":
-                    self._log("WARN", f"Market Order rejected by Demo. Auto-converting to Aggressive Limit Order... {err_msg}")
-                    fallback_price = limit_price * 1.01 if action == "BUY" else limit_price * 0.99
-                    fallback_price = max(0.01, round(fallback_price, 2))
-                    
-                    fallback_order = LimitOrder(action, qty, fallback_price)
-                    fallback_order.tif = "DAY"
-                    fallback_trade = self.ib.placeOrder(contract, fallback_order)
-                    _time.sleep(1.0)
-                    
-                    f_oid = fallback_trade.order.orderId
-                    f_status = fallback_trade.orderStatus.status
-                    if f_status not in ("Cancelled", "Inactive"):
-                        self._log("ACTION", f"✅ Fallback Limit Order SENT: {action} {qty}x {ticker} MKT->LMT @ ${fallback_price:.2f} orderId={f_oid}")
-                        return f_oid
-
-                self._log("WARN", f"❌ Order instantly REJECTED by TWS (status: {status}){err_msg}. Contract may be invalid.")
-                return None
-
-            self._log("ACTION",
-                      f"✅ Order SENT to TWS: {action} {qty}x {ticker} "
-                      f"${strike:.0f}{right} {expiry} @ ${limit_price:.2f} "
-                      f"[{order_type}] orderId={oid} status={status}")
-            return oid
-
+            return trade.order.orderId
         except Exception as e:
             self._log("WARN", f"place_order error: {e}")
             return None
 
-    def cancel_order(self, order_id: int) -> bool:
-        if not self.connected or not self.ib:
-            return False
-        try:
-            trades = [t for t in self.ib.trades() if t.order.orderId == order_id]
-            if trades:
-                def _do_cancel():
-                    if self.ib and self.ib.isConnected():
-                        self.ib.cancelOrder(trades[0].order)
-                
-                if self.ib.loop and self.ib.loop.is_running():
-                    self.ib.loop.call_soon_threadsafe(_do_cancel)
-                else:
-                    _do_cancel()
-                    
-                self._log("INFO", f"Order {order_id} cancelled.")
-                return True
-        except Exception as e:
-            self._log("WARN", f"cancel_order error: {e}")
-        return False
 
-    def modify_order(self, order_id: int, new_limit_price: float) -> bool:
-        """Modifies the limit price of an active order in TWS."""
-        if not self.connected or not self.ib:
-            return False
-        try:
-            trades = [t for t in self.ib.trades() if t.order.orderId == order_id and t.orderStatus.status not in ("Filled", "Cancelled", "Inactive")]
-            if trades:
-                trade = trades[0]
-                trade.order.lmtPrice = round(new_limit_price, 2)
-                
-                def _do_modify():
-                    if self.ib and self.ib.isConnected():
-                        try:
-                            self.ib.placeOrder(trade.contract, trade.order)
-                        except Exception as ex:
-                            with open("C:\\Users\\User\\Desktop\\pmcc1\\tws_modify_error.txt", "a") as f:
-                                f.write(f"Exception during placeOrder: {ex}\n")
-
-                if self.ib.loop and self.ib.loop.is_running():
-                    self.ib.loop.call_soon_threadsafe(_do_modify)
-                else:
-                    _do_modify()
-                    
-                # Dump TWS logs to see if it rejected
-                with open("C:\\Users\\User\\Desktop\\pmcc1\\tws_modify_log.txt", "a") as f:
-                    f.write(f"\\n--- Modification Log {order_id} ---\\n")
-                    f.write(f"Old Price: {trade.order.lmtPrice} -> New Price: {new_limit_price}\\n")
-                    for lg in trade.log:
-                        f.write(f"{lg}\\n")
-                        
-                self._log("INFO", f"Order {order_id} MODIFIED (New Price: ${new_limit_price:.2f}).")
-                return True
-            else:
-                with open("C:\\Users\\User\\Desktop\\pmcc1\\tws_missing_order.txt", "a") as f:
-                    f.write(f"\\n--- Missing Order {order_id} ---\\n")
-                    f.write(f"All Trades memory:\\n")
-                    for tx in self.ib.trades():
-                        f.write(f"ID={tx.order.orderId} | Status={tx.orderStatus.status} | Sym={tx.contract.symbol}\\n")
-                self._log("WARN", f"modify_order: Order {order_id} not found or not active.")
-        except Exception as e:
-            self._log("WARN", f"modify_order error: {e}")
-        return False
-
-    def panic_close_all(self) -> int:
-        """Market-sell all open option positions. Returns number of orders placed."""
-        if not self.connected or not self.ib:
-            self._log("WARN", "PANIC blocked – not connected to TWS (Demo mode).")
-            return 0
-
-        count = 0
-        try:
-            for pos in self.ib.portfolio():
-                if pos.contract.secType == "OPT" and pos.position != 0:
-                    action = "BUY" if pos.position < 0 else "SELL"
-                    qty = abs(int(pos.position))
-                    order = MarketOrder(action, qty)
-                    self.ib.placeOrder(pos.contract, order)
-                    count += 1
-                    self._log("ACTION",
-                              f"PANIC: {action} {qty}x {pos.contract.symbol} "
-                              f"{pos.contract.strike} MKT")
-        except Exception as e:
-            self._log("WARN", f"panic_close_all error: {e}")
-        return count
-
-    # ─── Demo Helpers ────────────────────────────────────────────────────────
-
-    def _demo_option_chain(self, ticker: str, right: str, target_delta: float,
-                            n: int = 6) -> List[Dict]:
-        """Generate synthetic option chain for demo mode — uses real price from yfinance."""
-        if getattr(self, "mode", "DEMO") == "LIVE":
-            return []
-        # Try to get real current price via yfinance
-        underlying = 200.0
-        try:
-            import yfinance as yf
-            info = yf.Ticker(ticker).fast_info
-            underlying = float(info.last_price or info.previous_close or 200.0)
-        except Exception:
-            # Hard-coded fallbacks
-            underlying = {"NVDA": 115, "AAPL": 225, "TSLA": 280,
-                          "SPY": 560, "QQQ": 480, "AMZN": 195,
-                          "GOOGL": 170, "META": 600, "MSFT": 420,
-                          "UNH": 490}.get(ticker, 200.0)
-
-        import numpy as np
-        # Strikes from 80% to 120% ATM
-        strikes = np.linspace(underlying * 0.80, underlying * 1.20, 16)
-        from datetime import datetime, timedelta
-        # Next monthly expiry ~30-45 DTE
-        today = datetime.utcnow()
-        exp_date = today + timedelta(days=35)
-        # Snap to 3rd Friday
-        while exp_date.weekday() != 4:
-            exp_date += timedelta(days=1)
-        expiry_str = exp_date.strftime("%Y-%m-%d")
-
-        rows = []
-        for s in strikes:
-            moneyness = s / underlying
-            delta = max(0.02, min(0.95, 1.12 - moneyness))
-            iv    = 0.30 + abs(delta - 0.50) * 0.15
-            theta = -underlying * iv * delta * 0.004
-            bid   = max(0.05, underlying * iv / 100 * delta * 18)
-            ask   = bid * 1.06
-            rows.append({
-                "ticker":  ticker,
-                "strike":  round(s, 1),
-                "expiry":  expiry_str,
-                "right":   right,
-                "delta":   round(delta, 3),
-                "bid":     round(bid, 2),
-                "ask":     round(ask, 2),
-                "mid":     round((bid + ask) / 2, 2),
-                "premium": round((bid + ask) / 2, 2),
-                "theta":   round(theta, 4),
-                "iv":      round(iv, 3),
-            })
-        rows.sort(key=lambda x: abs(x["delta"] - target_delta))
-        return rows[:n]
-
-
-# Singleton
-_client = TWSClient()
-
+# ── Singleton ──
+_client_instance = None
 
 def get_client() -> TWSClient:
-    return _client
+    global _client_instance
+    if _client_instance is None:
+        _client_instance = TWSClient()
+    return _client_instance
