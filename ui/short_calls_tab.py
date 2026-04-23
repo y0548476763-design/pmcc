@@ -1,13 +1,17 @@
 """
 ui/short_calls_tab.py — Tab 2: Short Calls Engine
-Manages selling, rolling, and monitoring short calls against LEAPS.
-All rules configurable within this tab.
+All IBKR actions go through api_ibkr (:8002).
+Option chain search uses api_yahoo (:8001).
 """
 import streamlit as st
 from datetime import datetime
 from typing import Optional
+import requests
 import config
 import settings_manager
+
+YAHOO = config.YAHOO_API_URL
+IBKR  = config.IBKR_API_URL
 
 
 # ── Signal meta ────────────────────────────────────────────────────────────
@@ -42,7 +46,7 @@ def _send_telegram(msg: str) -> bool:
         return False
 
 
-def render_short_calls_tab(positions: list, quant_results: dict, tws) -> None:
+def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> None:
 
     # ── Header ────────────────────────────────────────────────────────────
     st.markdown("""
@@ -173,17 +177,26 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws) -> None:
             with col_btn:
                 st.write("")
                 if st.button(f"🔍 סרוק {ticker}", key=f"scan_{ticker}", use_container_width=True):
-                    with st.spinner(f"מחפש שורט קול ל-{ticker}..."):
-                        chain = tws.get_option_chain(
-                            ticker=ticker, right="C",
-                            min_dte=short_dte - 10,
-                            max_dte=short_dte + 15,
-                            target_delta=tgt_delta
-                        )
-                        if chain:
-                            st.session_state[f"short_chain_{ticker}"] = chain[:3]
-                        else:
-                            st.error(f"לא נמצאו אופציות מתאימות ל-{ticker}")
+                    with st.spinner(f"מחפש שורט קול ל-{ticker} ב-api_yahoo..."):
+                        try:
+                            r = requests.get(f"{YAHOO}/options/search",
+                                             params={"ticker": ticker,
+                                                     "min_dte": max(14, short_dte - 15),
+                                                     "max_dte": short_dte + 20,
+                                                     "target_delta": tgt_delta,
+                                                     "right": "C",
+                                                     "n": 3},
+                                             timeout=20)
+                            data = r.json()
+                            chain = data.get("data", []) if data.get("ok") else []
+                            if chain:
+                                st.session_state[f"short_chain_{ticker}"] = chain
+                            else:
+                                st.error(f"לא נמצאו אופציות מתאימות ל-{ticker} (DTE {max(14,short_dte-15)}-{short_dte+20})")
+                        except requests.exceptions.ConnectionError:
+                            st.error("❌ api_yahoo לא פועל על פורט 8001")
+                        except Exception as e:
+                            st.error(f"שגיאה: {e}")
 
             # Show chain results if available
             chain_res = st.session_state.get(f"short_chain_{ticker}", [])
@@ -375,23 +388,37 @@ def _execute_short_sell(tws, leaps_pos: dict, opt: dict, tp_pct: float,
         # bot_mode==2: fall through to execute, notify after
 
     # EXECUTE (manual always, or bot_mode>=2)
-    if not tws or not getattr(tws, 'connected', False):
-        st.error("❌ אין חיבור ל-TWS — בדוק שה-Gateway פועל.")
+    if not st.session_state.get("connected"):
+        st.error("❌ אין חיבור ל-IBKR — בדוק שה-Gateway פועל.")
         return
 
+    try:
+        r = requests.post(f"{IBKR}/qualify", json={
+            "ticker": ticker, "strike": strike, "expiry": expiry, "right": "C"
+        }, timeout=15)
+        q = r.json()
+        if not q.get("ok"):
+            st.error(f"לא ניתן לאמת חוזה: {q}")
+            return
+        st.info(f"✅ conId={q['conId']} | Bid={q['bid']} Ask={q['ask']} Mid={q['mid']}")
+    except Exception as e:
+        st.error(f"שגיאת qualify: {e}")
+        return
+
+    st.success(f"✅ פקודת SELL {qty}x {ticker} ${strike:.0f} @ ${mid:.2f} — בוצע דרך order_manager")
+    import order_manager
+    om = order_manager.get_manager()
     oid = om.submit_order(
         ticker=ticker, right="C", strike=strike, expiry=expiry,
         action="SELL", qty=qty, limit_price=mid,
         escalation_step_pct=config.ESCALATION_STEP_PCT,
         escalation_wait_mins=config.ESCALATION_WAIT_MINUTES,
     )
-    # Immediately add Take Profit GTC
     if tp_price > 0:
         om.submit_order(
             ticker=ticker, right="C", strike=strike, expiry=expiry,
             action="BUY", qty=qty, limit_price=tp_price,
-            escalation_step_pct=0.5, escalation_wait_mins=999,
-            tif="GTC"
+            escalation_step_pct=0.5, escalation_wait_mins=999, tif="GTC"
         )
 
     msg = (f"🚀 <b>שורט קול נמכר!</b>\n"

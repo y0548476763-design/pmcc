@@ -1,25 +1,20 @@
 """
 ui/roll_tab.py — LEAPS Roll Manager
-Phase A: Yahoo Finance search (independent) → choose new LEAPS
-Phase B: Resolve both on IBKR → send combo BAG order with escalation
+Phase A: api_yahoo (:8001) search → choose new LEAPS
+Phase B: api_ibkr (:8002) qualify + combo BAG order
 """
 import streamlit as st
-import threading
 import time
 from datetime import datetime, timezone
 import requests
-import urllib3
 import config
 import settings_manager
-from tws_client import TWSClient
 
-# Deferred imports can be moved to top if modules are globally available
-import tws_combo
-from ib_insync import Option as IBOption
+YAHOO = config.YAHOO_API_URL   # http://localhost:8001
+IBKR  = config.IBKR_API_URL    # http://localhost:8002
+_TIMEOUT = 15
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-# ── helpers ──────────────────────────────────────────────────────────────────
+# ── helpers ───────────────────────────────────────────────────────────────
 
 def _dte(exp: str) -> int:
     try:
@@ -38,123 +33,28 @@ def _send_tg(msg: str) -> bool:
     except Exception:
         return False
 
-# ── Yahoo Finance with cookie session ────────────────────────────────────────
-
-def _yahoo_session():
-    """Create a requests.Session with Yahoo Finance cookies."""
-    s = requests.Session()
-    s.headers.update({
-        "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                       "AppleWebKit/537.36 (KHTML, like Gecko) "
-                       "Chrome/124.0.0.0 Safari/537.36"),
-        "Accept": "application/json,text/html",
-    })
+def _search_yahoo_leaps(ticker: str, min_dte: int, target_delta: float, n: int = 5) -> list:
+    """Call api_yahoo to search LEAPS (4-hour cache is on the server)."""
     try:
-        s.get("https://finance.yahoo.com", verify=False, timeout=6)
-    except Exception:
-        pass
-    return s
-
-def _search_yahoo_leaps(ticker: str, min_dte: int, target_delta: float,
-                         n: int = 5) -> list:
-    """Search Yahoo Finance for LEAPS call options. Uses 4-hour cache."""
-    cache_key = f"leaps_{ticker}_{min_dte}_{target_delta}"
-    cache = st.session_state.setdefault("_leaps_cache", {})
-    if cache_key in cache:
-        data, ts = cache[cache_key]
-        if time.time() - ts < 14400:
-            return data
-
-    try:
-        sess = _yahoo_session()
-
-        # ── get available expirations ──
-        r = sess.get(
-            f"https://query2.finance.yahoo.com/v7/finance/options/{ticker}"
-            "?formatted=false&lang=en-US&region=US",
-            verify=False, timeout=12)
-
-        if r.status_code != 200:
-            st.error(f"❌ Yahoo Finance: HTTP {r.status_code} עבור {ticker}")
-            return []
-
-        root = r.json().get("optionChain", {}).get("result", [])
-        if not root:
-            st.error(f"❌ Yahoo לא החזיר תוצאות עבור {ticker}")
-            return []
-
-        all_ts = root[0].get("expirationDates", [])
-        now_ts = time.time()
-
-        # filter by min_dte
-        valid = [(ts, int((ts - now_ts) / 86400))
-                 for ts in all_ts if int((ts - now_ts) / 86400) >= min_dte]
-        if not valid:
-            # fallback: furthest available
-            valid = [(ts, int((ts - now_ts) / 86400)) for ts in all_ts]
-        if not valid:
-            st.warning("לא נמצאו פקיעות מתאימות ביאהו פיננס.")
-            return []
-
-        valid.sort(key=lambda x: x[1])
-        exp_ts, exp_dte = valid[0]
-        exp_str = datetime.fromtimestamp(exp_ts, tz=timezone.utc).strftime("%Y-%m-%d")
-
-        # ── get chain for chosen expiry ──
-        r2 = sess.get(
-            f"https://query2.finance.yahoo.com/v7/finance/options/{ticker}"
-            f"?formatted=false&lang=en-US&region=US&date={exp_ts}",
-            verify=False, timeout=12)
-
-        if r2.status_code != 200:
-            st.error(f"❌ Yahoo: HTTP {r2.status_code} (chain)")
-            return []
-
-        chain_data = r2.json().get("optionChain", {}).get("result", [])
-        if not chain_data:
-            return []
-
-        calls = chain_data[0].get("options", [{}])[0].get("calls", [])
-        underlying = float(chain_data[0].get("quote", {})
-                          .get("regularMarketPrice", 0) or 0)
-
-        if not calls:
-            st.warning("שרשרת האופציות ריקה.")
-            return []
-
-        results = []
-        for c in calls:
-            strike = float(c.get("strike", 0) or 0)
-            bid    = float(c.get("bid",    0) or 0)
-            ask    = float(c.get("ask",    0) or 0)
-            last   = float(c.get("lastPrice", 0) or 0)
-            mid    = (bid + ask) / 2 if bid > 0 and ask > 0 else last
-            if mid <= 0 or strike <= 0:
-                continue
-            
-            mono  = strike / underlying if underlying > 0 else 1.0
-            delta = max(0.05, min(0.99, 1.30 - mono * 0.80))
-            
-            results.append({
-                "ticker": ticker, "strike": round(strike, 2),
-                "expiry": exp_str, "dte": exp_dte, "right": "C",
-                "delta": round(delta, 2), "mid": round(mid, 2),
-                "bid": round(bid, 2), "ask": round(ask, 2),
-                "source": "Yahoo Finance",
-            })
-
-        results.sort(key=lambda x: abs(x["delta"] - target_delta))
-        final = results[:n]
-        cache[cache_key] = (final, time.time())
-        return final
-
+        r = requests.get(f"{YAHOO}/leaps/search",
+                         params={"ticker": ticker, "min_dte": min_dte,
+                                 "target_delta": target_delta, "n": n},
+                         timeout=_TIMEOUT)
+        data = r.json()
+        if data.get("ok"):
+            return data.get("data", [])
+        st.error(f"❌ api_yahoo error: {data}")
+        return []
+    except requests.exceptions.ConnectionError:
+        st.error("❌ api_yahoo לא פועל על פורט 8001. הרץ תחילה את run_pmcc.bat")
+        return []
     except Exception as e:
-        st.error(f"❌ שגיאה בחיפוש Yahoo Finance: {e}")
+        st.error(f"❌ שגיאה בחיפוש LEAPS: {e}")
         return []
 
-# ── Phase B: resolve on IBKR + send combo ────────────────────────────────────
+# ── Phase B: qualify on api_ibkr + send combo ────────────────────────────
 
-def _execute_combo(tws: TWSClient, old_lp: dict, new_tgt: dict,
+def _execute_combo(old_lp: dict, new_tgt: dict,
                    esc_mins: int, esc_step: float,
                    bot_mode: int, via_bot: bool):
 
@@ -174,82 +74,72 @@ def _execute_combo(tws: TWSClient, old_lp: dict, new_tgt: dict,
             st.info("📱 נשלח לטלגרם!" if ok else "❌ כשל בשליחה")
             return
 
-    if not tws or not getattr(tws, "connected", False) or not getattr(tws, "ib", None):
-        st.error("❌ לא מחובר ל-TWS. לא ניתן לשלוח פקודה.")
-        return
-
-    ib = tws.ib
-
+    # Phase B-1: qualify both contracts on IBKR to get live prices
     with st.spinner("🔄 מאמת חוזים ב-IBKR ושואב מחירים חיים..."):
         try:
-            sell_c = IBOption(ticker,
-                              str(old_lp["expiry"]).replace("-",""),
-                              float(old_lp["strike"]), "C", "SMART", currency="USD")
-            buy_c  = IBOption(ticker,
-                              str(new_tgt["expiry"]).replace("-",""),
-                              float(new_tgt["strike"]), "C", "SMART", currency="USD")
-            
-            ib.qualifyContracts(sell_c, buy_c)
-
-            if not sell_c.conId or not buy_c.conId:
-                st.error("❌ לא ניתן לאמת חוזים ב-IBKR.")
-                return
-
-            tks = ib.reqTickers(sell_c, buy_c)
-            ib.sleep(0.5)
-
-            def _mid(t):
-                b = t.bid if t.bid and t.bid > 0 else 0
-                a = t.ask if t.ask and t.ask > 0 else 0
-                return (b+a)/2 if b > 0 and a > 0 else (t.last or 0)
-
-            ms = _mid(tks[0]) or float(old_lp.get("current_price", 0))
-            mb = _mid(tks[1]) or float(new_tgt.get("mid", 0))
-            combo_mid = round(mb - ms, 2)
-
-            st.info(f"✅ SELL conId={sell_c.conId} (${ms:.2f}) | "
-                    f"BUY conId={buy_c.conId} (${mb:.2f}) | "
-                    f"קומבו Mid: **${combo_mid:.2f}**")
-
-            # Execute synchronously to avoid ib_insync threading issues
-            with st.spinner("⏳ שולח פקודת COMBO (BAG)..."):
-                r = tws_combo.execute_combo_roll(
-                    ib=ib,
-                    sell_conid=sell_c.conId, sell_strike=sell_c.strike,
-                    sell_expiry=sell_c.lastTradeDateOrContractMonth,
-                    buy_conid=buy_c.conId,  buy_strike=buy_c.strike,
-                    buy_expiry=buy_c.lastTradeDateOrContractMonth,
-                    ticker=ticker, qty=qty,
-                    limit_price=combo_mid, use_market=False,
-                    escalation_step_pct=float(esc_step),
-                    escalation_wait_secs=int(esc_mins)*60,
-                    max_escalations=10,
-                    log_cb=tws._log if hasattr(tws,"_log") else None,
-                )
-
-            if isinstance(r, dict) and r.get("status") == "FILLED":
-                fill = r.get("fill_price", 0)
-                _send_tg(f"🔄 <b>גלגול בוצע!</b>\n{ticker}\n"
-                         f"📤 ${sell_c.strike:.0f}C  {sell_c.lastTradeDateOrContractMonth}\n"
-                         f"📥 ${buy_c.strike:.0f}C  {buy_c.lastTradeDateOrContractMonth}\n"
-                         f"💰 ${fill:.2f}")
-                st.toast(f"✅ גלגול בוצע במחיר ${fill:.2f}", icon="🔄")
-            elif isinstance(r, dict) and r.get("status") in ["PENDING", "ESCALATED"]:
-                 st.success("⏳ פקודה נשלחה — ממתינה למילוי (Escalation פעיל).")
-            else:
-                 status_msg = r.get("status", "UNKNOWN") if isinstance(r, dict) else str(r)
-                 st.error(f"❌ הפקודה נכשלה או במצב לא ידוע: {status_msg}")
-
+            sell_q = requests.post(f"{IBKR}/qualify", json={
+                "ticker": ticker, "strike": float(old_lp["strike"]),
+                "expiry": str(old_lp["expiry"]), "right": "C"}, timeout=_TIMEOUT).json()
+            buy_q  = requests.post(f"{IBKR}/qualify", json={
+                "ticker": ticker, "strike": float(new_tgt["strike"]),
+                "expiry": str(new_tgt["expiry"]), "right": "C"}, timeout=_TIMEOUT).json()
+        except requests.exceptions.ConnectionError:
+            st.error("❌ api_ibkr לא פועל על פורט 8002.")
+            return
         except Exception as e:
-            st.error(f"❌ שגיאה קריטית בעת שליחת הפקודה: {e}")
+            st.error(f"❌ שגיאת qualification: {e}")
+            return
 
-    for k in ("roll_new_selected",):
-        st.session_state.pop(k, None)
+        if not sell_q.get("ok") or not buy_q.get("ok"):
+            st.error("❌ לא ניתן לאמת חוזים ב-IBKR.")
+            return
+
+        ms = sell_q.get("mid") or float(old_lp.get("current_price", 0))
+        mb = buy_q.get("mid")  or float(new_tgt.get("mid", 0))
+        combo_mid = round(mb - ms, 2)
+        st.info(f"✅ SELL conId={sell_q['conId']} (${ms:.2f}) | "
+                f"BUY conId={buy_q['conId']} (${mb:.2f}) | "
+                f"קומבו Mid: **${combo_mid:.2f}**")
+
+    # Phase B-2: send combo to api_ibkr
+    with st.spinner("⏳ שולח פקודת COMBO (BAG)..."):
+        try:
+            resp = requests.post(f"{IBKR}/order/combo", json={
+                "ticker": ticker, "qty": qty,
+                "sell_strike": float(old_lp["strike"]),
+                "sell_expiry": str(old_lp["expiry"]),
+                "buy_strike":  float(new_tgt["strike"]),
+                "buy_expiry":  str(new_tgt["expiry"]),
+                "limit_price": max(0.01, combo_mid),
+                "use_market": False,
+                "escalation_step_pct": float(esc_step),
+                "escalation_wait_secs": int(esc_mins) * 60,
+            }, timeout=60).json()
+        except Exception as e:
+            st.error(f"❌ שגיאה בשליחת פקודה: {e}")
+            return
+
+    if resp.get("ok"):
+        r = resp.get("result", {})
+        status = r.get("status", "?")
+        if status == "FILLED":
+            fill = r.get("fill_price", 0)
+            _send_tg(f"🔄 <b>גלגול בוצע!</b>\n{ticker}\n"
+                     f"📤 ${float(old_lp['strike']):.0f}C {old_lp['expiry']}\n"
+                     f"📥 ${float(new_tgt['strike']):.0f}C {new_tgt['expiry']}\n"
+                     f"💰 ${fill:.2f}")
+            st.toast(f"✅ גלגול בוצע במחיר ${fill:.2f}", icon="🔄")
+        else:
+            st.success(f"⏳ פקודה נשלחה — סטטוס: {status}")
+    else:
+        st.error(f"❌ הפקודה נכשלה: {resp}")
+
+    st.session_state.pop("roll_new_selected", None)
     st.rerun()
 
 # ── Main render ───────────────────────────────────────────────────────────────
 
-def render_roll_tab(tws: TWSClient) -> None:
+def render_roll_tab(tws=None) -> None:  # tws kept for backward-compat, not used
     st.markdown("""
     <div style="padding:0.4rem 0 1rem 0;">
       <div class="pmcc-title">🔄 גלגול ליפסים — LEAPS Roll Engine</div>
@@ -411,11 +301,11 @@ def render_roll_tab(tws: TWSClient) -> None:
     with c1:
         if st.button("✋ ביצוע ידני", key="exec_manual",
                      type="primary", use_container_width=True):
-            _execute_combo(tws, old_lp, new_tgt, esc_mins, esc_step,
+            _execute_combo(old_lp, new_tgt, esc_mins, esc_step,
                            bot_mode, via_bot=False)
     with c2:
         if st.button("🤖 ביצוע בוט", key="exec_bot", use_container_width=True):
-            _execute_combo(tws, old_lp, new_tgt, esc_mins, esc_step,
+            _execute_combo(old_lp, new_tgt, esc_mins, esc_step,
                            bot_mode, via_bot=True)
     with c3:
         if st.button("↩️ ביטול", key="exec_cancel", use_container_width=True):

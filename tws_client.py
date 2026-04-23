@@ -101,6 +101,36 @@ class TWSClient:
         self.connected = False
         return False
 
+    async def connectAsync(self, mode: str = "DEMO", host: str = "127.0.0.1", port: int = None, client_id: int = None, timeout: int = 3) -> bool:
+        """Async version of connect for loop-safe use."""
+        if not IB_AVAILABLE: return False
+        if self.connected and self.mode == mode and self.ib and self.ib.isConnected():
+            return True
+        
+        if self.ib is not None:
+            try: self.ib.disconnect()
+            except: pass
+            self.ib = None
+        
+        self.mode = mode
+        port = port or (config.TWS_PORT_DEMO if mode == "DEMO" else config.TWS_PORT_LIVE)
+        host = host or (config.REMOTE_TWS_HOST if config.REMOTE_TWS_HOST else config.TWS_HOST)
+        cid  = client_id or config.TWS_CLIENT_ID
+
+        try:
+            self.ib = IB()
+            await self.ib.connectAsync(host, port, clientId=cid, timeout=timeout)
+            self.connected = True
+            self.ib.reqAllOpenOrders()
+            await asyncio.sleep(0.2)
+            self._refresh_account()
+            self._log("INFO", f"✅ (Async) חיבור הוקם: {mode} @ {host}:{port}")
+            return True
+        except Exception as e:
+            self._log("WARN", f"חיבור (Async) ל-{mode} נכשל: {e}")
+            self.connected = False
+            return False
+
     def disconnect(self) -> None:
         if self.ib and self.connected:
             self.ib.disconnect()

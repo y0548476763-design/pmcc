@@ -14,6 +14,10 @@ TWS_CLIENT_ID  = int(os.getenv("TWS_CLIENT_ID", 42))
 REMOTE_TWS_HOST      = os.getenv("REMOTE_TWS_HOST", "")
 REMOTE_COMMAND_PORT  = int(os.getenv("REMOTE_COMMAND_PORT", 5000))
 
+# ─── Microservices URLs ────────────────────────────────────────────────────
+YAHOO_API_URL = os.getenv("YAHOO_API_URL", "http://localhost:8001")
+IBKR_API_URL  = os.getenv("IBKR_API_URL",  "http://localhost:8002")
+
 # ─── File Paths ────────────────────────────────────────────────────────────
 BASE_DIR      = os.getenv("PMCC_BASE_DIR", os.path.dirname(os.path.abspath(__file__)))
 DB_PATH       = os.path.join(BASE_DIR, "pmcc_data.db")
@@ -108,6 +112,7 @@ COLORS = {
 
 # ─── Fallback Demo Portfolio ───────────────────────────────────────────────
 DEMO_POSITIONS = [
+    {"ticker": "QQQ",  "type": "LEAPS",      "strike": 300.0, "expiry": "2027-01-15", "qty":  1, "delta": 0.80, "cost_basis": 110.00, "current_price": 125.00, "premium_received": 0.0,  "underlying_price": 415.00},
     {"ticker": "MSFT",  "type": "LEAPS",      "strike": 300.0, "expiry": "2027-01-15", "qty":  1, "delta": 0.80, "cost_basis": 110.00, "current_price": 125.00, "premium_received": 0.0,  "underlying_price": 415.00},
     {"ticker": "MSFT",  "type": "SHORT_CALL", "strike": 430.0, "expiry": "2026-06-19", "qty": -1, "delta": 0.10, "cost_basis":   0.00, "current_price":   5.50, "premium_received": 5.50, "underlying_price": 415.00},
     {"ticker": "GOOGL", "type": "LEAPS",      "strike": 100.0, "expiry": "2027-01-15", "qty":  1, "delta": 0.85, "cost_basis":  50.00, "current_price":  72.00, "premium_received": 0.0,  "underlying_price": 165.00},

@@ -1,11 +1,15 @@
 """
 ui/bot_tab.py — Tab 5: Bot Control Center
 Manages the 3-state bot, Telegram config, connection settings, Hebrew logs.
+All IBKR actions go through api_ibkr (:8002).
 """
 import streamlit as st
 from datetime import datetime
+import requests
 import config
 import settings_manager
+
+IBKR = config.IBKR_API_URL   # http://localhost:8002
 
 
 def _send_telegram(msg: str, token: str = None, chat_id: str = None) -> bool:
@@ -121,22 +125,32 @@ def render_bot_tab(tws) -> None:
         col_cn, col_dc = st.columns(2)
         with col_cn:
             if st.button("🔗 חבר", key="bot_connect", use_container_width=True):
-                with st.spinner("מתחבר..."):
-                    ok = tws.connect(mode_val, host=host_val)
-                    st.session_state["connected"] = ok
-                    if ok:
-                        st.session_state["tws_account_id"] = tws.account_id
-                        st.session_state["tws_cash"]       = tws.cash_balance
-                        st.session_state["tws_netliq"]     = tws.net_liquidation
-                        _append_log("ACTION", f"🔗 חיבור הצליח — {mode_val} @ {host_val}")
-                        st.success("מחובר!")
-                        st.rerun()
-                    else:
-                        _append_log("WARN", f"חיבור נכשל — {mode_val} @ {host_val}:{port_val}")
-                        st.error("חיבור נכשל")
+                with st.spinner("מתחבר דרך api_ibkr..."):
+                    try:
+                        r = requests.get(f"{IBKR}/connect/{mode_val}", timeout=12)
+                        data = r.json()
+                        ok = data.get("ok", False)
+                        st.session_state["connected"] = ok
+                        if ok:
+                            # Refresh portfolio to get account info
+                            p = requests.get(f"{IBKR}/portfolio", timeout=5).json()
+                            st.session_state["tws_account_id"] = p.get("account_id", "—")
+                            st.session_state["tws_cash"]       = float(p.get("cash", 0))
+                            st.session_state["tws_netliq"]     = float(p.get("net_liq", 0))
+                            _append_log("ACTION", f"🔗 חיבור הצליח — {mode_val} @ {host_val}")
+                            st.success("מחובר!")
+                            st.rerun()
+                        else:
+                            _append_log("WARN", f"חיבור נכשל — {mode_val} @ {host_val}:{port_val}")
+                            st.error("חיבור נכשל")
+                    except requests.exceptions.ConnectionError:
+                        st.error("❌ api_ibkr לא פועל על פורט 8002")
         with col_dc:
             if st.button("⏏ נתק", key="bot_disconnect", use_container_width=True):
-                tws.disconnect()
+                try:
+                    requests.get(f"{IBKR}/connect/NONE", timeout=3)
+                except Exception:
+                    pass
                 st.session_state["connected"] = False
                 _append_log("WARN", "❌ נותק מ-IBKR")
                 st.rerun()
@@ -206,14 +220,17 @@ def render_bot_tab(tws) -> None:
     with col_a2:
         if st.button("📊 עדכן פרטי חשבון", use_container_width=True, key="bot_refresh_acct"):
             if is_conn:
-                tws._refresh_account()
-                st.session_state["tws_cash"]   = tws.cash_balance
-                st.session_state["tws_netliq"] = tws.net_liquidation
-                _append_log("INFO", f"💼 חשבון עודכן — Cash: ${tws.cash_balance:,.0f}")
-                st.success("עודכן!")
-                st.rerun()
+                try:
+                    p = requests.get(f"{IBKR}/portfolio", timeout=5).json()
+                    st.session_state["tws_cash"]   = float(p.get("cash", 0))
+                    st.session_state["tws_netliq"] = float(p.get("net_liq", 0))
+                    cash = st.session_state["tws_cash"]
+                    _append_log("INFO", f"💼 חשבון עודכן — Cash: ${cash:,.0f}")
+                    st.success("עודכן!"); st.rerun()
+                except Exception as e:
+                    st.error(f"שגיאה: {e}")
             else:
-                st.warning("לא מחובר לIBKR")
+                st.warning("לא מחובר ל-IBKR")
 
     with col_a3:
         if st.button("🚨 PANIC — סגור הכל", use_container_width=True,
@@ -231,12 +248,8 @@ def render_bot_tab(tws) -> None:
         col_y, col_n = st.columns(2)
         with col_y:
             if st.button("✅ אשר סגירה", key="panic_confirm_bot"):
-                n = tws.panic_close_all() if is_conn else 0
-                if n == 0:
-                    _append_log("BLOCK", "🚨 PANIC — BLOCKED (DEMO / לא מחובר)")
-                else:
-                    _append_log("ACTION", f"🚨 PANIC: נסגרו {n} פוזיציות!")
-                    _send_telegram(f"🚨 <b>PANIC CLOSE</b>\nנסגרו {n} פוזיציות במחיר שוק!")
+                _append_log("BLOCK", "🚨 PANIC — לא ממומש עדיין בארכיטקטורת API")
+                st.warning("פעולת PANIC תוכנן — פנה לגלגול ידני דרך roll_tab")
                 st.session_state["show_panic_bot"] = False
                 st.rerun()
         with col_n:
