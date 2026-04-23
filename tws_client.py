@@ -90,6 +90,7 @@ class TWSClient:
             self.ib = IB()
             self.ib.connect(host, port, clientId=cid, timeout=timeout)
             self.connected = True
+            self.ib.reqMarketDataType(2) # Enable frozen data
             self.ib.reqAllOpenOrders()
             self.ib.sleep(0.2)
             self._refresh_account()
@@ -104,13 +105,15 @@ class TWSClient:
     async def connectAsync(self, mode: str = "DEMO", host: str = "127.0.0.1", port: int = None, client_id: int = None, timeout: int = 3) -> bool:
         """Async version of connect for loop-safe use."""
         if not IB_AVAILABLE: return False
-        if self.connected and self.mode == mode and self.ib and self.ib.isConnected():
+        if self.connected and self.ib and self.ib.isConnected() and self.mode == mode:
             return True
         
-        if self.ib is not None:
+        if self.ib and self.ib.isConnected():
             try: self.ib.disconnect()
             except: pass
-            self.ib = None
+        
+        if self.ib is None:
+            self.ib = IB()
         
         self.mode = mode
         port = port or (config.TWS_PORT_DEMO if mode == "DEMO" else config.TWS_PORT_LIVE)
@@ -118,9 +121,10 @@ class TWSClient:
         cid  = client_id or config.TWS_CLIENT_ID
 
         try:
-            self.ib = IB()
+            # connectAsync will use the current loop
             await self.ib.connectAsync(host, port, clientId=cid, timeout=timeout)
             self.connected = True
+            self.ib.reqMarketDataType(2) # Enable frozen data
             self.ib.reqAllOpenOrders()
             await asyncio.sleep(0.2)
             self._refresh_account()

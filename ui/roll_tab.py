@@ -314,24 +314,25 @@ def render_roll_tab(tws=None) -> None:  # tws kept for backward-compat, not used
 
     # ── Active Orders Monitor ──────────────────────────────────────
     try:
-        import order_manager as _om_mod
-        _om = _om_mod.get_manager()
-        active = {i: mo for i, mo in _om._orders.items()
-                  if mo.status in ("PENDING","ESCALATED") and mo.is_combo}
-        if active:
-            st.markdown("---")
-            st.markdown("### 📋 פקודות קומבו פעילות")
-            for iid, mo in active.items():
-                sc = "#fbbf24" if mo.status == "ESCALATED" else "#38bdf8"
-                st.markdown(f"""
-                <div style="background:rgba(15,23,42,0.7);border:1px solid {sc};
-                     border-radius:8px;padding:0.6rem 1rem;margin:0.3rem 0;direction:rtl;">
-                  <b style="color:{sc};">{iid}</b> | {mo.ticker} ${mo.strike:.0f}C
-                  | מחיר: ${mo.current_price:.2f}
-                  | <span style="color:{sc};">{mo.status}</span>
-                  | הסלמות: {mo.escalation_count}
-                </div>""", unsafe_allow_html=True)
-            if st.button("🔄 רענן", key="refresh_orders"):
-                st.rerun()
-    except Exception:
+        r = requests.get(f"{IBKR}/orders", timeout=5)
+        if r.status_code == 200:
+            active_data = r.json().get("orders", [])
+            active = [o for o in active_data if o["status"] in ("PENDING", "ESCALATED")]
+            
+            if active:
+                st.markdown("---")
+                st.markdown("### 📋 פקודות פעילות (בניהול ה-API)")
+                for mo in active:
+                    sc = "#fbbf24" if mo["status"] == "ESCALATED" else "#38bdf8"
+                    st.markdown(f"""
+                    <div style="background:rgba(15,23,42,0.7);border:1px solid {sc};
+                         border-radius:8px;padding:0.6rem 1rem;margin:0.3rem 0;direction:rtl;">
+                      <b style="color:{sc};">{mo['internal_id']}</b> | {mo['ticker']} ${mo['strike']:.0f}C
+                      | מחיר: ${mo['current_price']:.2f}
+                      | <span style="color:{sc};">{mo['status']}</span>
+                      | הסלמות: {mo['escalation_count']}
+                    </div>""", unsafe_allow_html=True)
+                if st.button("🔄 רענן סטטוס פקודות", key="refresh_orders"):
+                    st.rerun()
+    except Exception as e:
         pass

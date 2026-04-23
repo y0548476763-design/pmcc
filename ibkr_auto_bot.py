@@ -157,8 +157,10 @@ def _handle_shorts(positions: list, bot_active: bool) -> None:
             if profit_pct >= config.TAKE_PROFIT_PCT:
                 log.info(f"[{ticker}] TAKE PROFIT {profit_pct:.0%}")
                 if bot_active:
-                    _post("/qualify", body={"ticker": ticker, "strike": strike,
-                                            "expiry": expiry, "right": "C"})
+                    _post("/order/place", body={
+                        "ticker": ticker, "strike": strike, "expiry": expiry, 
+                        "right": "C", "action": "BUY", "qty": qty, "limit_price": round(cur_px * 1.05, 2)
+                    })
                 else:
                     log.warning(f"[{ticker}] Bot inactive — TP alert only")
                 continue
