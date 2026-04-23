@@ -130,13 +130,13 @@ def _execute_combo(old_lp: dict, new_tgt: dict,
                      f"💰 ${fill:.2f}")
             st.toast(f"✅ גלגול בוצע במחיר ${fill:.2f}", icon="🔄")
         else:
-            st.success(f"⏳ פקודה {r.get('internal_id','')} נשלחה — עקוב אחר ההתקדמות במוניטור למטה")
-            # st.session_state.pop("roll_new_selected", None)
-            # st.rerun()
+            st.success(f"⏳ פקודה {r.get('order_id','')} נשלחה — עקוב אחר ההתקדמות במוניטור למטה")
+    else:
+        st.error(f"❌ הפקודה נכשלה: {resp}")
 
 # ── Main render ───────────────────────────────────────────────────────────────
 
-def render_roll_tab(tws=None) -> None:  # tws kept for backward-compat, not used
+def render_roll_tab(tws=None) -> None:
     st.markdown("""
     <div style="padding:0.4rem 0 1rem 0;">
       <div class="pmcc-title">🔄 גלגול ליפסים — LEAPS Roll Engine</div>
@@ -147,9 +147,6 @@ def render_roll_tab(tws=None) -> None:  # tws kept for backward-compat, not used
 
     bot_mode = settings_manager.get_bot_mode()
 
-    # ══════════════════════════════════════════════════════════════
-    # PHASE A — Search Yahoo Finance (completely independent search)
-    # ══════════════════════════════════════════════════════════════
     st.markdown('<div class="section-hdr">🔎 שלב א — חפש ליפס חדש ביאהו פיננס</div>',
                 unsafe_allow_html=True)
 
@@ -168,24 +165,19 @@ def render_roll_tab(tws=None) -> None:  # tws kept for backward-compat, not used
                                    type="primary", use_container_width=True)
 
     if search_clicked and ticker:
-        # Clear old results when searching new ticker
         if st.session_state.get("roll_ticker") != ticker:
             for k in ("roll_targets","roll_new_selected"):
                 st.session_state.pop(k, None)
         st.session_state["roll_ticker"] = ticker
-
         with st.spinner(f"מחפש LEAPS עבור {ticker} ביאהו פיננס..."):
             results = _search_yahoo_leaps(ticker, min_dte, tgt_delta)
-
         if results:
             st.session_state["roll_targets"] = results
             st.toast(f"נמצאו {len(results)} אפשרויות!", icon="🔍")
         else:
             st.session_state.pop("roll_targets", None)
 
-    # ── Display search results ─────────────────────────────────────
     targets = st.session_state.get("roll_targets", [])
-
     if targets:
         st.markdown('<div class="section-hdr">📋 תוצאות — בחר ליפס יעד</div>',
                     unsafe_allow_html=True)
@@ -203,8 +195,6 @@ def render_roll_tab(tws=None) -> None:  # tws kept for backward-compat, not used
                   <div style="font-size:0.7rem;color:{dc};font-weight:600;">{tgt['dte']}d</div>
                   <div style="color:#818cf8;font-weight:700;">Δ {tgt['delta']:.2f}</div>
                   <div style="font-size:1.05rem;font-weight:900;color:#34d399;">${tgt['mid']:.2f}</div>
-                  <div style="font-size:0.6rem;color:#475569;">
-                    B:{tgt['bid']:.2f} / A:{tgt['ask']:.2f}</div>
                 </div>""", unsafe_allow_html=True)
                 if st.button(f"✅ בחר", key=f"pick_{i}", use_container_width=True):
                     st.session_state["roll_new_selected"] = tgt
@@ -215,9 +205,6 @@ def render_roll_tab(tws=None) -> None:  # tws kept for backward-compat, not used
                 st.session_state.pop(k, None)
             st.rerun()
 
-    # ══════════════════════════════════════════════════════════════
-    # PHASE B — Pick old LEAPS from portfolio → execute combo
-    # ══════════════════════════════════════════════════════════════
     new_tgt = st.session_state.get("roll_new_selected")
     if not new_tgt:
         return
@@ -226,7 +213,6 @@ def render_roll_tab(tws=None) -> None:  # tws kept for backward-compat, not used
     st.markdown('<div class="section-hdr">📤 שלב ב — בחר ליפס ישן לסגירה ושלח קומבו</div>',
                 unsafe_allow_html=True)
 
-    # New LEAPS summary bar
     st.markdown(f"""
     <div style="background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.3);
          border-radius:10px;padding:0.7rem 1rem;margin-bottom:1rem;direction:rtl;">
@@ -238,7 +224,6 @@ def render_roll_tab(tws=None) -> None:  # tws kept for backward-compat, not used
       מחיר: <b style="color:#34d399">${new_tgt['mid']:.2f}</b>
     </div>""", unsafe_allow_html=True)
 
-    # Old LEAPS from portfolio
     all_pos = st.session_state.get("positions", [])
     old_leaps = [p for p in all_pos
                  if p.get("type") == "LEAPS" and p.get("qty", 0) > 0
@@ -248,10 +233,7 @@ def render_roll_tab(tws=None) -> None:  # tws kept for backward-compat, not used
                      if p.get("type") == "LEAPS" and p.get("qty", 0) > 0]
 
     if not old_leaps:
-        st.warning("לא נמצאו פוזיציות LEAPS בתיק. ודא שהנתונים עודכנו בטאב פרוטפוליו.")
-        if st.button("↩️ חזור לחיפוש", key="back_search"):
-            st.session_state.pop("roll_new_selected", None)
-            st.rerun()
+        st.warning("לא נמצאו פוזיציות LEAPS בתיק.")
         return
 
     def _lbl(p):
@@ -272,11 +254,9 @@ def render_roll_tab(tws=None) -> None:  # tws kept for backward-compat, not used
              border-radius:8px;padding:0.55rem 0.9rem;font-size:0.82rem;direction:rtl;">
           <b style="color:#f87171;">ליפס ישן (SELL):</b> &nbsp;
           {old_lp['ticker']} &nbsp;|&nbsp; Strike <b>${float(old_lp['strike']):.0f}</b>
-          &nbsp;|&nbsp; {old_lp.get('expiry','')}
-          &nbsp;|&nbsp; <span style="color:{oc}">{od}d</span>
+          &nbsp;|&nbsp; {old_lp.get('expiry','')} &nbsp;|&nbsp; <span style="color:{oc}">{od}d</span>
         </div>""", unsafe_allow_html=True)
 
-        # Net cost preview
         mid_old = float(old_lp.get("current_price", 0))
         net     = round(new_tgt["mid"] - mid_old, 2)
         nc      = "#f87171" if net > 0 else "#34d399"
@@ -289,47 +269,43 @@ def render_roll_tab(tws=None) -> None:  # tws kept for backward-compat, not used
     with col_right:
         st.markdown('<div class="pmcc-header" style="margin-bottom:6px">⚙️ הגדרות ביצוע</div>',
                     unsafe_allow_html=True)
-        esc_mins = st.number_input("המתנה לפני הסלמה (דקות):", 1, 30,
-                                   config.ESCALATION_WAIT_MINUTES, key="roll_esc_mins")
-        esc_step = st.number_input("הסלמה (%):", 0.1, 5.0,
-                                   config.ESCALATION_STEP_PCT, step=0.1, key="roll_esc_step")
+        esc_mins = st.number_input("המתנה לפני הסלמה (דקות):", 1, 30, config.ESCALATION_WAIT_MINUTES, key="roll_esc_mins")
+        esc_step = st.number_input("הסלמה (%):", 0.1, 5.0, config.ESCALATION_STEP_PCT, step=0.1, key="roll_esc_step")
 
     c1, c2, c3 = st.columns([2, 2, 1])
     with c1:
-        if st.button("✋ ביצוע ידני", key="exec_manual",
-                     type="primary", use_container_width=True):
-            _execute_combo(old_lp, new_tgt, esc_mins, esc_step,
-                           bot_mode, via_bot=False)
+        if st.button("✋ ביצוע ידני", key="exec_manual", type="primary", use_container_width=True):
+            _execute_combo(old_lp, new_tgt, esc_mins, esc_step, bot_mode, via_bot=False)
     with c2:
         if st.button("🤖 ביצוע בוט", key="exec_bot", use_container_width=True):
-            _execute_combo(old_lp, new_tgt, esc_mins, esc_step,
-                           bot_mode, via_bot=True)
+            _execute_combo(old_lp, new_tgt, esc_mins, esc_step, bot_mode, via_bot=True)
     with c3:
         if st.button("↩️ ביטול", key="exec_cancel", use_container_width=True):
             st.session_state.pop("roll_new_selected", None)
             st.rerun()
 
-    # ── Active Orders Monitor ──────────────────────────────────────
+    # ── Live Order Monitor ──────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("### 📋 🟢 Live Order Monitor")
+    refresh = st.checkbox("🔄 רענון אוטומטי (5 שניות)", value=True, key="auto_refresh_check")
+    monitor_placeholder = st.empty()
+    
     try:
-        r = requests.get(f"{IBKR}/orders", timeout=5)
+        r = requests.get(f"{IBKR}/api/orders/active", timeout=5)
         if r.status_code == 200:
-            active_data = r.json().get("orders", [])
-            active = [o for o in active_data if o["status"] in ("PENDING", "ESCALATED")]
-            
-            if active:
-                st.markdown("---")
-                st.markdown("### 📋 פקודות פעילות (בניהול ה-API)")
-                for mo in active:
-                    sc = "#fbbf24" if mo["status"] == "ESCALATED" else "#38bdf8"
-                    st.markdown(f"""
-                    <div style="background:rgba(15,23,42,0.7);border:1px solid {sc};
-                         border-radius:8px;padding:0.6rem 1rem;margin:0.3rem 0;direction:rtl;">
-                      <b style="color:{sc};">{mo['internal_id']}</b> | {mo['ticker']} ${mo['strike']:.0f}C
-                      | מחיר: ${mo['current_price']:.2f}
-                      | <span style="color:{sc};">{mo['status']}</span>
-                      | הסלמות: {mo['escalation_count']}
-                    </div>""", unsafe_allow_html=True)
-                if st.button("🔄 רענן סטטוס פקודות", key="refresh_orders"):
-                    st.rerun()
+            orders = r.json().get("orders", [])
+            if not orders:
+                monitor_placeholder.info("אין פקודות פעילות כעת.")
+            else:
+                import pandas as pd
+                df = pd.DataFrame(orders)
+                df.columns = ["ID", "Ticker", "Strike", "Expiry", "System Status", "IBKR Status", "Limit Price", "Last Price", "Escals", "Combo?"]
+                monitor_placeholder.table(df)
+        else:
+            monitor_placeholder.error("שגיאה במשיכת פקודות מה-API")
     except Exception as e:
-        pass
+        monitor_placeholder.warning(f"API לא זמין: {e}")
+
+    if refresh:
+        time.sleep(5)
+        st.rerun()

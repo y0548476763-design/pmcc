@@ -37,10 +37,18 @@ async def get_tws() -> TWSClient:
     if not _tws.connected:
         cid = 88
         logger.info("Auto-connecting IBKR...")
-        # Use standard connectAsync which now works thanks to patching
-        if not await _tws.connectAsync("LIVE", port=7496, client_id=cid, timeout=4):
-            if not await _tws.connectAsync("DEMO", port=4002, client_id=cid, timeout=4):
-                await _tws.connectAsync("DEMO", port=7497, client_id=cid, timeout=4)
+        # Check all standard ports: 7496 (Live TWS), 4001 (Live Gateway), 4002 (Paper Gateway), 7497 (Paper TWS)
+        ports = [7496, 4001, 4002, 7497]
+        connected = False
+        for p in ports:
+            mode = "LIVE" if p in [7496, 4001] else "DEMO"
+            if await _tws.connectAsync(mode, port=p, client_id=cid, timeout=3):
+                connected = True
+                break
+        
+        if not connected:
+            logger.error("Failed to connect to IBKR on all common ports (7496, 4001, 4002, 7497).")
+            raise HTTPException(status_code=503, detail="TWS/Gateway not reachable. Verify API settings.")
     return _tws
 
 
@@ -222,6 +230,7 @@ async def place_combo(req: ComboRequest, background_tasks: BackgroundTasks):
             raise HTTPException(status_code=404, detail="Could not qualify contracts")
 
         market_open = is_market_open()
+        logger.info(f"Combo Submission: ticker={req.ticker}, market_open={market_open}")
         
         # If market is closed, we don't want to escalate forever
         esc_step = req.escalation_step_pct if market_open else 0.0
@@ -241,18 +250,27 @@ async def place_combo(req: ComboRequest, background_tasks: BackgroundTasks):
             order_type="LMT",
             tif="DAY"
         )
+        logger.info(f"Order Registered: {internal_id}")
         
         # Helper callback to update manager status from background task
         def _update_mgr_status(level, msg):
-            if "FILLED" in msg:
-                mgr.mark_filled(internal_id, req.limit_price) # Simplification
+            if "STATUS_UPDATE" in msg:
+                # Format: STATUS_UPDATE:status:price
+                parts = msg.split(":")
+                if len(parts) >= 3:
+                    mgr.update_order_status(internal_id, parts[1], float(parts[2] or 0))
+            elif "FILLED" in msg:
+                mgr.mark_filled(internal_id, req.limit_price)
             elif "Escalation" in msg:
+                # Format: Escalation #1: $123.45
                 with mgr._lock:
                     mo = mgr._orders.get(internal_id)
                     if mo: 
                         mo.status = "ESCALATED"
                         mo.escalation_count += 1
-                        # Note: actual price is updated in execute_combo_roll
+                        try:
+                            mo.current_price = float(msg.split("$")[-1])
+                        except: pass
 
         # Run the execution logic in the background
         if market_open:
@@ -285,7 +303,7 @@ async def place_combo(req: ComboRequest, background_tasks: BackgroundTasks):
                 mo = mgr._orders.get(internal_id)
                 if mo: mo.status = "SUBMITTED (Market Closed)"
             
-        return {"ok": True, "result": {"status": "SUBMITTED", "internal_id": internal_id}}
+        return {"ok": True, "result": {"status": "SUBMITTED", "order_id": internal_id}}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -304,6 +322,37 @@ async def connect(mode: str):
         
     ok = await _tws.connectAsync(mode_up, timeout=8)
     return {"ok": ok, "mode": _tws.mode, "account_id": _tws.account_id}
+
+
+@app.get("/api/debug/orders")
+async def debug_orders():
+    import order_manager
+    mgr = order_manager.get_manager()
+    return {"keys": list(mgr._orders.keys()), "count": len(mgr._orders)}
+
+
+@app.get("/api/orders/active")
+async def get_active_orders():
+    """Detailed active orders for UI monitor."""
+    import order_manager
+    mgr = order_manager.get_manager()
+    res = []
+    with mgr._lock:
+        for iid, mo in mgr._orders.items():
+            if mo.status not in ("FILLED", "CANCELLED", "TIMEOUT", "REJECTED"):
+                res.append({
+                    "internal_id": iid,
+                    "ticker": mo.ticker,
+                    "strike": mo.strike,
+                    "expiry": mo.expiry,
+                    "status": mo.status,
+                    "ibkr_status": mo.ibkr_status,
+                    "current_price": mo.current_price,
+                    "last_price": mo.last_price_seen,
+                    "escalation_count": mo.escalation_count,
+                    "is_combo": mo.is_combo
+                })
+    return {"ok": True, "orders": res}
 
 
 @app.get("/orders")

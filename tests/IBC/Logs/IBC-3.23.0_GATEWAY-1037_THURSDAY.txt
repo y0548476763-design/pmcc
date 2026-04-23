@@ -9,7 +9,7 @@ This log file is located at:
 
 ================================================================================
 
-Starting IBC version 3.23.0 on Thu 04/23/2026 at 10:21:15.55
+Starting IBC version 3.23.0 on Thu 04/23/2026 at 17:10:32.45
 
 Operating system:  io
 Operating system:  n 
@@ -38,7 +38,7 @@ Generating the classpath
 Classpath=C:\Jts\ibgateway\1037\jars\batik-all-1.16.jar;C:\Jts\ibgateway\1037\jars\commons-io-2.11.0.jar;C:\Jts\ibgateway\1037\jars\core-3.5.3.jar;C:\Jts\ibgateway\1037\jars\fop-2.8.jar;C:\Jts\ibgateway\1037\jars\jackson-annotations-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jackson-core-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jackson-databind-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jts4launch-1037.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-7.41.3.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-swing-7.41.3.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-win64-7.41.3.jar;C:\Jts\ibgateway\1037\jars\locales.jar;C:\Jts\ibgateway\1037\jars\log4j-api-2.17.1.jar;C:\Jts\ibgateway\1037\jars\log4j-core-2.17.1.jar;C:\Jts\ibgateway\1037\jars\protobuf-java-3.25.6.jar;C:\Jts\ibgateway\1037\jars\total-2024.jar;C:\Jts\ibgateway\1037\jars\twslaunch-1037.jar;C:\Jts\ibgateway\1037\jars\twslaunch-install4j-1.12.jar;C:\Jts\ibgateway\1037\jars\xmlgraphics-commons-2.8.jar;C:\Jts\ibgateway\1037\.install4j\i4jruntime.jar;c:\Users\User\Desktop\pmcc1\tests\IBC\\IBC.jar
 
 Generating the JAVA VM options
-Java VM Options= -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:ParallelGCThreads=20 -XX:ConcGCThreads=5 -XX:InitiatingHeapOccupancyPercent=70 -Dinstaller.uuid=7a143c71-78df-4056-a8dd-ada292782807 -DvmOptionsPath=C:\Jts\ibgateway\1037\ibgateway.vmoptions -Dsun.awt.nopixfmt=true -Dsun.java2d.noddraw=true -Dswing.boldMetal=false -Dsun.locale.formatasdefault=true -Xmx768m -Dtwslaunch.autoupdate.serviceImpl=com.ib.tws.twslaunch.install4j.Install4jAutoUpdateService -Dchannel=latest -Dexe4j.isInstall4j=true -Dinstall4jType=standalone -DjtsConfigDir="C:\Jts" -Dibcsessionid="1354215647"
+Java VM Options= -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:ParallelGCThreads=20 -XX:ConcGCThreads=5 -XX:InitiatingHeapOccupancyPercent=70 -Dinstaller.uuid=7a143c71-78df-4056-a8dd-ada292782807 -DvmOptionsPath=C:\Jts\ibgateway\1037\ibgateway.vmoptions -Dsun.awt.nopixfmt=true -Dsun.java2d.noddraw=true -Dswing.boldMetal=false -Dsun.locale.formatasdefault=true -Xmx768m -Dtwslaunch.autoupdate.serviceImpl=com.ib.tws.twslaunch.install4j.Install4jAutoUpdateService -Dchannel=latest -Dexe4j.isInstall4j=true -Dinstall4jType=standalone -DjtsConfigDir="C:\Jts" -Dibcsessionid="281967274"
 
 Finding autorestart file
 INFO: Could not find files for the given pattern(s).
@@ -51,173 +51,5 @@ Location of java.exe=C:\Users\User\AppData\Local\Programs\Common\i4j_jres\Oda-jK
 Java Version is  17.0.10.0.101
 
 Starting IBC with this command:
-"C:\Users\User\AppData\Local\Programs\Common\i4j_jres\Oda-jK0QgTEmVssfllLP\17.0.10.0.101-zulu_64\bin\java.exe" --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-exports=java.base/sun.util=ALL-UNNAMED --add-exports=java.desktop/com.sun.java.swing.plaf.motif=ALL-UNNAMED --add-opens=java.desktop/java.awt=ALL-UNNAMED --add-opens=java.desktop/java.awt.dnd=ALL-UNNAMED --add-opens=java.desktop/javax.swing=ALL-UNNAMED --add-opens=java.desktop/javax.swing.event=ALL-UNNAMED --add-opens=java.desktop/javax.swing.plaf.basic=ALL-UNNAMED --add-opens=java.desktop/javax.swing.table=ALL-UNNAMED --add-opens=java.desktop/sun.awt=ALL-UNNAMED --add-exports=java.desktop/sun.swing=ALL-UNNAMED --add-opens=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED --add-exports=javafx.media/com.sun.media.jfxmedia=ALL-UNNAMED --add-exports=javafx.media/com.sun.media.jfxmedia.events=ALL-UNNAMED --add-exports=javafx.media/com.sun.media.jfxmedia.locator=ALL-UNNAMED --add-exports=javafx.media/com.sun.media.jfxmediaimpl=ALL-UNNAMED --add-exports=javafx.web/com.sun.javafx.webkit=ALL-UNNAMED --add-opens=jdk.management/com.sun.management.internal=ALL-UNNAMED -cp  "C:\Jts\ibgateway\1037\jars\batik-all-1.16.jar;C:\Jts\ibgateway\1037\jars\commons-io-2.11.0.jar;C:\Jts\ibgateway\1037\jars\core-3.5.3.jar;C:\Jts\ibgateway\1037\jars\fop-2.8.jar;C:\Jts\ibgateway\1037\jars\jackson-annotations-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jackson-core-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jackson-databind-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jts4launch-1037.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-7.41.3.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-swing-7.41.3.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-win64-7.41.3.jar;C:\Jts\ibgateway\1037\jars\locales.jar;C:\Jts\ibgateway\1037\jars\log4j-api-2.17.1.jar;C:\Jts\ibgateway\1037\jars\log4j-core-2.17.1.jar;C:\Jts\ibgateway\1037\jars\protobuf-java-3.25.6.jar;C:\Jts\ibgateway\1037\jars\total-2024.jar;C:\Jts\ibgateway\1037\jars\twslaunch-1037.jar;C:\Jts\ibgateway\1037\jars\twslaunch-install4j-1.12.jar;C:\Jts\ibgateway\1037\jars\xmlgraphics-commons-2.8.jar;C:\Jts\ibgateway\1037\.install4j\i4jruntime.jar;c:\Users\User\Desktop\pmcc1\tests\IBC\\IBC.jar"  -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:ParallelGCThreads=20 -XX:ConcGCThreads=5 -XX:InitiatingHeapOccupancyPercent=70 -Dinstaller.uuid=7a143c71-78df-4056-a8dd-ada292782807 -DvmOptionsPath=C:\Jts\ibgateway\1037\ibgateway.vmoptions -Dsun.awt.nopixfmt=true -Dsun.java2d.noddraw=true -Dswing.boldMetal=false -Dsun.locale.formatasdefault=true -Xmx768m -Dtwslaunch.autoupdate.serviceImpl=com.ib.tws.twslaunch.install4j.Install4jAutoUpdateService -Dchannel=latest -Dexe4j.isInstall4j=true -Dinstall4jType=standalone -DjtsConfigDir="C:\Jts" -Dibcsessionid="1354215647"  ibcalpha.ibc.IbcGateway "c:\Users\User\Desktop\pmcc1\tests\IBC\config.ini"  
+"C:\Users\User\AppData\Local\Programs\Common\i4j_jres\Oda-jK0QgTEmVssfllLP\17.0.10.0.101-zulu_64\bin\java.exe" --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-exports=java.base/sun.util=ALL-UNNAMED --add-exports=java.desktop/com.sun.java.swing.plaf.motif=ALL-UNNAMED --add-opens=java.desktop/java.awt=ALL-UNNAMED --add-opens=java.desktop/java.awt.dnd=ALL-UNNAMED --add-opens=java.desktop/javax.swing=ALL-UNNAMED --add-opens=java.desktop/javax.swing.event=ALL-UNNAMED --add-opens=java.desktop/javax.swing.plaf.basic=ALL-UNNAMED --add-opens=java.desktop/javax.swing.table=ALL-UNNAMED --add-opens=java.desktop/sun.awt=ALL-UNNAMED --add-exports=java.desktop/sun.swing=ALL-UNNAMED --add-opens=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED --add-exports=javafx.media/com.sun.media.jfxmedia=ALL-UNNAMED --add-exports=javafx.media/com.sun.media.jfxmedia.events=ALL-UNNAMED --add-exports=javafx.media/com.sun.media.jfxmedia.locator=ALL-UNNAMED --add-exports=javafx.media/com.sun.media.jfxmediaimpl=ALL-UNNAMED --add-exports=javafx.web/com.sun.javafx.webkit=ALL-UNNAMED --add-opens=jdk.management/com.sun.management.internal=ALL-UNNAMED -cp  "C:\Jts\ibgateway\1037\jars\batik-all-1.16.jar;C:\Jts\ibgateway\1037\jars\commons-io-2.11.0.jar;C:\Jts\ibgateway\1037\jars\core-3.5.3.jar;C:\Jts\ibgateway\1037\jars\fop-2.8.jar;C:\Jts\ibgateway\1037\jars\jackson-annotations-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jackson-core-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jackson-databind-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jts4launch-1037.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-7.41.3.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-swing-7.41.3.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-win64-7.41.3.jar;C:\Jts\ibgateway\1037\jars\locales.jar;C:\Jts\ibgateway\1037\jars\log4j-api-2.17.1.jar;C:\Jts\ibgateway\1037\jars\log4j-core-2.17.1.jar;C:\Jts\ibgateway\1037\jars\protobuf-java-3.25.6.jar;C:\Jts\ibgateway\1037\jars\total-2024.jar;C:\Jts\ibgateway\1037\jars\twslaunch-1037.jar;C:\Jts\ibgateway\1037\jars\twslaunch-install4j-1.12.jar;C:\Jts\ibgateway\1037\jars\xmlgraphics-commons-2.8.jar;C:\Jts\ibgateway\1037\.install4j\i4jruntime.jar;c:\Users\User\Desktop\pmcc1\tests\IBC\\IBC.jar"  -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:ParallelGCThreads=20 -XX:ConcGCThreads=5 -XX:InitiatingHeapOccupancyPercent=70 -Dinstaller.uuid=7a143c71-78df-4056-a8dd-ada292782807 -DvmOptionsPath=C:\Jts\ibgateway\1037\ibgateway.vmoptions -Dsun.awt.nopixfmt=true -Dsun.java2d.noddraw=true -Dswing.boldMetal=false -Dsun.locale.formatasdefault=true -Xmx768m -Dtwslaunch.autoupdate.serviceImpl=com.ib.tws.twslaunch.install4j.Install4jAutoUpdateService -Dchannel=latest -Dexe4j.isInstall4j=true -Dinstall4jType=standalone -DjtsConfigDir="C:\Jts" -Dibcsessionid="281967274"  ibcalpha.ibc.IbcGateway "c:\Users\User\Desktop\pmcc1\tests\IBC\config.ini"  
 
-IBC Settings:
-    AcceptIncomingConnectionAction=accept
-    CommandServerPort=7462
-    ConfirmBlindRoutingAction=yes
-    ExistingSessionDetectedAction=primary
-    IbAutoClosedown=no
-    IbDir=C:Jts
-    IbLoginId=***
-    IbPassword=***
-    MinimizeMainWindow=no
-    ShowMarginShortfallWarning=yes
-    StoreSettingsOnServer=no
-    TradingMode=paper
-    [IBController]=
-    [Logon]=
-End IBC Settings
-
-2026-04-23 10:21:17:235 IBC: version: 3.23.0
-System Properties
-------------------------------------------------------------
-java.specification.version = 17
-sun.cpu.isalist = amd64
-sun.jnu.encoding = Cp1255
-channel = latest
-java.class.path = C:\Jts\ibgateway\1037\jars\batik-all-1.16.jar;C:\Jts\ibgateway\1037\jars\commons-io-2.11.0.jar;C:\Jts\ibgateway\1037\jars\core-3.5.3.jar;C:\Jts\ibgateway\1037\jars\fop-2.8.jar;C:\Jts\ibgateway\1037\jars\jackson-annotations-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jackson-core-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jackson-databind-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jts4launch-1037.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-7.41.3.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-swing-7.41.3.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-win64-7.41.3.jar;C:\Jts\ibgateway\1037\jars\locales.jar;C:\Jts\ibgateway\1037\jars\log4j-api-2.17.1.jar;C:\Jts\ibgateway\1037\jars\log4j-core-2.17.1.jar;C:\Jts\ibgateway\1037\jars\protobuf-java-3.25.6.jar;C:\Jts\ibgateway\1037\jars\total-2024.jar;C:\Jts\ibgateway\1037\jars\twslaunch-1037.jar;C:\Jts\ibgateway\1037\jars\twslaunch-install4j-1.12.jar;C:\Jts\ibgateway\1037\jars\xmlgraphics-commons-2.8.jar;C:\Jts\ibgateway\1037\.install4j\i4jruntime.jar;c:\Users\User\Desktop\pmcc1\tests\IBC\\IBC.jar
-java.vm.vendor = Azul Systems, Inc.
-ibcsessionid = 1354215647
-sun.arch.data.model = 64
-user.variant = 
-java.vendor.url = http://www.azul.com/
-user.timezone = Asia/Jerusalem
-java.vm.specification.version = 17
-os.name = Windows 10
-sun.locale.formatasdefault = true
-sun.java.launcher = SUN_STANDARD
-user.country = IL
-sun.boot.library.path = C:\Users\User\AppData\Local\Programs\Common\i4j_jres\Oda-jK0QgTEmVssfllLP\17.0.10.0.101-zulu_64\bin
-sun.java.command = ibcalpha.ibc.IbcGateway c:\Users\User\Desktop\pmcc1\tests\IBC\config.ini
-jdk.debug = release
-sun.cpu.endian = little
-user.home = C:\Users\User
-user.language = he
-sun.stderr.encoding = cp862
-java.specification.vendor = Oracle Corporation
-java.version.date = 2024-04-16
-java.home = C:\Users\User\AppData\Local\Programs\Common\i4j_jres\Oda-jK0QgTEmVssfllLP\17.0.10.0.101-zulu_64
-jtsConfigDir = C:\Jts
-file.separator = \
-vmOptionsPath = C:\Jts\ibgateway\1037\ibgateway.vmoptions
-java.vm.compressedOopsMode = 32-bit
-line.separator = 
-
-java.vm.specification.vendor = Oracle Corporation
-twslaunch.autoupdate.serviceImpl = com.ib.tws.twslaunch.install4j.Install4jAutoUpdateService
-java.specification.name = Java Platform API Specification
-install4jType = standalone
-user.script = 
-sun.management.compiler = HotSpot 64-Bit Tiered Compilers
-exe4j.isInstall4j = true
-java.runtime.version = 17.0.10.0.101+3-LTS
-user.name = User
-path.separator = ;
-os.version = 10.0
-java.runtime.name = OpenJDK Runtime Environment
-sun.java2d.noddraw = true
-file.encoding = Cp1255
-java.vm.name = OpenJDK 64-Bit Server VM
-java.vendor.version = Zulu17.49+16-SA
-installer.uuid = 7a143c71-78df-4056-a8dd-ada292782807
-java.vendor.url.bug = http://www.azul.com/support/
-java.io.tmpdir = C:\Users\User\AppData\Local\Temp\
-java.version = 17.0.10.0.101
-user.dir = C:\Jts
-os.arch = amd64
-java.vm.specification.name = Java Virtual Machine Specification
-sun.awt.nopixfmt = true
-swing.boldMetal = false
-sun.os.patch.level = 
-native.encoding = Cp1255
-java.library.path = C:\Users\User\AppData\Local\Programs\Common\i4j_jres\Oda-jK0QgTEmVssfllLP\17.0.10.0.101-zulu_64\bin;C:\Windows\Sun\Java\bin;C:\Windows\system32;C:\Windows;C:\Python313\Scripts\;C:\Python313\;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\nodejs\;C:\ProgramData\chocolatey\bin;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\Git\cmd;C:\Users\User\AppData\Local\Programs\Python\Python39\Scripts\;C:\Users\User\AppData\Local\Programs\Python\Python39\;C:\Users\User\AppData\Local\Microsoft\WindowsApps;C:\Users\User\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\User\AppData\Roaming\npm;C:\Users\User\AppData\Local\Programs\Antigravity\bin;.
-java.vm.info = mixed mode
-java.vendor = Azul Systems, Inc.
-java.vm.version = 17.0.10.0.101+3-LTS
-sun.io.unicode.encoding = UnicodeLittle
-java.class.version = 61.0
-------------------------------------------------------------
-2026-04-23 10:21:17:240 IBC: using default settings provider: ini file is c:\Users\User\Desktop\pmcc1\tests\IBC\config.ini
-2026-04-23 10:21:17:240 IBC: using default login manager: will get username and password from settings; FIX username and password (if required) from settings
-2026-04-23 10:21:17:240 IBC: using default main window manager
-2026-04-23 10:21:17:240 IBC: using default trading mode manager: constructor parameter args but trading mode not present - will be taken from settings
-2026-04-23 10:21:17:240 IBC: using default config dialog manager
-2026-04-23 10:21:17:245 IBC: CommandServer is starting with port 7462
-2026-04-23 10:21:17:280 IBC: CommandServer listening on addresses: 127.0.0.1,0:0:0:0:0:0:0:1,fe80:0:0:0:7d85:7a20:8051:4772%wlan0,fe80:0:0:0:e667:b570:401d:640f%wlan3,192.168.43.202,fe80:0:0:0:1dda:91cf:488f:1de3%wlan7; port: 7462
-2026-04-23 10:21:17:280 IBC: CommandServer started and is ready to accept commands
-2026-04-23 10:21:17:383 IBC: TWS Settings directory is: C:Jts
-2026-04-23 10:21:17:383 IBC: Starting session: will exit if login dialog is not displayed within 60 seconds
-2026-04-23 10:21:17:392 IBC: Ensuring C:Jts\jts.ini contains required minimal lines
-2026-04-23 10:21:17:394 IBC: Found setting: [Logon]/s3store=true
-2026-04-23 10:21:17:394 IBC: Found setting: [Logon]/Locale=en
-2026-04-23 10:21:17:394 IBC: Found setting: [Logon]/displayedproxymsg=1
-2026-04-23 10:21:17:394 IBC: Found setting: [Logon]/UseSSL=true
-2026-04-23 10:21:17:394 IBC: Found setting: [IBGateway]/ApiOnly=true
-2026-04-23 10:21:17:394 IBC: Found setting: [IBGateway]/TrustedIPs=127.0.0.1
-2026-04-23 10:21:17:394 IBC: Confirmed C:Jts\jts.ini contains required minimal lines
-2026-04-23 10:21:17:394 IBC: Starting Gateway
-2026-04-23 10:21:21:828 IBC: detected frame entitled: IBKR Gateway; event=Activated
-2026-04-23 10:21:21:838 IBC: detected frame entitled: IBKR Gateway; event=Focused
-2026-04-23 10:21:21:838 IBC: detected frame entitled: IBKR Gateway; event=Opened
-2026-04-23 10:21:21:839 IBC: Login dialog WINDOW_OPENED: LoginState is LOGGED_OUT
-2026-04-23 10:21:21:840 IBC: trading mode from settings: tradingMode=paper
-2026-04-23 10:21:21:840 IBC: Setting Trading mode = paper
-2026-04-23 10:21:21:954 IBC: Setting user name
-2026-04-23 10:21:21:955 IBC: Setting password
-2026-04-23 10:21:21:956 IBC: Login attempt: 1
-2026-04-23 10:21:21:956 IBC: trading mode from settings: tradingMode=paper
-2026-04-23 10:21:21:980 IBC: Click button: Paper Log In
-2026-04-23 10:21:22:503 IBC: detected frame entitled: IBKR Gateway; event=Lost focus
-2026-04-23 10:21:22:503 IBC: detected frame entitled: IBKR Gateway; event=Deactivated
-2026-04-23 10:21:22:506 IBC: detected frame entitled: Loading...; event=Activated
-2026-04-23 10:21:22:515 IBC: detected frame entitled: Loading...; event=Focused
-2026-04-23 10:21:22:520 IBC: detected frame entitled: Loading...; event=Opened
-2026-04-23 10:21:22:520 IBC: Found Gateway main window
-2026-04-23 10:21:23:030 IBC: detected frame entitled: Loading...; event=Lost focus
-2026-04-23 10:21:23:031 IBC: detected frame entitled: Loading...; event=Deactivated
-2026-04-23 10:21:23:031 IBC: detected frame entitled: Connecting to server (trying for another 19 seconds)...; event=Activated
-2026-04-23 10:21:23:033 IBC: detected frame entitled: Connecting to server (trying for another 19 seconds)...; event=Focused
-2026-04-23 10:21:23:033 IBC: detected frame entitled: Connecting to server (trying for another 19 seconds)...; event=Opened
-2026-04-23 10:21:24:253 IBC: detected frame entitled: Authenticating...; event=Lost focus
-2026-04-23 10:21:24:256 IBC: detected frame entitled: Authenticating...; event=Deactivated
-2026-04-23 10:21:24:256 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Activated
-2026-04-23 10:21:24:265 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Focused
-2026-04-23 10:21:24:266 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Opened
-2026-04-23 10:21:53:150 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Lost focus
-2026-04-23 10:21:53:151 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Deactivated
-2026-04-23 10:21:53:151 IBC: detected frame entitled: Authenticating...; event=Activated
-2026-04-23 10:21:53:153 IBC: detected frame entitled: Authenticating...; event=Focused
-2026-04-23 10:21:53:153 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Closed
-LogModuleConfigurator-Init: Log4j Ver2.x found on classpath
-LogModuleConfigurator-Init: LogModuleConfigurator initialized with Log4j Veri.x
-2026-04-23 10:22:16:625 IBC: detected frame entitled: Starting application...; event=Lost focus
-2026-04-23 10:22:16:625 IBC: detected frame entitled: Starting application...; event=Focused
-2026-04-23 10:22:16:626 IBC: detected frame entitled: Starting application...; event=Lost focus
-2026-04-23 10:22:16:626 IBC: detected frame entitled: Starting application...; event=Deactivated
-2026-04-23 10:22:16:635 IBC: detected frame entitled: Starting application...; event=Closed
-2026-04-23 10:22:16:635 IBC: Login has completed
-2026-04-23 10:22:16:635 IBC: detected dialog entitled: Warning; event=Activated
-2026-04-23 10:22:16:638 IBC: detected dialog entitled: Warning; event=Focused
-2026-04-23 10:22:16:638 IBC: detected dialog entitled: Warning; event=Opened
-2026-04-23 10:22:16:640 IBC: Click button: I understand and accept
-2026-04-23 10:22:16:771 IBC: detected dialog entitled: Warning; event=Closed
-2026-04-23 10:22:16:771 IBC: detected dialog entitled: Warning; event=Lost focus
-2026-04-23 10:22:16:771 IBC: detected dialog entitled: Warning; event=Deactivated
-2026-04-23 10:22:16:771 IBC: detected frame entitled: IBKR Gateway; event=Activated
-2026-04-23 10:22:16:772 IBC: detected frame entitled: IBKR Gateway; event=Focused
-2026-04-23 10:22:18:207 IBC: detected dialog entitled: Pending Tasks; event=Closed
-2026-04-23 10:29:41:432 IBC: detected frame entitled: IBKR Gateway; event=Lost focus
-2026-04-23 10:29:41:433 IBC: detected frame entitled: IBKR Gateway; event=Deactivated
-2026-04-23 10:29:41:640 IBC: detected frame entitled: IBKR Gateway; event=Iconified
-2026-04-23 10:29:41:640 IBC: detected frame entitled: IBKR Gateway; event=State changed
-remove Client 99
-remove Client 42
-remove Client 88
-remove Client 88
-remove Client 88
-remove Client 88
-remove Client 88
-remove Client 88
-remove Client 88

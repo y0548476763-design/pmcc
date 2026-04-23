@@ -27,6 +27,9 @@ class ManagedOrder:
     current_price: float        # May be escalated to Ask
     algo_speed:    str
     status:        str = "PENDING"   # PENDING | ESCALATED | FILLED | CANCELLED
+    ibkr_status:   str = ""          # Status from TWS (Submitted, PreSubmitted, etc)
+    last_price_seen: float = 0.0
+    next_escalation_at: Optional[datetime] = None
     submitted_at:  datetime = field(default_factory=datetime.utcnow)
     escalated_at:  Optional[datetime] = None
     filled_price:  Optional[float] = None
@@ -111,9 +114,7 @@ class OrderManager:
                     strike=strike,
                     expiry=expiry,
                     limit_price=limit_price,
-                    algo_speed=algo_speed,
-                    order_type=order_type,
-                    tif=tif
+                    algo_speed=algo_speed
                 )
             if order_id is None:
                 initial_status = "REJECTED"
@@ -179,6 +180,14 @@ class OrderManager:
                 mo.status = "FILLED"
                 mo.filled_price = fill_price
         self._log("INFO", f"✅ Order {internal_id} filled @ ${fill_price:.2f}")
+
+    def update_order_status(self, internal_id: str, ibkr_status: str, last_price: float = 0.0) -> None:
+        with self._lock:
+            mo = self._orders.get(internal_id)
+            if mo:
+                mo.ibkr_status = ibkr_status
+                if last_price > 0:
+                    mo.last_price_seen = last_price
 
     # ─── Escalation Loop ─────────────────────────────────────────────────────
 
