@@ -215,7 +215,8 @@ async def place_combo(req: ComboRequest, background_tasks: BackgroundTasks):
 
         sell_c = IBOption(req.ticker, sell_exp, req.sell_strike, "C", "SMART", currency="USD")
         buy_c  = IBOption(req.ticker, buy_exp,  req.buy_strike,  "C", "SMART", currency="USD")
-        tws.ib.qualifyContracts(sell_c, buy_c)
+        # Qualify contracts asynchronously to avoid blocking the API
+        await tws.ib.qualifyContractsAsync(sell_c, buy_c)
 
         if not sell_c.conId or not buy_c.conId:
             raise HTTPException(status_code=404, detail="Could not qualify contracts")
@@ -226,23 +227,65 @@ async def place_combo(req: ComboRequest, background_tasks: BackgroundTasks):
         esc_step = req.escalation_step_pct if market_open else 0.0
         max_esc  = 10 if market_open else 0
 
-        # Run the execution logic in the background to prevent HTTP timeout
-        background_tasks.add_task(
-            tws_combo.execute_combo_roll,
-            ib=tws.ib,
-            sell_conid=sell_c.conId, sell_strike=req.sell_strike,
-            sell_expiry=sell_c.lastTradeDateOrContractMonth,
-            buy_conid=buy_c.conId,   buy_strike=req.buy_strike,
-            buy_expiry=buy_c.lastTradeDateOrContractMonth,
-            ticker=req.ticker, qty=req.qty,
-            limit_price=req.limit_price,
-            use_market=req.use_market,
-            escalation_step_pct=esc_step,
-            escalation_wait_secs=req.escalation_wait_secs,
-            max_escalations=max_esc
+        import order_manager
+        mgr = order_manager.get_manager()
+        mgr.set_tws(tws)
+        
+        # Register in manager for UI visibility
+        internal_id = mgr.submit_order(
+            ticker=req.ticker, right="C", strike=req.buy_strike, expiry=buy_exp,
+            action="BUY", qty=req.qty, limit_price=req.limit_price,
+            escalation_step_pct=esc_step, 
+            escalation_wait_mins=9999, # Handled by BackgroundTask, not OrderManager thread
+            is_combo=True, 
+            order_type="LMT",
+            tif="DAY"
         )
         
-        return {"ok": True, "result": {"status": "SUBMITTED", "message": "Order sent to background worker"}}
+        # Helper callback to update manager status from background task
+        def _update_mgr_status(level, msg):
+            if "FILLED" in msg:
+                mgr.mark_filled(internal_id, req.limit_price) # Simplification
+            elif "Escalation" in msg:
+                with mgr._lock:
+                    mo = mgr._orders.get(internal_id)
+                    if mo: 
+                        mo.status = "ESCALATED"
+                        mo.escalation_count += 1
+                        # Note: actual price is updated in execute_combo_roll
+
+        # Run the execution logic in the background
+        if market_open:
+            background_tasks.add_task(
+                tws_combo.execute_combo_roll,
+                ib=tws.ib,
+                sell_conid=sell_c.conId, sell_strike=req.sell_strike,
+                sell_expiry=sell_c.lastTradeDateOrContractMonth,
+                buy_conid=buy_c.conId,   buy_strike=req.buy_strike,
+                buy_expiry=buy_c.lastTradeDateOrContractMonth,
+                ticker=req.ticker, qty=req.qty,
+                limit_price=req.limit_price,
+                use_market=req.use_market,
+                escalation_step_pct=esc_step,
+                escalation_wait_secs=req.escalation_wait_secs,
+                max_escalations=max_esc,
+                log_cb=_update_mgr_status
+            )
+        else:
+            # Just place the order once and exit
+            from ib_insync import Bag, ComboLeg, LimitOrder
+            bag = Bag(symbol=req.ticker, currency='USD', exchange='SMART', 
+                      comboLegs=[
+                          ComboLeg(conId=sell_c.conId, ratio=1, action='SELL', exchange='SMART'),
+                          ComboLeg(conId=buy_c.conId,  ratio=1, action='BUY',  exchange='SMART')
+                      ])
+            order = LimitOrder('BUY', req.qty, round(req.limit_price, 2))
+            tws.ib.placeOrder(bag, order)
+            with mgr._lock:
+                mo = mgr._orders.get(internal_id)
+                if mo: mo.status = "SUBMITTED (Market Closed)"
+            
+        return {"ok": True, "result": {"status": "SUBMITTED", "internal_id": internal_id}}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

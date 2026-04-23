@@ -185,7 +185,7 @@ def execute_combo_roll(ib, sell_conid: int, sell_strike: float, sell_expiry: str
             return {'status': status, 'fill_price': 0, 'escalations': escalations}
 
         # Escalation logic (LMT only)
-        if not use_market and (time.time() - start_time) > escalation_wait_secs * (escalations + 1):
+        if not use_market and max_escalations > 0 and (time.time() - start_time) > escalation_wait_secs * (escalations + 1):
             if escalations >= max_escalations:
                 _log(f"[COMBO] Max escalations reached. Cancelling.")
                 ib.cancelOrder(trade.order)

@@ -130,12 +130,9 @@ def _execute_combo(old_lp: dict, new_tgt: dict,
                      f"💰 ${fill:.2f}")
             st.toast(f"✅ גלגול בוצע במחיר ${fill:.2f}", icon="🔄")
         else:
-            st.success(f"⏳ פקודה נשלחה — סטטוס: {status}")
-    else:
-        st.error(f"❌ הפקודה נכשלה: {resp}")
-
-    st.session_state.pop("roll_new_selected", None)
-    st.rerun()
+            st.success(f"⏳ פקודה {r.get('internal_id','')} נשלחה — עקוב אחר ההתקדמות במוניטור למטה")
+            # st.session_state.pop("roll_new_selected", None)
+            # st.rerun()
 
 # ── Main render ───────────────────────────────────────────────────────────────
 

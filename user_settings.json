@@ -69,5 +69,7 @@
     "rules": {
         "dip_trigger_a_pct": 20,
         "dip_trigger_b_pct": 30
-    }
+    },
+    "telegram_chat_id": "7910834714",
+    "telegram_token": "8442918441:AAEZjhExbEzsP7nJtYlg_hL9eHebg08F59M"
 }
