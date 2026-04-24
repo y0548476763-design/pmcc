@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from typing import Optional
 import logging, threading, asyncio, math
 import ib_insync.util
+import order_manager
 try:
     import nest_asyncio
     nest_asyncio.apply()
@@ -177,7 +178,6 @@ async def place_order(req: PlaceOrderRequest):
     if not tws.connected or not tws.ib:
         raise HTTPException(status_code=503, detail="TWS not connected")
     try:
-        import order_manager
         mgr = order_manager.get_manager()
         mgr.set_tws(tws)
 
@@ -236,7 +236,6 @@ async def place_combo(req: ComboRequest, background_tasks: BackgroundTasks):
         esc_step = req.escalation_step_pct if market_open else 0.0
         max_esc  = 10 if market_open else 0
 
-        import order_manager
         mgr = order_manager.get_manager()
         mgr.set_tws(tws)
         
@@ -248,7 +247,8 @@ async def place_combo(req: ComboRequest, background_tasks: BackgroundTasks):
             escalation_wait_mins=9999, # Handled by BackgroundTask, not OrderManager thread
             is_combo=True, 
             order_type="LMT",
-            tif="DAY"
+            tif="DAY",
+            submit_to_tws=False
         )
         logger.info(f"Order Registered: {internal_id}")
         
@@ -261,6 +261,11 @@ async def place_combo(req: ComboRequest, background_tasks: BackgroundTasks):
                     mgr.update_order_status(internal_id, parts[1], float(parts[2] or 0))
             elif "FILLED" in msg:
                 mgr.mark_filled(internal_id, req.limit_price)
+            elif "Rejected" in msg or "Error 103" in msg or "Cancelled" in msg:
+                with mgr._lock:
+                    mo = mgr._orders.get(internal_id)
+                    if mo: 
+                        mo.status = "REJECTED BY IBKR"
             elif "Escalation" in msg:
                 # Format: Escalation #1: $123.45
                 with mgr._lock:
@@ -326,7 +331,6 @@ async def connect(mode: str):
 
 @app.get("/api/debug/orders")
 async def debug_orders():
-    import order_manager
     mgr = order_manager.get_manager()
     return {"keys": list(mgr._orders.keys()), "count": len(mgr._orders)}
 
@@ -334,7 +338,6 @@ async def debug_orders():
 @app.get("/api/orders/active")
 async def get_active_orders():
     """Detailed active orders for UI monitor."""
-    import order_manager
     mgr = order_manager.get_manager()
     res = []
     with mgr._lock:
@@ -358,23 +361,8 @@ async def get_active_orders():
 @app.get("/orders")
 async def get_orders():
     """Returns all managed orders from the singleton manager."""
-    import order_manager
     mgr = order_manager.get_manager()
-    orders = mgr.get_all_orders()
-    # Convert to list of dicts for JSON
-    res = []
-    for mo in orders:
-        res.append({
-            "internal_id": next((k for k, v in mgr._orders.items() if v == mo), "?"),
-            "ticker": mo.ticker,
-            "strike": mo.strike,
-            "expiry": mo.expiry,
-            "status": mo.status,
-            "current_price": mo.current_price,
-            "is_combo": mo.is_combo,
-            "escalation_count": mo.escalation_count
-        })
-    return {"ok": True, "orders": res}
+    return {"ok": True, "orders": mgr.get_all_orders()}
 
 
 @app.get("/health")

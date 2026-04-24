@@ -472,3 +472,31 @@ hr { border-color: var(--border) !important; margin: 0.8rem 0 !important; }
 .market-status-bar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0.45rem 1.4rem; display: flex; align-items: center; gap: 0.8rem; font-size: 0.72rem; color: var(--text-sm); direction: rtl; position: sticky; top: 0; z-index: 100; }
 .market-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.3); color: #10b981; }
 .market-pill.closed { background: rgba(244,63,94,0.08); border-color: rgba(244,63,94,0.3); color: #f43f5e; }
+
+/* ── Table & Dataframe Visibility Fix ─────────────────── */
+table, .stTable, [data-testid="stTable"], .stDataFrame {
+  color: #f1f5f9 !important;
+}
+th { color: var(--sky) !important; font-weight: 700 !important; }
+td { color: #e2e8f0 !important; }
+
+/* Slider Style & Bubble Alignment Fix */
+[data-testid="stSlider"] {
+  padding-top: 10px !important;
+  margin-top: 5px !important;
+}
+
+[data-testid="stSlider"] label {
+  margin-bottom: 4px !important;
+  color: var(--text-md) !important;
+  font-weight: 600 !important;
+}
+
+/* Force slider thumb and bubble colors to be consistent */
+[data-testid="stSlider"] [role="slider"] {
+  background-color: var(--sky) !important;
+}
+
+[data-testid="stSlider"] div[data-baseweb="slider"] div {
+  background-image: linear-gradient(90deg, var(--sky), var(--violet)) !important;
+}

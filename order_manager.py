@@ -80,10 +80,12 @@ class OrderManager:
         self._running = False
 
     def submit_order(self, ticker: str, right: str, strike: float, expiry: str,
-                     action: str, qty: int, limit_price: float, escalation_step_pct: float,
-                     algo_speed: str = "Normal", escalation_wait_mins: int = 1,
-                     order_type: str = "LMT", is_combo: bool = False, legs: List[Dict] = None,
-                     tif: str = "DAY") -> str:
+                     action: str, qty: int, limit_price: float,
+                     escalation_step_pct: float = 1.0, escalation_wait_mins: int = 10,
+                     order_type: str = "LMT", algo_speed: str = "normal", 
+                     is_combo: bool = False, legs: List = None,
+                     tif: str = "DAY",
+                     submit_to_tws: bool = True) -> str:
         """
         Submit a new order.
         For BUY:  limit_price increases by escalation_step_pct every N minutes.
@@ -95,29 +97,38 @@ class OrderManager:
 
         order_id = None
         initial_status = "PENDING"
-        if self._tws and getattr(self._tws, "ib", None) and self._tws.ib.isConnected():
-            if is_combo and legs:
-                order_id = self._tws.place_combo_order(
-                    ticker=ticker,
-                    legs=legs,
-                    action=action,
-                    qty=qty,
-                    limit_price=limit_price,
-                    tif=tif
-                )
-            else:
-                order_id = self._tws.place_adaptive_order(
-                    action=action,
-                    qty=qty,
-                    ticker=ticker,
-                    right=right,
-                    strike=strike,
-                    expiry=expiry,
-                    limit_price=limit_price,
-                    algo_speed=algo_speed
-                )
-            if order_id is None:
+
+        if submit_to_tws and self._tws and getattr(self._tws, "ib", None) and self._tws.ib.isConnected():
+            try:
+                if is_combo:
+                    # Generic combo (not BAG) - Note: BAG is handled outside
+                    order_id = self._tws.place_combo_order(
+                        ticker=ticker,
+                        legs=legs,
+                        action=action,
+                        qty=qty,
+                        limit_price=limit_price,
+                        order_type=order_type,
+                        tif=tif
+                    )
+                else:
+                    order_id = self._tws.place_adaptive_order(
+                        action=action,
+                        qty=qty,
+                        ticker=ticker,
+                        right=right,
+                        strike=strike,
+                        expiry=expiry,
+                        limit_price=limit_price,
+                        algo_speed=algo_speed
+                    )
+                if order_id is None:
+                    initial_status = "REJECTED"
+            except Exception as e:
+                self._log("ERROR", f"TWS Submission Error: {e}")
                 initial_status = "REJECTED"
+        elif not submit_to_tws:
+            initial_status = "SUBMITTED" # Registered for background worker
 
         mo = ManagedOrder(
             order_id=order_id,

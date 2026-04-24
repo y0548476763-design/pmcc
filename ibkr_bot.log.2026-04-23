@@ -1,0 +1,448 @@
+2026-04-23 00:28:58,443 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 08:30:54,837 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 08:30:54,838 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 08:35:55,286 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 08:35:55,307 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 08:40:55,392 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 08:40:55,391 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 08:45:55,430 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 08:45:55,432 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 08:50:55,434 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 08:50:55,434 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 08:55:55,438 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 08:55:55,438 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 09:00:55,441 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 09:00:55,441 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 09:05:55,445 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 09:05:55,448 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 09:10:55,447 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 09:10:55,452 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 09:15:55,451 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 09:15:55,454 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 09:20:55,452 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 09:20:55,456 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 09:25:55,454 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 09:25:55,458 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 09:30:55,456 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 09:30:55,462 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 09:35:55,458 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 09:35:55,465 INFO 🌙 הבורסה סגורה. הבוט בהמתנה ל-5 דקות.
+2026-04-23 10:22:24,859 INFO PMCC Bot started — YAHOO=http://localhost:8001 IBKR=http://localhost:8002
+2026-04-23 10:22:24,872 INFO Market closed — waiting 5 min
+2026-04-23 10:27:24,875 INFO Market closed — waiting 5 min
+2026-04-23 10:32:24,879 INFO Market closed — waiting 5 min
+2026-04-23 10:37:24,882 INFO Market closed — waiting 5 min
+2026-04-23 10:42:24,884 INFO Market closed — waiting 5 min
+2026-04-23 10:47:24,886 INFO Market closed — waiting 5 min
+2026-04-23 10:52:24,890 INFO Market closed — waiting 5 min
+2026-04-23 10:57:24,893 INFO Market closed — waiting 5 min
+2026-04-23 11:02:24,898 INFO Market closed — waiting 5 min
+2026-04-23 11:07:24,900 INFO Market closed — waiting 5 min
+2026-04-23 11:12:24,901 INFO Market closed — waiting 5 min
+2026-04-23 11:17:24,918 INFO Market closed — waiting 5 min
+2026-04-23 17:11:27,346 INFO PMCC Bot started — YAHOO=http://localhost:8001 IBKR=http://localhost:8002
+2026-04-23 17:11:27,382 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:11:29,610 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:11:29,610 WARNING No positions found
+2026-04-23 17:12:29,615 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:12:31,676 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:12:31,677 WARNING No positions found
+2026-04-23 17:13:31,681 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:13:33,736 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:13:33,736 WARNING No positions found
+2026-04-23 17:14:33,739 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:14:35,803 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:14:35,804 WARNING No positions found
+2026-04-23 17:15:35,807 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:15:37,884 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:15:37,885 WARNING No positions found
+2026-04-23 17:16:37,889 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:16:39,945 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:16:39,946 WARNING No positions found
+2026-04-23 17:17:39,948 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:17:42,005 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:17:42,007 WARNING No positions found
+2026-04-23 17:18:42,010 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:18:44,117 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:18:44,141 WARNING No positions found
+2026-04-23 17:19:44,147 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:19:46,194 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:19:46,195 WARNING No positions found
+2026-04-23 17:20:46,200 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:20:48,264 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:20:48,265 WARNING No positions found
+2026-04-23 17:28:27,113 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:28:29,178 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:28:29,178 WARNING No positions found
+2026-04-23 17:29:29,180 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:29:31,241 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:29:31,242 WARNING No positions found
+2026-04-23 17:30:31,245 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:30:33,312 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:30:33,313 WARNING No positions found
+2026-04-23 17:37:41,995 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:37:44,046 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:37:44,047 WARNING No positions found
+2026-04-23 17:38:44,049 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:38:46,114 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:38:46,114 WARNING No positions found
+2026-04-23 17:39:46,117 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:39:48,190 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:39:48,190 WARNING No positions found
+2026-04-23 17:40:48,194 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:40:50,251 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:40:50,252 WARNING No positions found
+2026-04-23 17:41:50,255 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:41:52,327 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:41:52,328 WARNING No positions found
+2026-04-23 17:52:01,259 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:52:03,291 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:52:03,292 WARNING No positions found
+2026-04-23 17:53:03,295 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:53:05,359 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:53:05,360 WARNING No positions found
+2026-04-23 17:54:05,362 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:54:07,408 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:54:07,409 WARNING No positions found
+2026-04-23 17:55:07,413 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:55:09,467 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:55:09,467 WARNING No positions found
+2026-04-23 17:56:09,469 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:56:11,534 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:56:11,535 WARNING No positions found
+2026-04-23 17:57:11,536 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:57:13,578 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:57:13,579 WARNING No positions found
+2026-04-23 17:58:13,582 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:58:15,637 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:58:15,638 WARNING No positions found
+2026-04-23 17:59:15,642 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 17:59:17,699 INFO Portfolio from DEMO: 0 positions
+2026-04-23 17:59:17,699 WARNING No positions found
+2026-04-23 18:00:17,702 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:00:19,778 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:00:19,779 WARNING No positions found
+2026-04-23 18:01:19,780 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:01:21,851 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:01:21,851 WARNING No positions found
+2026-04-23 18:02:21,855 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:02:23,930 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:02:23,931 WARNING No positions found
+2026-04-23 18:03:23,934 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:03:26,006 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:03:26,006 WARNING No positions found
+2026-04-23 18:04:26,009 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:04:28,078 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:04:28,078 WARNING No positions found
+2026-04-23 18:05:28,083 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:05:30,151 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:05:30,152 WARNING No positions found
+2026-04-23 18:06:30,155 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:06:32,235 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:06:32,235 WARNING No positions found
+2026-04-23 18:07:32,238 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:07:34,275 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:07:34,275 WARNING No positions found
+2026-04-23 18:08:34,277 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:08:36,332 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:08:36,333 WARNING No positions found
+2026-04-23 18:09:36,334 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:09:38,405 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:09:38,406 WARNING No positions found
+2026-04-23 18:10:38,409 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:10:40,596 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:10:40,596 WARNING No positions found
+2026-04-23 18:11:40,599 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:11:42,641 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:11:42,641 WARNING No positions found
+2026-04-23 18:12:42,645 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:12:44,702 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:12:44,703 WARNING No positions found
+2026-04-23 18:13:44,704 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:13:46,780 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:13:46,781 WARNING No positions found
+2026-04-23 18:14:46,784 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:14:48,851 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:14:48,852 WARNING No positions found
+2026-04-23 18:15:48,856 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:15:50,959 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:15:50,960 WARNING No positions found
+2026-04-23 18:16:50,963 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:16:53,030 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:16:53,031 WARNING No positions found
+2026-04-23 18:17:53,035 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:17:55,093 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:17:55,094 WARNING No positions found
+2026-04-23 18:18:55,097 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:18:57,152 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:18:57,152 WARNING No positions found
+2026-04-23 18:19:57,154 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:19:59,215 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:19:59,216 WARNING No positions found
+2026-04-23 18:20:59,218 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:21:01,279 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:21:01,279 WARNING No positions found
+2026-04-23 18:22:01,280 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:22:03,331 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:22:03,331 WARNING No positions found
+2026-04-23 18:23:03,336 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:23:05,414 INFO Portfolio from DEMO: 0 positions
+2026-04-23 18:23:05,415 WARNING No positions found
+2026-04-23 18:24:05,416 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:24:07,496 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:24:07,555 INFO --- Scan cycle complete ---
+2026-04-23 18:25:07,558 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:25:09,611 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:25:09,612 INFO --- Scan cycle complete ---
+2026-04-23 18:26:09,681 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:26:11,872 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:26:11,911 INFO --- Scan cycle complete ---
+2026-04-23 18:27:11,913 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:27:19,851 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:27:19,860 INFO --- Scan cycle complete ---
+2026-04-23 18:28:19,863 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:28:21,938 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:28:21,938 INFO --- Scan cycle complete ---
+2026-04-23 18:29:21,941 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:29:23,999 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:29:23,999 INFO --- Scan cycle complete ---
+2026-04-23 18:30:24,003 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:30:26,056 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:30:26,057 INFO --- Scan cycle complete ---
+2026-04-23 18:31:26,058 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:31:28,113 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:31:28,114 INFO --- Scan cycle complete ---
+2026-04-23 18:32:28,116 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:32:35,155 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:32:35,155 INFO --- Scan cycle complete ---
+2026-04-23 18:33:35,158 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:33:41,788 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:33:41,788 INFO --- Scan cycle complete ---
+2026-04-23 18:34:41,791 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:34:48,809 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:34:48,810 INFO --- Scan cycle complete ---
+2026-04-23 18:35:48,812 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:35:50,873 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:35:50,876 INFO --- Scan cycle complete ---
+2026-04-23 18:36:50,878 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:36:52,939 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:36:52,940 INFO --- Scan cycle complete ---
+2026-04-23 18:37:52,943 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:37:54,993 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:37:54,995 INFO --- Scan cycle complete ---
+2026-04-23 18:38:54,997 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:38:57,045 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:38:57,046 INFO --- Scan cycle complete ---
+2026-04-23 18:39:57,050 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:39:59,113 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:39:59,114 INFO --- Scan cycle complete ---
+2026-04-23 18:40:59,116 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:41:01,184 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:41:01,185 INFO --- Scan cycle complete ---
+2026-04-23 18:42:01,188 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:42:03,253 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:42:03,255 INFO --- Scan cycle complete ---
+2026-04-23 18:43:03,258 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:43:05,321 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:43:05,322 INFO --- Scan cycle complete ---
+2026-04-23 18:44:05,325 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:44:07,399 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:44:07,400 INFO --- Scan cycle complete ---
+2026-04-23 18:45:07,403 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:45:09,467 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:45:09,467 INFO --- Scan cycle complete ---
+2026-04-23 18:46:09,470 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:46:11,527 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:46:11,528 INFO --- Scan cycle complete ---
+2026-04-23 18:47:11,531 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:47:13,594 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:47:13,596 INFO --- Scan cycle complete ---
+2026-04-23 18:48:13,599 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:48:15,658 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:48:15,659 INFO --- Scan cycle complete ---
+2026-04-23 18:59:26,331 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 18:59:28,420 INFO Portfolio from DEMO: 4 positions
+2026-04-23 18:59:28,421 INFO --- Scan cycle complete ---
+2026-04-23 19:00:28,423 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:00:30,480 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:00:30,481 INFO --- Scan cycle complete ---
+2026-04-23 19:01:30,482 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:01:32,549 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:01:32,550 INFO --- Scan cycle complete ---
+2026-04-23 19:06:01,322 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:06:03,368 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:06:03,369 INFO --- Scan cycle complete ---
+2026-04-23 19:07:03,371 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:07:05,446 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:07:05,447 INFO --- Scan cycle complete ---
+2026-04-23 19:08:05,451 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:08:07,518 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:08:07,520 INFO --- Scan cycle complete ---
+2026-04-23 19:09:07,523 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:09:09,597 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:09:09,598 INFO --- Scan cycle complete ---
+2026-04-23 19:10:09,605 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:10:11,738 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:10:11,739 INFO --- Scan cycle complete ---
+2026-04-23 19:11:11,752 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:11:13,810 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:11:13,811 INFO --- Scan cycle complete ---
+2026-04-23 19:12:13,814 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:12:15,864 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:12:15,865 INFO --- Scan cycle complete ---
+2026-04-23 19:13:15,866 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:13:23,102 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:13:23,103 INFO --- Scan cycle complete ---
+2026-04-23 19:37:43,156 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:37:45,289 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:37:45,290 INFO --- Scan cycle complete ---
+2026-04-23 19:38:45,293 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:38:47,333 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:38:47,335 INFO --- Scan cycle complete ---
+2026-04-23 19:39:47,338 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:39:49,385 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:39:49,391 INFO --- Scan cycle complete ---
+2026-04-23 19:40:49,396 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:40:51,456 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:40:51,457 INFO --- Scan cycle complete ---
+2026-04-23 19:41:51,463 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:41:53,520 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:41:53,522 INFO --- Scan cycle complete ---
+2026-04-23 19:42:53,526 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:42:55,582 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:42:55,608 INFO --- Scan cycle complete ---
+2026-04-23 19:43:56,223 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:43:58,283 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:43:58,298 INFO --- Scan cycle complete ---
+2026-04-23 19:44:58,307 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:45:00,341 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:45:00,365 INFO --- Scan cycle complete ---
+2026-04-23 19:46:00,369 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:46:02,433 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:46:02,434 INFO --- Scan cycle complete ---
+2026-04-23 19:47:02,439 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:47:04,496 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:47:04,498 INFO --- Scan cycle complete ---
+2026-04-23 19:48:04,501 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:48:11,963 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:48:11,964 INFO --- Scan cycle complete ---
+2026-04-23 19:49:11,968 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:49:14,030 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:49:14,031 INFO --- Scan cycle complete ---
+2026-04-23 19:50:14,037 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:50:16,088 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:50:16,091 INFO --- Scan cycle complete ---
+2026-04-23 19:51:16,094 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:51:18,145 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:51:18,146 INFO --- Scan cycle complete ---
+2026-04-23 19:52:18,149 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:52:20,212 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:52:20,213 INFO --- Scan cycle complete ---
+2026-04-23 19:53:20,217 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:53:22,262 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:53:22,263 INFO --- Scan cycle complete ---
+2026-04-23 19:54:22,267 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:54:24,321 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:54:24,322 INFO --- Scan cycle complete ---
+2026-04-23 19:55:24,326 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:55:26,363 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:55:26,364 INFO --- Scan cycle complete ---
+2026-04-23 19:56:26,368 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:56:28,427 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:56:28,429 INFO --- Scan cycle complete ---
+2026-04-23 19:57:28,434 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:57:30,503 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:57:30,504 INFO --- Scan cycle complete ---
+2026-04-23 19:58:30,507 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:58:32,564 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:58:32,565 INFO --- Scan cycle complete ---
+2026-04-23 19:59:32,569 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 19:59:34,648 INFO Portfolio from DEMO: 4 positions
+2026-04-23 19:59:34,687 INFO --- Scan cycle complete ---
+2026-04-23 20:00:34,690 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:00:36,770 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:00:36,771 INFO --- Scan cycle complete ---
+2026-04-23 20:01:36,774 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:01:38,843 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:01:38,844 INFO --- Scan cycle complete ---
+2026-04-23 20:02:38,847 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:02:40,923 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:02:40,924 INFO --- Scan cycle complete ---
+2026-04-23 20:03:40,926 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:03:42,974 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:03:42,975 INFO --- Scan cycle complete ---
+2026-04-23 20:04:42,981 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:04:45,037 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:04:45,038 INFO --- Scan cycle complete ---
+2026-04-23 20:05:45,043 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:05:47,097 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:05:47,099 INFO --- Scan cycle complete ---
+2026-04-23 20:30:10,240 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:30:12,421 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:30:12,446 INFO --- Scan cycle complete ---
+2026-04-23 20:31:12,448 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:31:14,509 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:31:14,511 INFO --- Scan cycle complete ---
+2026-04-23 20:32:14,513 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:32:16,565 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:32:16,566 INFO --- Scan cycle complete ---
+2026-04-23 20:33:16,570 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:33:18,619 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:33:18,620 INFO --- Scan cycle complete ---
+2026-04-23 20:34:18,627 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:34:20,717 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:34:20,718 INFO --- Scan cycle complete ---
+2026-04-23 20:35:20,720 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:35:22,776 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:35:22,780 INFO --- Scan cycle complete ---
+2026-04-23 20:36:22,783 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:36:24,858 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:36:24,859 INFO --- Scan cycle complete ---
+2026-04-23 20:37:24,861 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:37:26,933 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:37:26,933 INFO --- Scan cycle complete ---
+2026-04-23 20:38:26,937 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:38:29,010 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:38:29,011 INFO --- Scan cycle complete ---
+2026-04-23 20:39:29,013 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:39:31,080 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:39:31,082 INFO --- Scan cycle complete ---
+2026-04-23 20:40:31,086 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:40:33,151 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:40:33,152 INFO --- Scan cycle complete ---
+2026-04-23 20:41:33,155 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:41:35,190 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:41:35,191 INFO --- Scan cycle complete ---
+2026-04-23 20:42:35,196 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:42:37,277 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:42:37,278 INFO --- Scan cycle complete ---
+2026-04-23 20:43:37,282 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:43:39,351 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:43:39,352 INFO --- Scan cycle complete ---
+2026-04-23 20:44:39,362 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:44:41,839 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:44:41,873 INFO --- Scan cycle complete ---
+2026-04-23 20:45:41,918 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:45:44,602 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:45:44,608 INFO --- Scan cycle complete ---
+2026-04-23 20:46:44,612 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:46:46,681 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:46:46,683 INFO --- Scan cycle complete ---
+2026-04-23 20:47:46,689 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:47:48,771 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:47:48,772 INFO --- Scan cycle complete ---
+2026-04-23 20:48:48,776 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:48:50,828 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:48:50,829 INFO --- Scan cycle complete ---
+2026-04-23 20:49:50,835 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 20:49:52,951 INFO Portfolio from DEMO: 4 positions
+2026-04-23 20:49:52,952 INFO --- Scan cycle complete ---
+2026-04-23 21:00:29,381 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 21:00:31,417 INFO Portfolio from DEMO: 4 positions
+2026-04-23 21:00:31,418 INFO --- Scan cycle complete ---
+2026-04-23 21:01:31,421 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 21:01:33,488 INFO Portfolio from DEMO: 4 positions
+2026-04-23 21:01:33,489 INFO --- Scan cycle complete ---
+2026-04-23 21:02:33,493 INFO --- Scan cycle [MONITOR] ---
+2026-04-23 21:02:35,557 INFO Portfolio from DEMO: 0 positions
+2026-04-23 21:02:35,558 WARNING No positions found

@@ -91,8 +91,24 @@ def execute_combo_roll(ib: IB,
     dte_after  = _get_dte(buy_expiry)
 
     # 4. Place Order
+    # Force sync next valid order ID to prevent Error 103 (Duplicate ID)
+    ib.client.reqIds(-1)
+    
     trade = ib.placeOrder(bag, order)
     _log(f"[COMBO] Order placed: {order_type} qty={qty} price=${current_price:.2f}")
+    
+    # Check for immediate rejection
+    ib.sleep(0.5)
+    status = trade.orderStatus.status
+    if status in ('Cancelled', 'Inactive', 'ApiCancelled'):
+        _log(f"[COMBO] Rejected/Cancelled immediately: {status}")
+        if log_cb: log_cb("ERROR", f"Rejected: {status}")
+        _log_execution(ticker, sell_strike, sell_expiry, sell_conid,
+                       buy_strike, buy_expiry, buy_conid, qty,
+                       initial_limit, 0, dte_before, dte_after, 0, 0,
+                       int(time.time()-start_time), order_type, status)
+        return {'status': status, 'fill_price': 0, 'escalations': 0}
+
     if log_cb: log_cb("INFO", f"Order placed: {order_type} @ ${current_price:.2f}")
 
     start_time = time.time()

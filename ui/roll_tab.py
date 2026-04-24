@@ -10,6 +10,7 @@ import requests
 import config
 import settings_manager
 
+
 YAHOO = config.YAHOO_API_URL   # http://localhost:8001
 IBKR  = config.IBKR_API_URL    # http://localhost:8002
 _TIMEOUT = 15
@@ -150,19 +151,20 @@ def render_roll_tab(tws=None) -> None:
     st.markdown('<div class="section-hdr">🔎 שלב א — חפש ליפס חדש ביאהו פיננס</div>',
                 unsafe_allow_html=True)
 
-    row1, row2, row3, row4 = st.columns([2, 2, 2, 1])
-    with row1:
-        ticker = st.text_input("טיקר:", value=st.session_state.get("roll_ticker","META"),
-                               key="roll_ticker_input", placeholder="META / QQQ...").upper().strip()
-    with row2:
-        min_dte = st.number_input("מינימום DTE:", 200, 1000, 650, step=30, key="roll_min_dte")
-    with row3:
-        tgt_delta = st.slider("דלתא יעד:", 0.50, 0.99, 0.80, step=0.01, key="roll_tgt_delta")
-    with row4:
-        st.write("")
-        st.write("")
-        search_clicked = st.button("🔍 חפש", key="roll_search",
-                                   type="primary", use_container_width=True)
+    # Clean row layout with proper vertical alignment
+    with st.container():
+        row1, row2, row3, row4 = st.columns([1.2, 1.2, 2.5, 1], gap="small")
+        with row1:
+            ticker = st.text_input("טיקר:", value=st.session_state.get("roll_ticker","META"),
+                                   key="roll_ticker_input", placeholder="META").upper().strip()
+        with row2:
+            min_dte = st.number_input("מינימום DTE:", 200, 1000, 650, step=30, key="roll_min_dte")
+        with row3:
+            # Standard slider with visible label - no negative margin hacks
+            tgt_delta = st.slider("דלתא יעד:", 0.50, 0.99, 0.80, step=0.01, key="roll_tgt_delta")
+        with row4:
+            st.markdown('<div style="margin-top:28px;"></div>', unsafe_allow_html=True)
+            search_clicked = st.button("🔍 חפש", key="roll_search", type="primary", use_container_width=True)
 
     if search_clicked and ticker:
         if st.session_state.get("roll_ticker") != ticker:
@@ -300,7 +302,8 @@ def render_roll_tab(tws=None) -> None:
                 import pandas as pd
                 df = pd.DataFrame(orders)
                 df.columns = ["ID", "Ticker", "Strike", "Expiry", "System Status", "IBKR Status", "Limit Price", "Last Price", "Escals", "Combo?"]
-                monitor_placeholder.table(df)
+                # Use dataframe for better theme support and visibility
+                monitor_placeholder.dataframe(df, use_container_width=True, hide_index=True)
         else:
             monitor_placeholder.error("שגיאה במשיכת פקודות מה-API")
     except Exception as e:
