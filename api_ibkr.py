@@ -92,6 +92,8 @@ class PlaceOrderRequest(BaseModel):
     action: str = "BUY"  # BUY or SELL
     qty: int = 1
     limit_price: Optional[float] = None
+    order_type: str = "LMT"
+    tif: str = "DAY"
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────
@@ -199,9 +201,8 @@ async def place_order(req: PlaceOrderRequest):
             action=req.action,
             qty=req.qty,
             limit_price=req.limit_price or 0.0,
-            escalation_step_pct=1.0, # Default
-            escalation_wait_mins=1,   # Default
-            algo_speed="Normal"
+            order_type=req.order_type,
+            tif=req.tif
         )
         return {"ok": True, "order_id": internal_id}
     except Exception as e:

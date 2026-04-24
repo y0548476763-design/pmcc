@@ -332,21 +332,24 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
             if not man_expiry:
                 st.error("יש להזין תאריך פקיעה")
             else:
-                import order_manager
-                om = order_manager.get_manager()
-                om.set_tws(tws)
-                oid = om.submit_order(
-                    ticker=man_ticker, right="C", strike=man_strike,
-                    expiry=man_expiry, action=man_action, qty=man_qty,
-                    limit_price=man_mid, escalation_step_pct=esc_step,
-                    escalation_wait_mins=esc_mins,
-                )
-                st.success(f"✅ פקודה נשלחה: {oid}")
-                if bot_mode >= 1:
-                    _send_telegram(
-                        f"📤 פקודה ידנית: {man_action} {man_qty}x {man_ticker} "
-                        f"${man_strike:.0f} {man_expiry} @ ${man_mid:.2f}"
-                    )
+                try:
+                    payload = {
+                        "ticker": man_ticker, "right": "C", "strike": man_strike,
+                        "expiry": man_expiry, "action": man_action, "qty": man_qty,
+                        "limit_price": man_mid, "order_type": "LMT", "tif": "DAY"
+                    }
+                    r = requests.post(f"{IBKR}/order/place", json=payload, timeout=10)
+                    if r.status_code == 200:
+                        st.success(f"✅ פקודה נשלחה: {r.json().get('order_id','')}")
+                        if bot_mode >= 1:
+                            _send_telegram(
+                                f"📤 פקודה ידנית: {man_action} {man_qty}x {man_ticker} "
+                                f"${man_strike:.0f} {man_expiry} @ ${man_mid:.2f}"
+                            )
+                    else:
+                        st.error(f"שגיאה בשליחת פקודה: {r.text}")
+                except Exception as e:
+                    st.error(f"שגיאת תקשורת: {e}")
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -393,40 +396,35 @@ def _execute_short_sell(tws, leaps_pos: dict, opt: dict, tp_pct: float,
         return
 
     try:
-        r = requests.post(f"{IBKR}/qualify", json={
-            "ticker": ticker, "strike": strike, "expiry": expiry, "right": "C"
-        }, timeout=15)
-        q = r.json()
-        if not q.get("ok"):
-            st.error(f"לא ניתן לאמת חוזה: {q}")
+        # 1. Place Sell Order
+        sell_payload = {
+            "ticker": ticker, "strike": strike, "expiry": expiry, "right": "C",
+            "action": "SELL", "qty": qty, "limit_price": mid,
+            "order_type": "LMT", "tif": "DAY"
+        }
+        r_sell = requests.post(f"{IBKR}/order/place", json=sell_payload, timeout=15)
+        if r_sell.status_code != 200:
+            st.error(f"כשל במכירה: {r_sell.text}")
             return
-        st.info(f"✅ conId={q['conId']} | Bid={q['bid']} Ask={q['ask']} Mid={q['mid']}")
+        oid = r_sell.json().get("order_id", "???")
+        
+        # 2. Place TP Order (GTC)
+        if tp_price > 0:
+            tp_payload = {
+                "ticker": ticker, "strike": strike, "expiry": expiry, "right": "C",
+                "action": "BUY", "qty": qty, "limit_price": tp_price,
+                "order_type": "LMT", "tif": "GTC"
+            }
+            requests.post(f"{IBKR}/order/place", json=tp_payload, timeout=10)
+
+        msg = (f"🚀 <b>שורט קול נמכר!</b>\n"
+               f"📞 SELL {qty}x {ticker} ${strike:.0f}C {expiry} @ ${mid:.2f}\n"
+               f"🎯 פקודת TP נשלחה: ${tp_price:.2f}")
+        if bot_mode >= 1:
+            _send_telegram(msg)
+        st.success(f"✅ פקודה נשלחה: {oid}")
     except Exception as e:
-        st.error(f"שגיאת qualify: {e}")
-        return
-
-    st.success(f"✅ פקודת SELL {qty}x {ticker} ${strike:.0f} @ ${mid:.2f} — בוצע דרך order_manager")
-    import order_manager
-    om = order_manager.get_manager()
-    oid = om.submit_order(
-        ticker=ticker, right="C", strike=strike, expiry=expiry,
-        action="SELL", qty=qty, limit_price=mid,
-        escalation_step_pct=config.ESCALATION_STEP_PCT,
-        escalation_wait_mins=config.ESCALATION_WAIT_MINUTES,
-    )
-    if tp_price > 0:
-        om.submit_order(
-            ticker=ticker, right="C", strike=strike, expiry=expiry,
-            action="BUY", qty=qty, limit_price=tp_price,
-            escalation_step_pct=0.5, escalation_wait_mins=999, tif="GTC"
-        )
-
-    msg = (f"🚀 <b>שורט קול נמכר!</b>\n"
-           f"📞 SELL {qty}x {ticker} ${strike:.0f}C {expiry} @ ${mid:.2f}\n"
-           f"🎯 פקודת TP נשלחה: ${tp_price:.2f}")
-    if bot_mode >= 1:
-        _send_telegram(msg)
-    st.success(f"✅ פקודה נשלחה: {oid}")
+        st.error(f"שגיאת ביצוע: {e}")
 
 
 def _handle_short_action(tws, sc: dict, is_tp: bool, is_roll: bool,
@@ -466,21 +464,66 @@ def _handle_short_action(tws, sc: dict, is_tp: bool, is_roll: bool,
                f"{'✅ רווח הושג!' if is_tp else '⚠️ DTE/Delta הצריכו גלגול'}")
         _send_telegram(msg)
 
-    # Close existing short
-    close_price = cur_px * 1.05
-    om.submit_order(
-        ticker=ticker, right="C", strike=strike, expiry=expiry,
-        action="BUY", qty=qty, limit_price=close_price,
-        escalation_step_pct=config.ESCALATION_STEP_PCT,
-        escalation_wait_mins=config.ESCALATION_WAIT_MINUTES,
-        order_type="MKT"
-    )
-    st.success(f"✅ פקודת סגירה נשלחה עבור {ticker} ${strike:.0f}")
+    # Close or Roll logic
+    try:
+        if is_tp:
+            # Simple Close (BUY back)
+            payload = {
+                "ticker": ticker, "strike": strike, "expiry": expiry, "right": "C",
+                "action": "BUY", "qty": qty, "limit_price": cur_px * 1.02,
+                "order_type": "LMT", "tif": "DAY"
+            }
+            r = requests.post(f"{IBKR}/order/place", json=payload, timeout=10)
+            if r.status_code == 200:
+                st.success(f"✅ פקודת סגירה (TP) נשלחה עבור {ticker}")
+            else:
+                st.error(f"כשל בסגירה: {r.text}")
+        
+        elif is_roll:
+            # 1. Search for new target short call
+            qr   = quant_results.get(ticker)
+            sig  = getattr(qr, "signal", "NORMAL") if qr else "NORMAL"
+            meta = _SIG_META.get(sig, _SIG_META["NORMAL"])
+            tgt_delta = meta["delta"]
+            
+            with st.spinner(f"מחפש יעד לגלגול עבור {ticker}..."):
+                r_search = requests.get(f"{YAHOO}/options/search", params={
+                    "ticker": ticker, "min_dte": short_dte - 10, "max_dte": short_dte + 20,
+                    "target_delta": tgt_delta, "right": "C", "n": 1
+                }, timeout=15)
+                search_data = r_search.json()
+                targets = search_data.get("data", [])
+            
+            if not targets:
+                st.error("לא נמצא יעד מתאים לגלגול. בצע פעולה ידנית.")
+                return
+            
+            new_opt = targets[0]
+            new_strike = new_opt["strike"]
+            new_expiry = new_opt["expiry"]
+            new_mid    = new_opt["mid"]
+            
+            # 2. Construct Combo (BUY old, SELL new)
+            # Limit Price for credit roll: (BUY_mid - SELL_mid). Usually negative (credit).
+            combo_mid = round(cur_px - new_mid, 2)
+            
+            combo_payload = {
+                "ticker": ticker,
+                "qty": qty,
+                "buy_strike": strike,
+                "buy_expiry": expiry,
+                "sell_strike": new_strike,
+                "sell_expiry": new_expiry,
+                "limit_price": combo_mid,
+                "escalation_step_pct": 1.0
+            }
+            r_combo = requests.post(f"{IBKR}/order/combo", json=combo_payload, timeout=20)
+            if r_combo.status_code == 200:
+                st.success(f"✅ פקודת גלגול קומבו נשלחה עבור {ticker}!")
+                st.info(f"🔄 גלגול: {strike}@{expiry} -> {new_strike}@{new_expiry} | Net Mid: ${combo_mid:.2f}")
+            else:
+                st.error(f"כשל בגלגול: {r_combo.text}")
 
-    # If rolling, open new short immediately
-    if is_roll:
-        qr   = quant_results.get(ticker)
-        sig  = getattr(qr, "signal", "NORMAL") if qr else "NORMAL"
-        meta = _SIG_META.get(sig, _SIG_META["NORMAL"])
-        st.info(f"⏳ פותח שורט חדש ל-{ticker} ב-Δ {meta['delta']:.2f}...")
+    except Exception as e:
+        st.error(f"שגיאת ביצוע פעולה: {e}")
 
