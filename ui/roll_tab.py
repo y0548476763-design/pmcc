@@ -190,13 +190,13 @@ def render_roll_tab(tws=None) -> None:
                 st.markdown(f"""
                 <div class="pmcc-card" style="border-top:3px solid #6366f1;
                      padding:0.8rem 0.5rem;text-align:center;">
-                  <div style="font-size:0.6rem;color:#64748b;">#{i+1}</div>
-                  <div style="font-size:1.4rem;font-weight:900;color:#f1f5f9;">
-                    ${tgt['strike']:.0f}</div>
-                  <div style="font-size:0.68rem;color:#64748b;">{tgt['expiry']}</div>
-                  <div style="font-size:0.7rem;color:{dc};font-weight:600;">{tgt['dte']}d</div>
-                  <div style="color:#818cf8;font-weight:700;">Δ {tgt['delta']:.2f}</div>
-                  <div style="font-size:1.05rem;font-weight:900;color:#34d399;">${tgt['mid']:.2f}</div>
+                   <div style="font-size:0.6rem;color:#64748b;">#{i+1}</div>
+                   <div style="font-size:1.4rem;font-weight:900;color:#f1f5f9;">
+                     ${tgt['strike']:.0f}</div>
+                   <div style="font-size:0.68rem;color:#64748b;">{tgt['expiry']}</div>
+                   <div style="font-size:0.7rem;color:{dc};font-weight:600;">{tgt['dte']}d</div>
+                   <div style="color:#818cf8;font-weight:700;">Δ {tgt['delta']:.2f}</div>
+                   <div style="font-size:1.05rem;font-weight:900;color:#34d399;">${tgt['mid']:.2f}</div>
                 </div>""", unsafe_allow_html=True)
                 if st.button(f"✅ בחר", key=f"pick_{i}", use_container_width=True):
                     st.session_state["roll_new_selected"] = tgt
@@ -207,8 +207,77 @@ def render_roll_tab(tws=None) -> None:
                 st.session_state.pop(k, None)
             st.rerun()
 
+    # ── ROW 5: Manual LEAPS Entry ──────────────────────────────────────────
+    st.markdown("<br>", unsafe_allow_html=True)
+    with st.expander("🛠️ רכישת ליפס חדש (ידני)", expanded=False):
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            man_ticker = st.text_input("טיקר:", key="man_leaps_ticker", placeholder="SPY").upper().strip()
+        with c2:
+            man_strike = st.number_input("Strike:", 1.0, 10000.0, 400.0, step=5.0, key="man_leaps_strike")
+        with c3:
+            man_expiry = st.text_input("פקיעה (YYYYMMDD):", key="man_leaps_expiry", placeholder="20260619")
+        with c4:
+            man_qty = st.number_input("כמות:", 1, 100, 1, key="man_leaps_qty")
+
+        c5, c6, c7 = st.columns(3)
+        with c5:
+            man_mid = st.number_input("מחיר לימיט (Mid):", 0.01, 1000.0, 10.0, step=0.1, key="man_leaps_mid")
+        with c6:
+            man_esc_mins = st.number_input("המתנה (דקות):", 1, 30, config.ESCALATION_WAIT_MINUTES, key="man_leaps_esc_mins")
+        with c7:
+            man_esc_step = st.number_input("הסלמה (%):", 0.1, 5.0, config.ESCALATION_STEP_PCT, step=0.1, key="man_leaps_esc_step")
+
+        if st.button("📤 שלח פקודת רכישה", key="man_leaps_send", type="primary", use_container_width=True):
+            if not man_ticker or not man_expiry:
+                st.error("יש למלא טיקר ותאריך פקיעה")
+            else:
+                try:
+                    payload = {
+                        "ticker": man_ticker, "right": "C", "strike": man_strike,
+                        "expiry": man_expiry, "action": "BUY", "qty": man_qty,
+                        "limit_price": man_mid, "order_type": "LMT", "tif": "GTC"
+                    }
+                    r = requests.post(f"{IBKR}/order/place", json=payload, timeout=10)
+                    if r.status_code == 200:
+                        oid = r.json().get("order_id", "???")
+                        st.success(f"✅ פקודה נשלחה בהצלחה! מזהה: {oid}")
+                        requests.post(f"{IBKR}/api/notify", json={
+                            "message": f"📤 <b>רכישת ליפס ידנית:</b> {man_qty}x {man_ticker} ${man_strike:.0f} {man_expiry} @ ${man_mid:.2f}"
+                        })
+                    else:
+                        st.error(f"שגיאה בשליחת פקודה: {r.text}")
+                except Exception as e:
+                    st.error(f"שגיאת תקשורת: {e}")
+
+    # ── Live Order Monitor ──────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("### 📋 🟢 Live Order Monitor")
+    refresh = st.checkbox("🔄 רענון אוטומטי (5 שניות)", value=True, key="auto_refresh_check")
+    monitor_placeholder = st.empty()
+    
+    try:
+        r = requests.get(f"{IBKR}/api/orders/active", timeout=5)
+        if r.status_code == 200:
+            orders = r.json().get("orders", [])
+            if not orders:
+                monitor_placeholder.info("אין פקודות פעילות כעת.")
+            else:
+                import pandas as pd
+                df = pd.DataFrame(orders)
+                df.columns = ["ID", "Ticker", "Strike", "Expiry", "System Status", "IBKR Status", "Limit Price", "Last Price", "Escals", "Combo?"]
+                # Use dataframe for better theme support and visibility
+                monitor_placeholder.dataframe(df, use_container_width=True, hide_index=True)
+        else:
+            monitor_placeholder.error("שגיאה במשיכת פקודות מה-API")
+    except Exception as e:
+        monitor_placeholder.warning(f"API לא זמין: {e}")
+
     new_tgt = st.session_state.get("roll_new_selected")
     if not new_tgt:
+        if refresh:
+            time.sleep(5)
+            st.rerun()
         return
 
     st.markdown("---")
@@ -285,72 +354,6 @@ def render_roll_tab(tws=None) -> None:
         if st.button("↩️ ביטול", key="exec_cancel", use_container_width=True):
             st.session_state.pop("roll_new_selected", None)
             st.rerun()
-
-    # ── Live Order Monitor ──────────────────────────────────────────
-    st.markdown("---")
-    st.markdown("### 📋 🟢 Live Order Monitor")
-    refresh = st.checkbox("🔄 רענון אוטומטי (5 שניות)", value=True, key="auto_refresh_check")
-    monitor_placeholder = st.empty()
-    
-    try:
-        r = requests.get(f"{IBKR}/api/orders/active", timeout=5)
-        if r.status_code == 200:
-            orders = r.json().get("orders", [])
-            if not orders:
-                monitor_placeholder.info("אין פקודות פעילות כעת.")
-            else:
-                import pandas as pd
-                df = pd.DataFrame(orders)
-                df.columns = ["ID", "Ticker", "Strike", "Expiry", "System Status", "IBKR Status", "Limit Price", "Last Price", "Escals", "Combo?"]
-                # Use dataframe for better theme support and visibility
-                monitor_placeholder.dataframe(df, use_container_width=True, hide_index=True)
-        else:
-            monitor_placeholder.error("שגיאה במשיכת פקודות מה-API")
-    except Exception as e:
-        monitor_placeholder.warning(f"API לא זמין: {e}")
-
-    # ── ROW 5: Manual LEAPS Entry ──────────────────────────────────────────
-    st.markdown("<br>", unsafe_allow_html=True)
-    with st.expander("🛠️ רכישת ליפס חדש (ידני)", expanded=False):
-        c1, c2, c3, c4 = st.columns(4)
-        with c1:
-            man_ticker = st.text_input("טיקר:", key="man_leaps_ticker", placeholder="SPY").upper().strip()
-        with c2:
-            man_strike = st.number_input("Strike:", 1.0, 10000.0, 400.0, step=5.0, key="man_leaps_strike")
-        with c3:
-            man_expiry = st.text_input("פקיעה (YYYYMMDD):", key="man_leaps_expiry", placeholder="20260619")
-        with c4:
-            man_qty = st.number_input("כמות:", 1, 100, 1, key="man_leaps_qty")
-
-        c5, c6, c7 = st.columns(3)
-        with c5:
-            man_mid = st.number_input("מחיר לימיט (Mid):", 0.01, 1000.0, 10.0, step=0.1, key="man_leaps_mid")
-        with c6:
-            man_esc_mins = st.number_input("המתנה (דקות):", 1, 30, config.ESCALATION_WAIT_MINUTES, key="man_leaps_esc_mins")
-        with c7:
-            man_esc_step = st.number_input("הסלמה (%):", 0.1, 5.0, config.ESCALATION_STEP_PCT, step=0.1, key="man_leaps_esc_step")
-
-        if st.button("📤 שלח פקודת רכישה", key="man_leaps_send", type="primary", use_container_width=True):
-            if not man_ticker or not man_expiry:
-                st.error("יש למלא טיקר ותאריך פקיעה")
-            else:
-                try:
-                    payload = {
-                        "ticker": man_ticker, "right": "C", "strike": man_strike,
-                        "expiry": man_expiry, "action": "BUY", "qty": man_qty,
-                        "limit_price": man_mid, "order_type": "LMT", "tif": "GTC"
-                    }
-                    r = requests.post(f"{IBKR}/order/place", json=payload, timeout=10)
-                    if r.status_code == 200:
-                        oid = r.json().get("order_id", "???")
-                        st.success(f"✅ פקודה נשלחה בהצלחה! מזהה: {oid}")
-                        requests.post(f"{IBKR}/api/notify", json={
-                            "message": f"📤 <b>רכישת ליפס ידנית:</b> {man_qty}x {man_ticker} ${man_strike:.0f} {man_expiry} @ ${man_mid:.2f}"
-                        })
-                    else:
-                        st.error(f"שגיאה בשליחת פקודה: {r.text}")
-                except Exception as e:
-                    st.error(f"שגיאת תקשורת: {e}")
 
     if refresh:
         time.sleep(5)
