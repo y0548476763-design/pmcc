@@ -303,7 +303,8 @@ async def place_combo(req: ComboRequest, background_tasks: BackgroundTasks):
                 escalation_step_pct=esc_step,
                 escalation_wait_secs=req.escalation_wait_secs,
                 max_escalations=max_esc,
-                log_cb=_update_mgr_status
+                log_cb=_update_mgr_status,
+                mo=mgr.get_order(internal_id)
             )
         else:
             # Just place the order once and exit

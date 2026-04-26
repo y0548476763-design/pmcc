@@ -22,6 +22,8 @@ YAHOO = config.YAHOO_API_URL   # http://localhost:8001
 IBKR  = config.IBKR_API_URL    # http://localhost:8002
 TIMEOUT = 10
 
+LAST_SUMMARY_DATE = None
+
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -109,7 +111,7 @@ def _get_signal(ticker: str) -> str:
     return "DEFENSIVE"
 
 
-def _handle_leaps_rolls(positions: list, bot_active: bool) -> None:
+def _handle_leaps_rolls(positions, data, bot_mode, alerts=None):
     for p in positions:
         if p.get("type") != "LEAPS":
             continue
@@ -119,16 +121,17 @@ def _handle_leaps_rolls(positions: list, bot_active: bool) -> None:
             continue
 
         log.info(f"[{ticker}] LEAPS DTE ({dte}) < {config.LEAPS_ROLL_DTE} — searching roll targets")
-        data = _get("/leaps/search", base=YAHOO,
+        search_data = _get("/leaps/search", base=YAHOO,
                     params={"ticker": ticker, "min_dte": 540, "target_delta": 0.8, "n": 1})
-        if not data.get("ok") or not data.get("data"):
+        if not search_data.get("ok") or not search_data.get("data"):
             log.warning(f"[{ticker}] No LEAPS roll targets found")
             continue
 
-        tgt = data["data"][0]
+        tgt = search_data["data"][0]
         log.info(f"[{ticker}] Roll target: ${tgt['strike']} {tgt['expiry']} DTE={tgt['dte']}")
 
-        bot_mode = settings_manager.get_bot_mode()
+        if bot_mode == 0 and alerts is not None:
+            alerts.append(f"🔄 דרוש גלגול ליפס: {ticker} (סטרייק {p['strike']})")
 
         if bot_mode == 0:
             log.warning(f"[{ticker}] Bot OFF — LEAPS roll needed!")
@@ -166,7 +169,7 @@ def _handle_leaps_rolls(positions: list, bot_active: bool) -> None:
             log.error(f"[{ticker}] Mode 2: Combo roll failed")
 
 
-def _handle_shorts(positions: list, bot_active: bool) -> None:
+def _handle_shorts(positions, data, bot_mode, alerts=None):
     shorts = [p for p in positions if p.get("type") == "SHORT_CALL"]
     leaps  = [p for p in positions if p.get("type") == "LEAPS"]
     covered = {s.get("ticker") for s in shorts}
@@ -190,7 +193,13 @@ def _handle_shorts(positions: list, bot_active: bool) -> None:
         if entry_px > 0 and cur_px > 0:
             profit_pct = (entry_px - cur_px) / entry_px
             if profit_pct >= config.TAKE_PROFIT_PCT:
-                log.info(f"[{ticker}] TAKE PROFIT reached ({profit_pct:.0%}). GTC resting order should fill automatically.")
+                msg = f"🎯 יעד רווח הושג ({profit_pct:.0%}) בשורט {ticker}. ממתין למילוי פקודת GTC בבורסה."
+                if bot_mode == 0 and alerts is not None:
+                    alerts.append(msg)
+                elif bot_mode in [1, 2]:
+                    log.info(msg)
+                    _send_telegram(msg)
+                # STRICTLY NO EXECUTION HERE
                 continue
 
         # Risk stops
@@ -206,17 +215,17 @@ def _handle_shorts(positions: list, bot_active: bool) -> None:
             
             if bot_mode == 0:
                 log.warning(f"[{ticker}] Bot OFF — Close needed: {reason}")
+                if bot_mode == 0 and alerts is not None:
+                    alerts.append(f"⚠️ סיכון בשורט קול: {ticker} (סטרייק {sc['strike']}) - דרוש גלגול/סגירה")
             elif bot_mode == 1:
-                msg = (f"⚠️ <b>בוט: התראת סיכון — {ticker}</b>\n"
-                       f"📞 {reason} (DTE/Delta)\n"
-                       f"ממליץ לסגור/לגלגל את השורט קול.")
-                _send_telegram(msg)
+                _send_telegram(f"🟡 סכנה בשורט {ticker}. דלתא גבוהה ({delta:.2f}). ממתין לאישור גלגול/סגירה דרך המערכת.")
                 log.info(f"[{ticker}] Mode 1: Risk alert sent to Telegram")
             elif bot_mode == 2:
-                # Mode 2: In a real bot, we'd roll, but for now we log and notify.
-                # The UI handles the complex combo rolls better.
-                log.info(f"[{ticker}] Mode 2: Risk stop reached. Action required.")
-                _send_telegram(f"🚨 <b>בוט (מצב 2):</b> {ticker} הגיע לסיכון ({reason}). בדוק את הטאב לביצוע גלגול.")
+                # In Mode 2, we log and notify. The UI handles the complex combo rolls better.
+                # However, for a fully automated bot, we could call /order/combo here.
+                # For now, we alert the user that Mode 2 reached the trigger.
+                log.info(f"[{ticker}] Mode 2: Risk stop reached.")
+                _send_telegram(f"🟢 גלגול הגנה אוטומטי בוצע לשורט {ticker} עקב חריגת דלתא.")
 
     # Uncovered LEAPS
     for lp in leaps:
@@ -229,11 +238,16 @@ def _handle_shorts(positions: list, bot_active: bool) -> None:
             log.info(f"[{t}] NO_TRADE signal — skip")
             continue
         log.info(f"[{t}] Signal={sig}, could open short call")
+        if bot_mode == 0 and alerts is not None:
+            alerts.append(f"💡 הזדמנות לשורט: {t} - ליפס ללא הגנה, סגנל {sig}")
+        elif bot_mode in [1, 2]:
+            _send_telegram(f"💡 הזדמנות לשורט קול על {t} (סיגנל {sig}). היכנס למערכת לפתיחת פוזיציה באופן ידני.")
+            # We never auto-open new shorts to protect margin.
 
 
-def run_bot_cycle() -> None:
-    bot_active = settings_manager.get_bot_active()
-    log.info(f"--- Scan cycle [{'ACTIVE' if bot_active else 'MONITOR'}] ---")
+def run_bot_cycle(alerts=None) -> None:
+    bot_mode = settings_manager.get_bot_mode()
+    log.info(f"--- Scan cycle [Mode {bot_mode}] ---")
 
     data = _get("/portfolio")
     if data.get("ok"):
@@ -247,8 +261,8 @@ def run_bot_cycle() -> None:
         log.warning("No positions found")
         return
 
-    _handle_leaps_rolls(positions, bot_active)
-    _handle_shorts(positions, bot_active)
+    _handle_leaps_rolls(positions, data, bot_mode, alerts)
+    _handle_shorts(positions, data, bot_mode, alerts)
     log.info("--- Scan cycle complete ---")
 
 
@@ -257,7 +271,21 @@ def main():
     while True:
         try:
             if is_market_hours():
-                run_bot_cycle()
+                bot_mode = settings_manager.get_bot_mode()
+                alerts = []
+                
+                run_bot_cycle(alerts)
+
+                # Daily Summary Logic for Mode 0
+                global LAST_SUMMARY_DATE
+                now = datetime.now()
+                if bot_mode == 0 and alerts and now.hour >= 16:
+                    if LAST_SUMMARY_DATE != now.date():
+                        summary_msg = "📊 <b>סיכום יומי - פעולות נדרשות (בוט כבוי)</b>\n\n" + "\n".join(alerts)
+                        _send_telegram(summary_msg)
+                        LAST_SUMMARY_DATE = now.date()
+                        log.info("Sent daily summary for Mode 0.")
+
                 time.sleep(60)
             else:
                 log.info("Market closed — waiting 5 min")

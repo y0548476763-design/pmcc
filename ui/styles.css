@@ -143,7 +143,7 @@ input, textarea, select { direction: rtl !important; text-align: right !importan
   box-shadow: 0 2px 12px rgba(124,58,237,0.3) !important;
 }
 
-.stTabs [data-baseweb="tab-panel"] { background: transparent !important; padding-top: 1.2rem !important; }
+.stTabs [data-baseweb="tab-panel"] { padding-top: 1.2rem !important; }
 
 /* ── כפתורים ────────────────────────────────────────────── */
 .stButton > button {

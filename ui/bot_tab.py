@@ -3,6 +3,8 @@ ui/bot_tab.py — Tab 5: Bot Control Center
 Manages the 3-state bot, Telegram config, connection settings, Hebrew logs.
 All IBKR actions go through api_ibkr (:8002).
 """
+import os
+import notifications
 import streamlit as st
 from datetime import datetime
 import requests
@@ -269,18 +271,20 @@ def render_bot_tab(tws) -> None:
     # ── ROW 5: Internal Notification Hub (Chat Style) ──────────────────────
     st.markdown('<div class="section-hdr">💬 צ׳אט הודעות בוט (Internal Hub)</div>', unsafe_allow_html=True)
     
-    import notifications
-    chat_logs = notifications.load_messages()
-    
-    chat_container = st.container(height=400, border=True)
-    with chat_container:
-        if not chat_logs:
-            st.info("אין הודעות בוט כעת. ההודעות יופיעו כאן בזמן אמת.")
-        else:
-            for entry in chat_logs:
-                with st.chat_message("assistant", avatar="🤖"):
-                    st.markdown(f"**{entry['timestamp']}**")
-                    st.markdown(entry['message'], unsafe_allow_html=True)
+    try:
+        chat_logs = notifications.load_messages()
+        
+        chat_container = st.container(height=400, border=True)
+        with chat_container:
+            if not chat_logs:
+                st.info("אין הודעות בוט כעת. ההודעות יופיעו כאן בזמן אמת.")
+            else:
+                for entry in chat_logs:
+                    with st.chat_message("assistant", avatar="🤖"):
+                        st.markdown(f"**{entry.get('timestamp','')}**")
+                        st.markdown(entry.get('message',''), unsafe_allow_html=True)
+    except Exception as e:
+        st.error(f"שגיאה בטעינת הודעות: {e}")
 
     if st.button("🗑️ נקה היסטוריית צ'אט", key="clear_chat_logs"):
         if os.path.exists("notifications_log.json"):

@@ -275,9 +275,6 @@ def render_roll_tab(tws=None) -> None:
 
     new_tgt = st.session_state.get("roll_new_selected")
     if not new_tgt:
-        if refresh:
-            time.sleep(5)
-            st.rerun()
         return
 
     st.markdown("---")

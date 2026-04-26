@@ -51,11 +51,19 @@ def execute_combo_roll(ib: IB,
                        escalation_step_pct: float = 1.0,
                        escalation_wait_secs: int = 60,
                        max_escalations: int = 10,
-                       log_cb: Optional[Callable[[str, str], None]] = None) -> Dict:
+                       log_cb: Optional[Callable[[str, str], None]] = None,
+                       mo = None) -> Dict:
     """
     Executes a BAG order: SELL old LEAPS, BUY new LEAPS.
     Updates the price every escalation_wait_secs by escalation_step_pct.
     """
+    if mo and getattr(mo, "is_processing", False):
+        _log(f"Order {mo.order_id or 'Combo'} is already escalating. Aborting duplicate thread.")
+        return {"ok": False, "error": "Already processing"}
+    
+    if mo:
+        mo.is_processing = True
+
     _log(f"[COMBO] Starting roll for {ticker} qty={qty}")
     
     # 1. Setup contracts

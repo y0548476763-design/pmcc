@@ -1,5 +1,5 @@
 """
-app.py — PMCC NextOffice v3.1 — Display Only
+app.py — PMCC NextOffice v3.1 — Display Only (Refreshed)
 All heavy work delegated to:
   api_ibkr (:8002) → portfolio positions + cash
   api_yahoo (:8001) → technicals, LEAPS search, quant analysis
