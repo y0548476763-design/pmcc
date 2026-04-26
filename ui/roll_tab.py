@@ -62,19 +62,6 @@ def _execute_combo(old_lp: dict, new_tgt: dict,
     ticker = old_lp["ticker"]
     qty    = abs(old_lp.get("qty", 1))
 
-    if via_bot:
-        if bot_mode == 0:
-            st.warning("הבוט כבוי (מצב 0). השתמש בביצוע ידני.")
-            return
-        if bot_mode == 1:
-            ok = _send_tg(
-                f"❓ <b>אישור גלגול ליפס — {ticker}</b>\n"
-                f"📤 מוכר: ${float(old_lp['strike']):.0f}  {old_lp['expiry']}\n"
-                f"📥 קונה:  ${float(new_tgt['strike']):.0f}  {new_tgt['expiry']}\n"
-                f"  Δ≈{new_tgt['delta']:.2f}\n⚠️ השב YES לאישור.")
-            st.info("📱 נשלח לטלגרם!" if ok else "❌ כשל בשליחה")
-            return
-
     # Phase B-1: qualify both contracts on IBKR to get live prices
     with st.spinner("🔄 מאמת חוזים ב-IBKR ושואב מחירים חיים..."):
         try:
@@ -152,16 +139,14 @@ def render_roll_tab(tws=None) -> None:
                 unsafe_allow_html=True)
 
     # Clean row layout with proper vertical alignment
-    # Refined 2-row layout to prevent overlapping and improve readability
+    # Balanced 4-column layout for better alignment
     with st.container():
-        c1, c2 = st.columns([1, 1])
+        c1, c2, c3, c4 = st.columns([1, 1, 2, 1], gap="medium")
         with c1:
             ticker = st.text_input("טיקר:", value=st.session_state.get("roll_ticker","META"),
                                    key="roll_ticker_input", placeholder="META").upper().strip()
         with c2:
             min_dte = st.number_input("מינימום DTE:", 200, 1000, 650, step=30, key="roll_min_dte")
-        
-        c3, c4 = st.columns([3, 1])
         with c3:
             tgt_delta = st.slider("דלתא יעד:", 0.50, 0.99, 0.80, step=0.01, key="roll_tgt_delta")
         with c4:
