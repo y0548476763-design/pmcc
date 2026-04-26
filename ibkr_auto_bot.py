@@ -46,6 +46,25 @@ def get_dte(expiry_str: str) -> int:
         return 999
 
 
+def _send_telegram(msg: str) -> bool:
+    """Send a Telegram message via settings_manager credentials."""
+    # Always notify internal hub first
+    try:
+        requests.post(f"{IBKR}/api/notify", json={"message": msg}, timeout=2)
+    except Exception:
+        pass
+
+    try:
+        token   = settings_manager.get_telegram_token()
+        chat_id = settings_manager.get_telegram_chat_id()
+        if not token or not chat_id: return False
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        r = requests.post(url, json={"chat_id": chat_id, "text": msg, "parse_mode": "HTML"}, timeout=8)
+        return r.status_code == 200
+    except Exception:
+        return False
+
+
 def _get(path: str, base: str = IBKR, params: dict = None) -> dict:
     try:
         r = requests.get(f"{base}{path}", params=params, timeout=TIMEOUT)
@@ -106,29 +125,45 @@ def _handle_leaps_rolls(positions: list, bot_active: bool) -> None:
             log.warning(f"[{ticker}] No LEAPS roll targets found")
             continue
 
-        tgt = data["data"][0]
-        log.info(f"[{ticker}] Roll target: ${tgt['strike']} {tgt['expiry']} DTE={tgt['dte']}")
+    tgt = data["data"][0]
+    log.info(f"[{ticker}] Roll target: ${tgt['strike']} {tgt['expiry']} DTE={tgt['dte']}")
 
-        if not bot_active:
-            log.warning(f"[{ticker}] Bot inactive — alert only: LEAPS roll needed!")
-            continue
+    bot_mode = settings_manager.get_bot_mode()
 
-        result = _post("/order/combo", body={
-            "ticker": ticker,
-            "qty": abs(p.get("qty", 1)),
-            "sell_strike": float(p["strike"]),
-            "sell_expiry": str(p["expiry"]),
-            "buy_strike": float(tgt["strike"]),
-            "buy_expiry": str(tgt["expiry"]),
-            "limit_price": 0.0,
-            "use_market": False,
-            "escalation_step_pct": config.ESCALATION_STEP_PCT,
-            "escalation_wait_secs": config.ESCALATION_WAIT_MINUTES * 60,
-        })
-        if result.get("ok"):
-            log.info(f"[{ticker}] Combo roll submitted: {result.get('result', {})}")
+    if bot_mode == 0:
+        log.warning(f"[{ticker}] Bot OFF — LEAPS roll needed!")
+        return
+
+    if bot_mode == 1:
+        # Telegram confirmation mode
+        msg = (f"🔄 <b>בוט: הצעה לגלגול ליפס — {ticker}</b>\n"
+               f"📤 סגירת: ${float(p['strike']):.0f} {p['expiry']}\n"
+               f"📥 פתיחת: ${float(tgt['strike']):.0f} {tgt['expiry']}\n"
+               f"⚡ השב YES לאישור ביצוע.")
+        if _send_telegram(msg):
+            log.info(f"[{ticker}] Mode 1: Telegram confirmation sent")
         else:
-            log.error(f"[{ticker}] Combo roll failed")
+            log.error(f"[{ticker}] Mode 1: Failed to send Telegram")
+        return
+
+    # bot_mode == 2: Full Execute
+    result = _post("/order/combo", body={
+        "ticker": ticker,
+        "qty": abs(p.get("qty", 1)),
+        "sell_strike": float(p["strike"]),
+        "sell_expiry": str(p["expiry"]),
+        "buy_strike": float(tgt["strike"]),
+        "buy_expiry": str(tgt["expiry"]),
+        "limit_price": 0.0,
+        "use_market": False,
+        "escalation_step_pct": config.ESCALATION_STEP_PCT,
+        "escalation_wait_secs": config.ESCALATION_WAIT_MINUTES * 60,
+    })
+    if result.get("ok"):
+        log.info(f"[{ticker}] Mode 2: Combo roll submitted")
+        _send_telegram(f"🚀 <b>בוט: גלגול ליפס נשלח לביצוע!</b>\n{ticker} Combo Roll Submitted.")
+    else:
+        log.error(f"[{ticker}] Mode 2: Combo roll failed")
 
 
 def _handle_shorts(positions: list, bot_active: bool) -> None:
@@ -155,14 +190,7 @@ def _handle_shorts(positions: list, bot_active: bool) -> None:
         if entry_px > 0 and cur_px > 0:
             profit_pct = (entry_px - cur_px) / entry_px
             if profit_pct >= config.TAKE_PROFIT_PCT:
-                log.info(f"[{ticker}] TAKE PROFIT {profit_pct:.0%}")
-                if bot_active:
-                    _post("/order/place", body={
-                        "ticker": ticker, "strike": strike, "expiry": expiry, 
-                        "right": "C", "action": "BUY", "qty": qty, "limit_price": round(cur_px * 1.05, 2)
-                    })
-                else:
-                    log.warning(f"[{ticker}] Bot inactive — TP alert only")
+                log.info(f"[{ticker}] TAKE PROFIT reached ({profit_pct:.0%}). GTC resting order should fill automatically.")
                 continue
 
         # Risk stops
@@ -173,9 +201,22 @@ def _handle_shorts(positions: list, bot_active: bool) -> None:
             reason = f"Delta={delta:.2f}"
 
         if reason:
-            log.info(f"[{ticker}] Close: {reason}")
-            if not bot_active:
-                log.warning(f"[{ticker}] Bot inactive — roll alert: {reason}")
+            log.info(f"[{ticker}] Risk Trigger: {reason}")
+            bot_mode = settings_manager.get_bot_mode()
+            
+            if bot_mode == 0:
+                log.warning(f"[{ticker}] Bot OFF — Close needed: {reason}")
+            elif bot_mode == 1:
+                msg = (f"⚠️ <b>בוט: התראת סיכון — {ticker}</b>\n"
+                       f"📞 {reason} (DTE/Delta)\n"
+                       f"ממליץ לסגור/לגלגל את השורט קול.")
+                _send_telegram(msg)
+                log.info(f"[{ticker}] Mode 1: Risk alert sent to Telegram")
+            elif bot_mode == 2:
+                # Mode 2: In a real bot, we'd roll, but for now we log and notify.
+                # The UI handles the complex combo rolls better.
+                log.info(f"[{ticker}] Mode 2: Risk stop reached. Action required.")
+                _send_telegram(f"🚨 <b>בוט (מצב 2):</b> {ticker} הגיע לסיכון ({reason}). בדוק את הטאב לביצוע גלגול.")
 
     # Uncovered LEAPS
     for lp in leaps:

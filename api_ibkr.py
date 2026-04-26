@@ -10,6 +10,7 @@ from typing import Optional
 import logging, threading, asyncio, math
 import ib_insync.util
 import order_manager
+import notifications
 try:
     import nest_asyncio
     nest_asyncio.apply()
@@ -97,6 +98,15 @@ class PlaceOrderRequest(BaseModel):
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────
+
+@app.post("/api/notify")
+async def notify_user(req: dict):
+    msg = req.get("message")
+    if msg:
+        notifications.add_message(msg)
+        return {"ok": True}
+    return {"ok": False, "detail": "No message"}
+
 
 @app.get("/portfolio")
 async def get_portfolio():

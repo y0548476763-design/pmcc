@@ -111,7 +111,7 @@ def _execute_combo(old_lp: dict, new_tgt: dict,
                 "sell_expiry": str(old_lp["expiry"]),
                 "buy_strike":  float(new_tgt["strike"]),
                 "buy_expiry":  str(new_tgt["expiry"]),
-                "limit_price": max(0.01, combo_mid),
+                "limit_price": combo_mid,
                 "use_market": False,
                 "escalation_step_pct": float(esc_step),
                 "escalation_wait_secs": int(esc_mins) * 60,
@@ -308,6 +308,49 @@ def render_roll_tab(tws=None) -> None:
             monitor_placeholder.error("שגיאה במשיכת פקודות מה-API")
     except Exception as e:
         monitor_placeholder.warning(f"API לא זמין: {e}")
+
+    # ── ROW 5: Manual LEAPS Entry ──────────────────────────────────────────
+    st.markdown("<br>", unsafe_allow_html=True)
+    with st.expander("🛠️ רכישת ליפס חדש (ידני)", expanded=False):
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            man_ticker = st.text_input("טיקר:", key="man_leaps_ticker", placeholder="SPY").upper().strip()
+        with c2:
+            man_strike = st.number_input("Strike:", 1.0, 10000.0, 400.0, step=5.0, key="man_leaps_strike")
+        with c3:
+            man_expiry = st.text_input("פקיעה (YYYYMMDD):", key="man_leaps_expiry", placeholder="20260619")
+        with c4:
+            man_qty = st.number_input("כמות:", 1, 100, 1, key="man_leaps_qty")
+
+        c5, c6, c7 = st.columns(3)
+        with c5:
+            man_mid = st.number_input("מחיר לימיט (Mid):", 0.01, 1000.0, 10.0, step=0.1, key="man_leaps_mid")
+        with c6:
+            man_esc_mins = st.number_input("המתנה (דקות):", 1, 30, config.ESCALATION_WAIT_MINUTES, key="man_leaps_esc_mins")
+        with c7:
+            man_esc_step = st.number_input("הסלמה (%):", 0.1, 5.0, config.ESCALATION_STEP_PCT, step=0.1, key="man_leaps_esc_step")
+
+        if st.button("📤 שלח פקודת רכישה", key="man_leaps_send", type="primary", use_container_width=True):
+            if not man_ticker or not man_expiry:
+                st.error("יש למלא טיקר ותאריך פקיעה")
+            else:
+                try:
+                    payload = {
+                        "ticker": man_ticker, "right": "C", "strike": man_strike,
+                        "expiry": man_expiry, "action": "BUY", "qty": man_qty,
+                        "limit_price": man_mid, "order_type": "LMT", "tif": "GTC"
+                    }
+                    r = requests.post(f"{IBKR}/order/place", json=payload, timeout=10)
+                    if r.status_code == 200:
+                        oid = r.json().get("order_id", "???")
+                        st.success(f"✅ פקודה נשלחה בהצלחה! מזהה: {oid}")
+                        requests.post(f"{IBKR}/api/notify", json={
+                            "message": f"📤 <b>רכישת ליפס ידנית:</b> {man_qty}x {man_ticker} ${man_strike:.0f} {man_expiry} @ ${man_mid:.2f}"
+                        })
+                    else:
+                        st.error(f"שגיאה בשליחת פקודה: {r.text}")
+                except Exception as e:
+                    st.error(f"שגיאת תקשורת: {e}")
 
     if refresh:
         time.sleep(5)

@@ -13,10 +13,17 @@ IBKR = config.IBKR_API_URL   # http://localhost:8002
 
 
 def _send_telegram(msg: str, token: str = None, chat_id: str = None) -> bool:
+    # Always notify internal hub first
+    try:
+        requests.post(f"{IBKR}/api/notify", json={"message": msg}, timeout=2)
+    except Exception:
+        pass
+
     try:
         import requests
         token   = token   or settings_manager.get_telegram_token()
         chat_id = chat_id or settings_manager.get_telegram_chat_id()
+        if not token or not chat_id: return False
         r = requests.post(
             f"https://api.telegram.org/bot{token}/sendMessage",
             json={"chat_id": chat_id, "text": msg, "parse_mode": "HTML"},
@@ -256,6 +263,30 @@ def render_bot_tab(tws) -> None:
             if st.button("❌ ביטול", key="panic_cancel_bot"):
                 st.session_state["show_panic_bot"] = False
                 st.rerun()
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # ── ROW 5: Internal Notification Hub (Chat Style) ──────────────────────
+    st.markdown('<div class="section-hdr">💬 צ׳אט הודעות בוט (Internal Hub)</div>', unsafe_allow_html=True)
+    
+    import notifications
+    chat_logs = notifications.load_messages()
+    
+    chat_container = st.container(height=400, border=True)
+    with chat_container:
+        if not chat_logs:
+            st.info("אין הודעות בוט כעת. ההודעות יופיעו כאן בזמן אמת.")
+        else:
+            for entry in chat_logs:
+                with st.chat_message("assistant", avatar="🤖"):
+                    st.markdown(f"**{entry['timestamp']}**")
+                    st.markdown(entry['message'], unsafe_allow_html=True)
+
+    if st.button("🗑️ נקה היסטוריית צ'אט", key="clear_chat_logs"):
+        if os.path.exists("notifications_log.json"):
+            os.remove("notifications_log.json")
+        st.success("היסטוריית הצ'אט נמחקה")
+        st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
 

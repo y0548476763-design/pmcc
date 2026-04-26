@@ -34,6 +34,12 @@ def _get_dte(expiry_str: str) -> int:
 
 def _send_telegram(msg: str) -> bool:
     """Send a Telegram message. Returns True on success."""
+    # Always notify internal hub first
+    try:
+        requests.post(f"{IBKR}/api/notify", json={"message": msg}, timeout=2)
+    except Exception:
+        pass
+
     try:
         import requests
         token   = settings_manager.get_telegram_token()
