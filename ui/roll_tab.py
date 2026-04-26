@@ -57,7 +57,7 @@ def _search_yahoo_leaps(ticker: str, min_dte: int, target_delta: float, n: int =
 
 def _execute_combo(old_lp: dict, new_tgt: dict,
                    esc_mins: int, esc_step: float,
-                   bot_mode: int, via_bot: bool):
+                   bot_mode: int):
 
     ticker = old_lp["ticker"]
     qty    = abs(old_lp.get("qty", 1))
@@ -152,17 +152,19 @@ def render_roll_tab(tws=None) -> None:
                 unsafe_allow_html=True)
 
     # Clean row layout with proper vertical alignment
+    # Refined 2-row layout to prevent overlapping and improve readability
     with st.container():
-        row1, row2, row3, row4 = st.columns([1.2, 1.2, 2.5, 1], gap="small")
-        with row1:
+        c1, c2 = st.columns([1, 1])
+        with c1:
             ticker = st.text_input("טיקר:", value=st.session_state.get("roll_ticker","META"),
                                    key="roll_ticker_input", placeholder="META").upper().strip()
-        with row2:
+        with c2:
             min_dte = st.number_input("מינימום DTE:", 200, 1000, 650, step=30, key="roll_min_dte")
-        with row3:
-            # Standard slider with visible label - no negative margin hacks
+        
+        c3, c4 = st.columns([3, 1])
+        with c3:
             tgt_delta = st.slider("דלתא יעד:", 0.50, 0.99, 0.80, step=0.01, key="roll_tgt_delta")
-        with row4:
+        with c4:
             st.markdown('<div style="margin-top:28px;"></div>', unsafe_allow_html=True)
             search_clicked = st.button("🔍 חפש", key="roll_search", type="primary", use_container_width=True)
 
@@ -340,17 +342,12 @@ def render_roll_tab(tws=None) -> None:
         esc_mins = st.number_input("המתנה לפני הסלמה (דקות):", 1, 30, config.ESCALATION_WAIT_MINUTES, key="roll_esc_mins")
         esc_step = st.number_input("הסלמה (%):", 0.1, 5.0, config.ESCALATION_STEP_PCT, step=0.1, key="roll_esc_step")
 
-    c1, c2, c3 = st.columns([2, 2, 1])
-    with c1:
-        if st.button("✋ ביצוע ידני", key="exec_manual", type="primary", use_container_width=True):
-            _execute_combo(old_lp, new_tgt, esc_mins, esc_step, bot_mode, via_bot=False)
-    with c2:
-        if st.button("🤖 ביצוע בוט", key="exec_bot", use_container_width=True):
-            _execute_combo(old_lp, new_tgt, esc_mins, esc_step, bot_mode, via_bot=True)
-    with c3:
-        if st.button("↩️ ביטול", key="exec_cancel", use_container_width=True):
-            st.session_state.pop("roll_new_selected", None)
-            st.rerun()
+    if st.button("🚀 בצע גלגול קומבו (Combo Roll)", key="exec_combo_main", type="primary", use_container_width=True):
+        _execute_combo(old_lp, new_tgt, esc_mins, esc_step, bot_mode)
+
+    if st.button("↩️ ביטול", key="exec_cancel", use_container_width=True):
+        st.session_state.pop("roll_new_selected", None)
+        st.rerun()
 
     if refresh:
         time.sleep(5)

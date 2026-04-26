@@ -199,33 +199,12 @@ def render_bot_tab(tws) -> None:
             settings_manager.set_telegram_chat_id(new_cid)
             st.success("Chat ID נשמר!")
 
-    with col_tg3:
-        st.write("")
-        st.write("")
-        if st.button("📤 שלח הודעת בדיקה", key="tg_test",
-                     use_container_width=True, type="primary"):
-            ok = _send_telegram(
-                "✅ <b>PMCC בדיקת חיבור</b>\n"
-                "מערכת PMCC NextOffice מחוברת ופעילה!\n"
-                f"🕐 {datetime.now().strftime('%H:%M:%S')}"
-            )
-            if ok:
-                st.success("✅ הודעה נשלחה בהצלחה!")
-                _append_log("ACTION", "📱 הודעת בדיקה נשלחה לטלגרם")
-            else:
-                st.error("❌ שליחה נכשלה — בדוק Token/Chat ID")
-
     st.markdown("<br>", unsafe_allow_html=True)
 
     # ── ROW 4: Manual Bot Actions ───────────────────────────────────────────
     st.markdown('<div class="section-hdr">🔧 פעולות בוט ידניות</div>', unsafe_allow_html=True)
 
-    col_a1, col_a2, col_a3, col_a4 = st.columns(4)
-    with col_a1:
-        if st.button("🔄 סריקת תיק מלאה", use_container_width=True, key="bot_scan_full"):
-            _append_log("INFO", "🔄 סריקת תיק ידנית הופעלה...")
-            st.info("סריקה מלאה מתבצעת — ראה לוגים למטה")
-
+    col_a2, col_a3, col_a4 = st.columns(3)
     with col_a2:
         if st.button("📊 עדכן פרטי חשבון", use_container_width=True, key="bot_refresh_acct"):
             if is_conn:
@@ -240,11 +219,6 @@ def render_bot_tab(tws) -> None:
                     st.error(f"שגיאה: {e}")
             else:
                 st.warning("לא מחובר ל-IBKR")
-
-    with col_a3:
-        if st.button("🚨 PANIC — סגור הכל", use_container_width=True,
-                     type="primary", key="panic_bot_tab"):
-            st.session_state["show_panic_bot"] = True
 
     with col_a4:
         if st.button("🗑️ נקה לוגים", use_container_width=True, key="clear_logs_bot"):

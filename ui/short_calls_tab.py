@@ -230,15 +230,9 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
                           <div style="font-size:0.7rem;color:#64748b;">TP Target: ${tp_price:.2f}</div>
                         </div>""", unsafe_allow_html=True)
 
-                        col_m, col_b = st.columns(2)
-                        with col_m:
-                            if st.button("✋ ידני", key=f"manual_sell_{ticker}_{i}",
-                                         use_container_width=True):
-                                _execute_short_sell(tws, lp, opt, tp_pct, bot_mode, manual=True)
-                        with col_b:
-                            if st.button("🤖 בוט", key=f"bot_sell_{ticker}_{i}",
-                                         use_container_width=True):
-                                _execute_short_sell(tws, lp, opt, tp_pct, bot_mode, manual=False)
+                        if st.button("🚀 פתח שורט קול (SELL)", key=f"sell_{ticker}_{i}",
+                                     use_container_width=True, type="primary"):
+                            _execute_short_sell(tws, lp, opt, tp_pct, bot_mode)
 
     # ── ROW 3: Active Short Calls Management ───────────────────────────────
     if shorts:
@@ -268,13 +262,13 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
             action_btn_label = ""
             if needs_tp:
                 status_badge = f'<span class="badge badge-green">💰 TAKE PROFIT ({profit_pct:.0%})</span>'
-                action_btn_label = "💰 סגור (TP)"
+                action_btn_label = "✅ בצע סגירת רווח (TP)"
             elif needs_time:
                 status_badge = f'<span class="badge badge-yellow">⏰ TIME STOP ({dte}d)</span>'
-                action_btn_label = "🔄 גלגל (21d)"
+                action_btn_label = "🔄 בצע גלגול שורט (Roll)"
             elif needs_roll:
                 status_badge = f'<span class="badge badge-red">🚨 DELTA ROLL (Δ{delta:.2f})</span>'
-                action_btn_label = "🚨 גלגל מיידי"
+                action_btn_label = "🔄 בצע גלגול שורט (Roll)"
             else:
                 status_badge = f'<span class="badge badge-cyan">✅ תקין ({dte}d · Δ{delta:.2f})</span>'
 
@@ -361,7 +355,7 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
 # ── Helpers ────────────────────────────────────────────────────────────────
 
 def _execute_short_sell(tws, leaps_pos: dict, opt: dict, tp_pct: float,
-                        bot_mode: int, manual: bool) -> None:
+                        bot_mode: int) -> None:
     """Execute a short call sell order and immediately place Take Profit.
     bot_mode=0 (OFF):    Manual always executes. 'Bot' button blocks with warning.
     bot_mode=1 (YELLOW): 'Bot' sends Telegram confirmation, waits for YES.
@@ -378,23 +372,18 @@ def _execute_short_sell(tws, leaps_pos: dict, opt: dict, tp_pct: float,
     om = order_manager.get_manager()
     om.set_tws(tws)
 
-    if not manual:
-        # BOT mode
-        if bot_mode == 0:
-            st.warning("הבוט כבוי (מצב 0) — לחץ '✋ ידני' לביצוע ישיר.")
-            return
-        if bot_mode == 1:
-            # Telegram confirmation
-            msg = (f"❓ <b>האם לבצע מכירת שורט קול?</b>\n"
-                   f"📞 SELL {qty}x {ticker} ${strike:.0f}C {expiry}\n"
-                   f"💰 Mid: ${mid:.2f} | TP Target: ${tp_price:.2f}\n"
-                   f"⚡ ענה YES לאישור")
-            if _send_telegram(msg):
-                st.info("📱 הודעת אישור נשלחה לטלגרם")
-            else:
-                st.error("❌ שליחת טלגרם נכשלה")
-            return
-        # bot_mode==2: fall through to execute, notify after
+    # Notify if bot mode >= 1
+    if bot_mode == 1:
+        # Telegram confirmation
+        msg = (f"❓ <b>האם לבצע מכירת שורט קול?</b>\n"
+               f"📞 SELL {qty}x {ticker} ${strike:.0f}C {expiry}\n"
+               f"💰 Mid: ${mid:.2f} | TP Target: ${tp_price:.2f}\n"
+               f"⚡ ענה YES לאישור")
+        if _send_telegram(msg):
+            st.info("📱 הודעת אישור נשלחה לטלגרם")
+        else:
+            st.error("❌ שליחת טלגרם נכשלה")
+        return
 
     # EXECUTE (manual always, or bot_mode>=2)
     if not st.session_state.get("connected"):

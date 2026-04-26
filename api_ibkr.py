@@ -189,6 +189,7 @@ async def place_order(req: PlaceOrderRequest):
     tws = await get_tws()
     if not tws.connected or not tws.ib:
         raise HTTPException(status_code=503, detail="TWS not connected")
+    logger.info(f"ORDER_SUBMISSION: {req.action} {req.qty}x {req.ticker} @ {req.limit_price}")
     try:
         mgr = order_manager.get_manager()
         mgr.set_tws(tws)
@@ -225,6 +226,7 @@ async def place_combo(req: ComboRequest, background_tasks: BackgroundTasks):
     tws = await get_tws()
     if not tws.connected or not tws.ib:
         raise HTTPException(status_code=503, detail="TWS not connected")
+    logger.info(f"COMBO_SUBMISSION: {req.ticker} | BUY {req.buy_strike}@{req.buy_expiry} | SELL {req.sell_strike}@{req.sell_expiry}")
     try:
         from ib_insync import Option as IBOption
         import tws_combo
