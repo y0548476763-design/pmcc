@@ -26,6 +26,7 @@ from ui.short_calls_tab import render_short_calls_tab
 from ui.roll_tab        import render_roll_tab
 from ui.cash_tab        import render_cash_tab
 from ui.bot_tab         import render_bot_tab
+from ui.earnings_tab    import render_earnings_tab
 
 YAHOO = config.YAHOO_API_URL   # http://localhost:8001
 IBKR  = config.IBKR_API_URL    # http://localhost:8002
@@ -152,7 +153,7 @@ with c3:
         st.rerun()
 
 # ── Tabs ──────────────────────────────────────────────────────────────────
-t1, t2, t3, t4, t5 = st.tabs(["📊 פרוטפוליו", "📞 שורט קולים", "🔄 גלגול LEAPS", "💰 מזומן", "🤖 בוט"])
+t1, t2, t3, t4, t5, t6 = st.tabs(["📊 פרוטפוליו", "📞 שורט קולים", "🔄 גלגול LEAPS", "💰 מזומן", "🤖 בוט", "📈 Model B — Earnings"])
 
 with t1:
     col_q, _ = st.columns([1, 4])
@@ -191,3 +192,4 @@ with t2: render_short_calls_tab(positions, st.session_state.get("quant_results",
 with t3: render_roll_tab()
 with t4: render_cash_tab(positions, st.session_state.get("quant_results", {}), None)
 with t5: render_bot_tab(None)
+with t6: render_earnings_tab(None)

@@ -102,38 +102,84 @@ class TWSClient:
         self.connected = False
         return False
 
-    async def connectAsync(self, mode: str = "DEMO", host: str = "127.0.0.1", port: int = None, client_id: int = None, timeout: int = 3) -> bool:
-        """Async version of connect for loop-safe use."""
+    async def connectAsync(self, mode: str = "DEMO", host: str = "127.0.0.1", port: int = None, client_id: int = None, timeout: int = 5) -> bool:
+        """Async connect — uses a dedicated thread with its own event loop to avoid Python 3.13 conflict."""
         if not IB_AVAILABLE: return False
         if self.connected and self.ib and self.ib.isConnected() and self.mode == mode:
             return True
-        
-        if self.ib and self.ib.isConnected():
+
+        # Disconnect stale connection
+        if self.ib:
             try: self.ib.disconnect()
             except: pass
-        
-        if self.ib is None:
-            self.ib = IB()
-        
+            self.ib = None
+
         self.mode = mode
         port = port or (config.TWS_PORT_DEMO if mode == "DEMO" else config.TWS_PORT_LIVE)
         host = host or (config.REMOTE_TWS_HOST if config.REMOTE_TWS_HOST else config.TWS_HOST)
         cid  = client_id or config.TWS_CLIENT_ID
 
+        def _sync_connect():
+            """
+            Runs in a ThreadPoolExecutor thread.
+            Creates a new event loop, connects IB inside it,
+            then keeps the loop running forever (in yet another daemon thread)
+            so that run_coroutine_threadsafe() always has a live loop.
+            """
+            import asyncio as _aio
+            import threading as _th
+
+            loop = _aio.new_event_loop()
+            _aio.set_event_loop(loop)   # Must be set before anything uses asyncio in this thread
+            ib = IB()
+            ib._ib_loop = loop  # Expose loop for run_coroutine_threadsafe
+
+            # Connect synchronously inside the new loop
+            connected_result = []
+            async def _connect():
+                await ib.connectAsync(host, port, clientId=cid, timeout=timeout)
+                ib.reqMarketDataType(2)
+                ib.reqAllOpenOrders()
+                connected_result.append(True)
+
+            loop.run_until_complete(_connect())
+
+            # Now start loop.run_forever() in a daemon thread so IB stays alive
+            def _run_forever():
+                _aio.set_event_loop(loop)
+                loop.run_forever()
+
+            t = _th.Thread(target=_run_forever, daemon=True, name="ib_loop")
+            t.start()
+
+            return ib
+
         try:
-            # connectAsync will use the current loop
-            await self.ib.connectAsync(host, port, clientId=cid, timeout=timeout)
+            loop = asyncio.get_running_loop()
+            self.ib = await loop.run_in_executor(None, _sync_connect)
             self.connected = True
-            self.ib.reqMarketDataType(2) # Enable frozen data
-            self.ib.reqAllOpenOrders()
-            await asyncio.sleep(0.2)
             self._refresh_account()
-            self._log("INFO", f"✅ (Async) חיבור הוקם: {mode} @ {host}:{port}")
+            self._log("INFO", f"✅ חיבור הוקם: {mode} @ {host}:{port} (acc={self.account_id})")
             return True
         except Exception as e:
-            self._log("WARN", f"חיבור (Async) ל-{mode} נכשל: {e}")
+            self._log("WARN", f"חיבור ל-{mode}:{port} נכשל: {e}")
             self.connected = False
+            self.ib = None
             return False
+
+    def run_ib(self, coro, timeout: int = 20):
+        """
+        Thread-safe: dispatch any ib_insync coroutine to the IB event loop
+        and block until the result is ready. Call this from uvicorn threads.
+        Example:
+            details = tws.run_ib(tws.ib.reqContractDetailsAsync(contract))
+        """
+        ib_loop = getattr(self.ib, '_ib_loop', None)
+        if ib_loop is None:
+            raise RuntimeError("IB loop not available — not connected")
+        import asyncio as _aio
+        future = _aio.run_coroutine_threadsafe(coro, ib_loop)
+        return future.result(timeout=timeout)
 
     def disconnect(self) -> None:
         if self.ib and self.connected:
