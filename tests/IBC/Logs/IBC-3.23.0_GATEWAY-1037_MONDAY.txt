@@ -9,7 +9,7 @@ This log file is located at:
 
 ================================================================================
 
-Starting IBC version 3.23.0 on Mon 04/20/2026 at 21:30:55.84
+Starting IBC version 3.23.0 on Mon 04/27/2026 at 18:38:01.32
 
 Operating system:  io
 Operating system:  n 
@@ -38,7 +38,7 @@ Generating the classpath
 Classpath=C:\Jts\ibgateway\1037\jars\batik-all-1.16.jar;C:\Jts\ibgateway\1037\jars\commons-io-2.11.0.jar;C:\Jts\ibgateway\1037\jars\core-3.5.3.jar;C:\Jts\ibgateway\1037\jars\fop-2.8.jar;C:\Jts\ibgateway\1037\jars\jackson-annotations-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jackson-core-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jackson-databind-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jts4launch-1037.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-7.41.3.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-swing-7.41.3.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-win64-7.41.3.jar;C:\Jts\ibgateway\1037\jars\locales.jar;C:\Jts\ibgateway\1037\jars\log4j-api-2.17.1.jar;C:\Jts\ibgateway\1037\jars\log4j-core-2.17.1.jar;C:\Jts\ibgateway\1037\jars\protobuf-java-3.25.6.jar;C:\Jts\ibgateway\1037\jars\total-2024.jar;C:\Jts\ibgateway\1037\jars\twslaunch-1037.jar;C:\Jts\ibgateway\1037\jars\twslaunch-install4j-1.12.jar;C:\Jts\ibgateway\1037\jars\xmlgraphics-commons-2.8.jar;C:\Jts\ibgateway\1037\.install4j\i4jruntime.jar;c:\Users\User\Desktop\pmcc1\tests\IBC\\IBC.jar
 
 Generating the JAVA VM options
-Java VM Options= -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:ParallelGCThreads=20 -XX:ConcGCThreads=5 -XX:InitiatingHeapOccupancyPercent=70 -Dinstaller.uuid=7a143c71-78df-4056-a8dd-ada292782807 -DvmOptionsPath=C:\Jts\ibgateway\1037\ibgateway.vmoptions -Dsun.awt.nopixfmt=true -Dsun.java2d.noddraw=true -Dswing.boldMetal=false -Dsun.locale.formatasdefault=true -Xmx768m -Dtwslaunch.autoupdate.serviceImpl=com.ib.tws.twslaunch.install4j.Install4jAutoUpdateService -Dchannel=latest -Dexe4j.isInstall4j=true -Dinstall4jType=standalone -DjtsConfigDir="C:\Jts" -Dibcsessionid="1921118336"
+Java VM Options= -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:ParallelGCThreads=20 -XX:ConcGCThreads=5 -XX:InitiatingHeapOccupancyPercent=70 -Dinstaller.uuid=7a143c71-78df-4056-a8dd-ada292782807 -DvmOptionsPath=C:\Jts\ibgateway\1037\ibgateway.vmoptions -Dsun.awt.nopixfmt=true -Dsun.java2d.noddraw=true -Dswing.boldMetal=false -Dsun.locale.formatasdefault=true -Xmx768m -Dtwslaunch.autoupdate.serviceImpl=com.ib.tws.twslaunch.install4j.Install4jAutoUpdateService -Dchannel=latest -Dexe4j.isInstall4j=true -Dinstall4jType=standalone -DjtsConfigDir="C:\Jts" -Dibcsessionid="270412394"
 
 Finding autorestart file
 INFO: Could not find files for the given pattern(s).
@@ -51,7 +51,7 @@ Location of java.exe=C:\Users\User\AppData\Local\Programs\Common\i4j_jres\Oda-jK
 Java Version is  17.0.10.0.101
 
 Starting IBC with this command:
-"C:\Users\User\AppData\Local\Programs\Common\i4j_jres\Oda-jK0QgTEmVssfllLP\17.0.10.0.101-zulu_64\bin\java.exe" --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-exports=java.base/sun.util=ALL-UNNAMED --add-exports=java.desktop/com.sun.java.swing.plaf.motif=ALL-UNNAMED --add-opens=java.desktop/java.awt=ALL-UNNAMED --add-opens=java.desktop/java.awt.dnd=ALL-UNNAMED --add-opens=java.desktop/javax.swing=ALL-UNNAMED --add-opens=java.desktop/javax.swing.event=ALL-UNNAMED --add-opens=java.desktop/javax.swing.plaf.basic=ALL-UNNAMED --add-opens=java.desktop/javax.swing.table=ALL-UNNAMED --add-opens=java.desktop/sun.awt=ALL-UNNAMED --add-exports=java.desktop/sun.swing=ALL-UNNAMED --add-opens=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED --add-exports=javafx.media/com.sun.media.jfxmedia=ALL-UNNAMED --add-exports=javafx.media/com.sun.media.jfxmedia.events=ALL-UNNAMED --add-exports=javafx.media/com.sun.media.jfxmedia.locator=ALL-UNNAMED --add-exports=javafx.media/com.sun.media.jfxmediaimpl=ALL-UNNAMED --add-exports=javafx.web/com.sun.javafx.webkit=ALL-UNNAMED --add-opens=jdk.management/com.sun.management.internal=ALL-UNNAMED -cp  "C:\Jts\ibgateway\1037\jars\batik-all-1.16.jar;C:\Jts\ibgateway\1037\jars\commons-io-2.11.0.jar;C:\Jts\ibgateway\1037\jars\core-3.5.3.jar;C:\Jts\ibgateway\1037\jars\fop-2.8.jar;C:\Jts\ibgateway\1037\jars\jackson-annotations-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jackson-core-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jackson-databind-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jts4launch-1037.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-7.41.3.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-swing-7.41.3.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-win64-7.41.3.jar;C:\Jts\ibgateway\1037\jars\locales.jar;C:\Jts\ibgateway\1037\jars\log4j-api-2.17.1.jar;C:\Jts\ibgateway\1037\jars\log4j-core-2.17.1.jar;C:\Jts\ibgateway\1037\jars\protobuf-java-3.25.6.jar;C:\Jts\ibgateway\1037\jars\total-2024.jar;C:\Jts\ibgateway\1037\jars\twslaunch-1037.jar;C:\Jts\ibgateway\1037\jars\twslaunch-install4j-1.12.jar;C:\Jts\ibgateway\1037\jars\xmlgraphics-commons-2.8.jar;C:\Jts\ibgateway\1037\.install4j\i4jruntime.jar;c:\Users\User\Desktop\pmcc1\tests\IBC\\IBC.jar"  -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:ParallelGCThreads=20 -XX:ConcGCThreads=5 -XX:InitiatingHeapOccupancyPercent=70 -Dinstaller.uuid=7a143c71-78df-4056-a8dd-ada292782807 -DvmOptionsPath=C:\Jts\ibgateway\1037\ibgateway.vmoptions -Dsun.awt.nopixfmt=true -Dsun.java2d.noddraw=true -Dswing.boldMetal=false -Dsun.locale.formatasdefault=true -Xmx768m -Dtwslaunch.autoupdate.serviceImpl=com.ib.tws.twslaunch.install4j.Install4jAutoUpdateService -Dchannel=latest -Dexe4j.isInstall4j=true -Dinstall4jType=standalone -DjtsConfigDir="C:\Jts" -Dibcsessionid="1921118336"  ibcalpha.ibc.IbcGateway "c:\Users\User\Desktop\pmcc1\tests\IBC\config.ini"  
+"C:\Users\User\AppData\Local\Programs\Common\i4j_jres\Oda-jK0QgTEmVssfllLP\17.0.10.0.101-zulu_64\bin\java.exe" --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.util.concurrent=ALL-UNNAMED --add-exports=java.base/sun.util=ALL-UNNAMED --add-exports=java.desktop/com.sun.java.swing.plaf.motif=ALL-UNNAMED --add-opens=java.desktop/java.awt=ALL-UNNAMED --add-opens=java.desktop/java.awt.dnd=ALL-UNNAMED --add-opens=java.desktop/javax.swing=ALL-UNNAMED --add-opens=java.desktop/javax.swing.event=ALL-UNNAMED --add-opens=java.desktop/javax.swing.plaf.basic=ALL-UNNAMED --add-opens=java.desktop/javax.swing.table=ALL-UNNAMED --add-opens=java.desktop/sun.awt=ALL-UNNAMED --add-exports=java.desktop/sun.swing=ALL-UNNAMED --add-opens=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED --add-exports=javafx.media/com.sun.media.jfxmedia=ALL-UNNAMED --add-exports=javafx.media/com.sun.media.jfxmedia.events=ALL-UNNAMED --add-exports=javafx.media/com.sun.media.jfxmedia.locator=ALL-UNNAMED --add-exports=javafx.media/com.sun.media.jfxmediaimpl=ALL-UNNAMED --add-exports=javafx.web/com.sun.javafx.webkit=ALL-UNNAMED --add-opens=jdk.management/com.sun.management.internal=ALL-UNNAMED -cp  "C:\Jts\ibgateway\1037\jars\batik-all-1.16.jar;C:\Jts\ibgateway\1037\jars\commons-io-2.11.0.jar;C:\Jts\ibgateway\1037\jars\core-3.5.3.jar;C:\Jts\ibgateway\1037\jars\fop-2.8.jar;C:\Jts\ibgateway\1037\jars\jackson-annotations-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jackson-core-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jackson-databind-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jts4launch-1037.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-7.41.3.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-swing-7.41.3.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-win64-7.41.3.jar;C:\Jts\ibgateway\1037\jars\locales.jar;C:\Jts\ibgateway\1037\jars\log4j-api-2.17.1.jar;C:\Jts\ibgateway\1037\jars\log4j-core-2.17.1.jar;C:\Jts\ibgateway\1037\jars\protobuf-java-3.25.6.jar;C:\Jts\ibgateway\1037\jars\total-2024.jar;C:\Jts\ibgateway\1037\jars\twslaunch-1037.jar;C:\Jts\ibgateway\1037\jars\twslaunch-install4j-1.12.jar;C:\Jts\ibgateway\1037\jars\xmlgraphics-commons-2.8.jar;C:\Jts\ibgateway\1037\.install4j\i4jruntime.jar;c:\Users\User\Desktop\pmcc1\tests\IBC\\IBC.jar"  -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:ParallelGCThreads=20 -XX:ConcGCThreads=5 -XX:InitiatingHeapOccupancyPercent=70 -Dinstaller.uuid=7a143c71-78df-4056-a8dd-ada292782807 -DvmOptionsPath=C:\Jts\ibgateway\1037\ibgateway.vmoptions -Dsun.awt.nopixfmt=true -Dsun.java2d.noddraw=true -Dswing.boldMetal=false -Dsun.locale.formatasdefault=true -Xmx768m -Dtwslaunch.autoupdate.serviceImpl=com.ib.tws.twslaunch.install4j.Install4jAutoUpdateService -Dchannel=latest -Dexe4j.isInstall4j=true -Dinstall4jType=standalone -DjtsConfigDir="C:\Jts" -Dibcsessionid="270412394"  ibcalpha.ibc.IbcGateway "c:\Users\User\Desktop\pmcc1\tests\IBC\config.ini"  
 
 IBC Settings:
     AcceptIncomingConnectionAction=accept
@@ -70,7 +70,7 @@ IBC Settings:
     [Logon]=
 End IBC Settings
 
-2026-04-20 21:30:58:955 IBC: version: 3.23.0
+2026-04-27 18:38:02:863 IBC: version: 3.23.0
 System Properties
 ------------------------------------------------------------
 java.specification.version = 17
@@ -79,7 +79,7 @@ sun.jnu.encoding = Cp1255
 channel = latest
 java.class.path = C:\Jts\ibgateway\1037\jars\batik-all-1.16.jar;C:\Jts\ibgateway\1037\jars\commons-io-2.11.0.jar;C:\Jts\ibgateway\1037\jars\core-3.5.3.jar;C:\Jts\ibgateway\1037\jars\fop-2.8.jar;C:\Jts\ibgateway\1037\jars\jackson-annotations-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jackson-core-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jackson-databind-2.12.3.jar;C:\Jts\ibgateway\1037\jars\jts4launch-1037.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-7.41.3.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-swing-7.41.3.jar;C:\Jts\ibgateway\1037\jars\jxbrowser-win64-7.41.3.jar;C:\Jts\ibgateway\1037\jars\locales.jar;C:\Jts\ibgateway\1037\jars\log4j-api-2.17.1.jar;C:\Jts\ibgateway\1037\jars\log4j-core-2.17.1.jar;C:\Jts\ibgateway\1037\jars\protobuf-java-3.25.6.jar;C:\Jts\ibgateway\1037\jars\total-2024.jar;C:\Jts\ibgateway\1037\jars\twslaunch-1037.jar;C:\Jts\ibgateway\1037\jars\twslaunch-install4j-1.12.jar;C:\Jts\ibgateway\1037\jars\xmlgraphics-commons-2.8.jar;C:\Jts\ibgateway\1037\.install4j\i4jruntime.jar;c:\Users\User\Desktop\pmcc1\tests\IBC\\IBC.jar
 java.vm.vendor = Azul Systems, Inc.
-ibcsessionid = 1921118336
+ibcsessionid = 270412394
 sun.arch.data.model = 64
 user.variant = 
 java.vendor.url = http://www.azul.com/
@@ -139,253 +139,65 @@ java.vm.version = 17.0.10.0.101+3-LTS
 sun.io.unicode.encoding = UnicodeLittle
 java.class.version = 61.0
 ------------------------------------------------------------
-2026-04-20 21:30:58:961 IBC: using default settings provider: ini file is c:\Users\User\Desktop\pmcc1\tests\IBC\config.ini
-2026-04-20 21:30:58:961 IBC: using default login manager: will get username and password from settings; FIX username and password (if required) from settings
-2026-04-20 21:30:58:961 IBC: using default main window manager
-2026-04-20 21:30:58:961 IBC: using default trading mode manager: constructor parameter args but trading mode not present - will be taken from settings
-2026-04-20 21:30:58:961 IBC: using default config dialog manager
-2026-04-20 21:30:58:974 IBC: CommandServer is starting with port 7462
-2026-04-20 21:30:59:024 IBC: CommandServer listening on addresses: 127.0.0.1,0:0:0:0:0:0:0:1,fe80:0:0:0:7d85:7a20:8051:4772%wlan0,fe80:0:0:0:e667:b570:401d:640f%wlan3,192.168.43.202,fe80:0:0:0:1dda:91cf:488f:1de3%wlan6; port: 7462
-2026-04-20 21:30:59:024 IBC: CommandServer started and is ready to accept commands
-2026-04-20 21:30:59:207 IBC: TWS Settings directory is: C:Jts
-2026-04-20 21:30:59:207 IBC: Starting session: will exit if login dialog is not displayed within 60 seconds
-2026-04-20 21:30:59:226 IBC: Ensuring C:Jts\jts.ini contains required minimal lines
-2026-04-20 21:30:59:226 IBC: Found setting: [Logon]/s3store=true
-2026-04-20 21:30:59:226 IBC: Found setting: [Logon]/Locale=en
-2026-04-20 21:30:59:226 IBC: Found setting: [Logon]/displayedproxymsg=1
-2026-04-20 21:30:59:226 IBC: Found setting: [Logon]/UseSSL=true
-2026-04-20 21:30:59:226 IBC: Found setting: [IBGateway]/ApiOnly=true
-2026-04-20 21:30:59:226 IBC: Found setting: [IBGateway]/TrustedIPs=127.0.0.1
-2026-04-20 21:30:59:226 IBC: Confirmed C:Jts\jts.ini contains required minimal lines
-2026-04-20 21:30:59:226 IBC: Starting Gateway
-2026-04-20 21:31:07:604 IBC: detected frame entitled: IBKR Gateway; event=Activated
-2026-04-20 21:31:07:615 IBC: detected frame entitled: IBKR Gateway; event=Focused
-2026-04-20 21:31:07:616 IBC: detected frame entitled: IBKR Gateway; event=Opened
-2026-04-20 21:31:07:616 IBC: Login dialog WINDOW_OPENED: LoginState is LOGGED_OUT
-2026-04-20 21:31:07:618 IBC: trading mode from settings: tradingMode=paper
-2026-04-20 21:31:07:618 IBC: Setting Trading mode = paper
-2026-04-20 21:31:07:796 IBC: Setting user name
-2026-04-20 21:31:07:798 IBC: Setting password
-2026-04-20 21:31:07:799 IBC: Login attempt: 1
-2026-04-20 21:31:07:800 IBC: trading mode from settings: tradingMode=paper
-2026-04-20 21:31:07:986 IBC: Click button: Paper Log In
-2026-04-20 21:31:09:534 IBC: detected frame entitled: IBKR Gateway; event=Lost focus
-2026-04-20 21:31:09:534 IBC: detected frame entitled: IBKR Gateway; event=Deactivated
-2026-04-20 21:31:09:534 IBC: detected frame entitled: Loading...; event=Activated
-2026-04-20 21:31:09:551 IBC: detected frame entitled: Loading...; event=Focused
-2026-04-20 21:31:09:551 IBC: detected frame entitled: Loading...; event=Opened
-2026-04-20 21:31:09:551 IBC: Found Gateway main window
-2026-04-20 21:31:10:081 IBC: detected frame entitled: Loading...; event=Lost focus
-2026-04-20 21:31:10:082 IBC: detected frame entitled: Loading...; event=Deactivated
-2026-04-20 21:31:10:083 IBC: detected frame entitled: Connecting to server (trying for another 19 seconds)...; event=Activated
-2026-04-20 21:31:10:086 IBC: detected frame entitled: Connecting to server (trying for another 19 seconds)...; event=Focused
-2026-04-20 21:31:10:088 IBC: detected frame entitled: Connecting to server (trying for another 19 seconds)...; event=Opened
-2026-04-20 21:31:12:633 IBC: detected frame entitled: Authenticating...; event=Lost focus
-2026-04-20 21:31:12:634 IBC: detected frame entitled: Authenticating...; event=Deactivated
-2026-04-20 21:31:12:634 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Activated
-2026-04-20 21:31:12:649 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Focused
-2026-04-20 21:31:12:651 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Opened
-2026-04-20 21:31:39:470 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Lost focus
-2026-04-20 21:31:39:472 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Deactivated
-2026-04-20 21:31:39:473 IBC: detected frame entitled: Authenticating...; event=Activated
-2026-04-20 21:31:39:478 IBC: detected frame entitled: Authenticating...; event=Focused
-2026-04-20 21:31:39:479 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Closed
-2026-04-20 21:31:41:657 IBC: detected frame entitled: Requesting startup parameters...; event=Lost focus
-2026-04-20 21:31:41:659 IBC: detected frame entitled: Requesting startup parameters...; event=Deactivated
-LogModuleConfigurator-Init: Log4j Ver2.x found on classpath
-LogModuleConfigurator-Init: LogModuleConfigurator initialized with Log4j Veri.x
-2026-04-20 21:31:46:475 IBC: detected frame entitled: Starting application...; event=Closed
-2026-04-20 21:31:46:475 IBC: Login has completed
-2026-04-20 21:31:46:475 IBC: detected dialog entitled: Warning; event=Activated
-2026-04-20 21:31:46:478 IBC: detected dialog entitled: Warning; event=Focused
-2026-04-20 21:31:46:479 IBC: detected dialog entitled: Warning; event=Opened
-2026-04-20 21:31:46:480 IBC: Click button: I understand and accept
-2026-04-20 21:31:46:582 IBC: detected dialog entitled: Warning; event=Closed
-2026-04-20 21:31:46:583 IBC: detected dialog entitled: Warning; event=Lost focus
-2026-04-20 21:31:46:583 IBC: detected dialog entitled: Warning; event=Deactivated
-2026-04-20 21:31:46:583 IBC: detected frame entitled: IBKR Gateway; event=Activated
-2026-04-20 21:31:46:585 IBC: detected frame entitled: IBKR Gateway; event=Focused
-remove Client 42
-remove Client 42
-remove Client 42
-remove Client 42
-remove Client 42
-remove Client 42
-remove Client 43
-2026-04-20 21:32:53:098 IBC: detected frame entitled: IBKR Gateway; event=Lost focus
-2026-04-20 21:32:53:099 IBC: detected frame entitled: IBKR Gateway; event=Deactivated
-remove Client 42
-remove Client 43
-remove Client 42
-remove Client 42
-remove Client 43
-remove Client 43
-2026-04-20 21:36:20:670 IBC: detected frame entitled: IBKR Gateway; event=Iconified
-2026-04-20 21:36:20:687 IBC: detected frame entitled: IBKR Gateway; event=State changed
-remove Client 42
-remove Client 43
-remove Client 42
-remove Client 42
-remove Client 43
-remove Client 43
-remove Client 42
-remove Client 43
-remove Client 42
-remove Client 42
-remove Client 43
-remove Client 43
-remove Client 42
-remove Client 43
-remove Client 42
-remove Client 42
-remove Client 43
-remove Client 43
-remove Client 42
-remove Client 43
-remove Client 42
-remove Client 42
-remove Client 43
-remove Client 43
-remove Client 42
-remove Client 43
-remove Client 42
-remove Client 42
-remove Client 43
-remove Client 43
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 42
-remove Client 43
-remove Client 42
-remove Client 42
-remove Client 43
-remove Client 43
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 42
-remove Client 43
-remove Client 42
-remove Client 42
-remove Client 43
-remove Client 43
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 42
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 43
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 42
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 43
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 42
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 43
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 42
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 43
-2026-04-20 22:14:30:675 IBC: detected frame entitled: IBKR Gateway; event=Deiconified
-2026-04-20 22:14:30:696 IBC: detected frame entitled: IBKR Gateway; event=State changed
-2026-04-20 22:14:30:697 IBC: detected frame entitled: IBKR Gateway; event=Activated
-2026-04-20 22:14:30:733 IBC: detected frame entitled: IBKR Gateway; event=Focused
-2026-04-20 22:14:36:336 IBC: detected frame entitled: IBKR Gateway; event=Lost focus
-2026-04-20 22:14:36:337 IBC: detected frame entitled: IBKR Gateway; event=Deactivated
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 42
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 43
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 44
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 45
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 42
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 43
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 44
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 45
-2026-04-20 23:14:19:710 IBC: detected frame entitled: Connecting to server...; event=Opened
-2026-04-20 23:14:19:712 IBC: detected frame entitled: Connecting to server...; event=Activated
-2026-04-20 23:14:19:716 IBC: detected frame entitled: Connecting to server...; event=Focused
-2026-04-20 23:14:19:716 IBC: detected frame entitled: Connecting to server...; event=Opened
-2026-04-20 23:15:08:385 IBC: detected frame entitled: Starting application...; event=Closed
-2026-04-20 23:15:08:386 IBC: detected frame entitled: Starting application...; event=Lost focus
-2026-04-20 23:15:08:386 IBC: detected frame entitled: Starting application...; event=Deactivated
-2026-04-20 23:15:08:386 IBC: detected frame entitled: IBKR Gateway; event=Activated
-2026-04-20 23:15:08:391 IBC: detected frame entitled: IBKR Gateway; event=Focused
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 42
-2026-04-20 23:20:07:465 IBC: detected frame entitled: IBKR Gateway; event=Lost focus
-2026-04-20 23:20:07:466 IBC: detected frame entitled: IBKR Gateway; event=Deactivated
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 43
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 44
-remove Client 42
-remove Client 43
-remove Client 44
-remove Client 45
-2026-04-20 23:40:34:270 IBC: detected frame entitled: DUH867555 Exit Session Setting (Simulated Trading); event=Activated
-2026-04-20 23:40:34:277 IBC: detected frame entitled: DUH867555 Exit Session Setting (Simulated Trading); event=Focused
-2026-04-20 23:40:34:277 IBC: detected frame entitled: DUH867555 Exit Session Setting (Simulated Trading); event=Opened
-2026-04-20 23:45:00:444 IBC: detected frame entitled: DUH867555 Exit Session Setting (Simulated Trading); event=Lost focus
-2026-04-20 23:45:00:445 IBC: detected frame entitled: DUH867555 Exit Session Setting (Simulated Trading); event=Deactivated
-2026-04-20 23:45:00:445 IBC: detected dialog entitled: Shutdown progress; event=Activated
-2026-04-20 23:45:00:451 IBC: detected dialog entitled: Shutdown progress; event=Focused
-2026-04-20 23:45:00:452 IBC: detected dialog entitled: Shutdown progress; event=Opened
-2026-04-20 23:45:00:453 IBC: CommandServer closing
-2026-04-20 23:45:00:454 IBC: CommandServer is shutdown
-2026-04-20 23:45:00:461 IBC: detected frame entitled: DUH867555 Exit Session Setting (Simulated Trading); event=Closed
-2026-04-20 23:45:01,059 JTS-IA Stopper-981 ERROR Attempted to append to non-started appender f
-2026-04-20 23:45:01,062 JTS-IA Stopper-981 ERROR Attempted to append to non-started appender f
-2026-04-20 23:45:01,064 NIA-Input-Queue-2 ERROR Attempted to append to non-started appender f
-2026-04-20 23:45:01,086 NIA-Input-Queue-2 ERROR Attempted to append to non-started appender f
-2026-04-20 23:45:01,973 pool-3-thread-1 ERROR Attempted to append to non-started appender h
+2026-04-27 18:38:02:867 IBC: using default settings provider: ini file is c:\Users\User\Desktop\pmcc1\tests\IBC\config.ini
+2026-04-27 18:38:02:867 IBC: using default login manager: will get username and password from settings; FIX username and password (if required) from settings
+2026-04-27 18:38:02:867 IBC: using default main window manager
+2026-04-27 18:38:02:867 IBC: using default trading mode manager: constructor parameter args but trading mode not present - will be taken from settings
+2026-04-27 18:38:02:867 IBC: using default config dialog manager
+2026-04-27 18:38:02:875 IBC: CommandServer is starting with port 7462
+2026-04-27 18:38:02:909 IBC: CommandServer listening on addresses: 127.0.0.1,0:0:0:0:0:0:0:1,fe80:0:0:0:7d85:7a20:8051:4772%wlan0,fe80:0:0:0:f1c1:e684:b492:5c43%eth3,fe80:0:0:0:e667:b570:401d:640f%wlan3,192.168.43.202,fe80:0:0:0:1dda:91cf:488f:1de3%wlan7; port: 7462
+2026-04-27 18:38:02:909 IBC: CommandServer started and is ready to accept commands
+2026-04-27 18:38:03:042 IBC: TWS Settings directory is: C:Jts
+2026-04-27 18:38:03:042 IBC: Starting session: will exit if login dialog is not displayed within 60 seconds
+2026-04-27 18:38:03:051 IBC: Ensuring C:Jts\jts.ini contains required minimal lines
+2026-04-27 18:38:03:051 IBC: Found setting: [Logon]/s3store=true
+2026-04-27 18:38:03:051 IBC: Found setting: [Logon]/Locale=en
+2026-04-27 18:38:03:051 IBC: Found setting: [Logon]/displayedproxymsg=1
+2026-04-27 18:38:03:051 IBC: Found setting: [Logon]/UseSSL=true
+2026-04-27 18:38:03:051 IBC: Found setting: [IBGateway]/ApiOnly=true
+2026-04-27 18:38:03:051 IBC: Found setting: [IBGateway]/TrustedIPs=127.0.0.1
+2026-04-27 18:38:03:051 IBC: Confirmed C:Jts\jts.ini contains required minimal lines
+2026-04-27 18:38:03:051 IBC: Starting Gateway
+2026-04-27 18:38:10:098 IBC: detected frame entitled: IBKR Gateway; event=Activated
+2026-04-27 18:38:10:108 IBC: detected frame entitled: IBKR Gateway; event=Focused
+2026-04-27 18:38:10:109 IBC: detected frame entitled: IBKR Gateway; event=Opened
+2026-04-27 18:38:10:109 IBC: Login dialog WINDOW_OPENED: LoginState is LOGGED_OUT
+2026-04-27 18:38:10:111 IBC: trading mode from settings: tradingMode=paper
+2026-04-27 18:38:10:111 IBC: Setting Trading mode = paper
+2026-04-27 18:38:10:237 IBC: Setting user name
+2026-04-27 18:38:10:238 IBC: Setting password
+2026-04-27 18:38:10:238 IBC: Login attempt: 1
+2026-04-27 18:38:10:239 IBC: trading mode from settings: tradingMode=paper
+2026-04-27 18:38:10:273 IBC: Click button: Paper Log In
+2026-04-27 18:38:11:073 IBC: detected frame entitled: IBKR Gateway; event=Lost focus
+2026-04-27 18:38:11:073 IBC: detected frame entitled: IBKR Gateway; event=Deactivated
+2026-04-27 18:38:11:074 IBC: detected frame entitled: Loading...; event=Activated
+2026-04-27 18:38:11:087 IBC: detected frame entitled: Loading...; event=Focused
+2026-04-27 18:38:11:088 IBC: detected frame entitled: Loading...; event=Opened
+2026-04-27 18:38:11:088 IBC: Found Gateway main window
+2026-04-27 18:38:11:615 IBC: detected frame entitled: Loading...; event=Lost focus
+2026-04-27 18:38:11:616 IBC: detected frame entitled: Loading...; event=Deactivated
+2026-04-27 18:38:11:616 IBC: detected frame entitled: Connecting to server (trying for another 19 seconds)...; event=Activated
+2026-04-27 18:38:11:623 IBC: detected frame entitled: Connecting to server (trying for another 19 seconds)...; event=Focused
+2026-04-27 18:38:11:623 IBC: detected frame entitled: Connecting to server (trying for another 19 seconds)...; event=Opened
+2026-04-27 18:38:13:137 IBC: detected frame entitled: Authenticating...; event=Lost focus
+2026-04-27 18:38:13:138 IBC: detected frame entitled: Authenticating...; event=Deactivated
+2026-04-27 18:38:13:138 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Activated
+2026-04-27 18:38:13:147 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Focused
+2026-04-27 18:38:13:149 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Opened
+2026-04-27 18:38:57:489 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Lost focus
+2026-04-27 18:38:57:492 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Deactivated
+2026-04-27 18:38:57:494 IBC: detected frame entitled: Authenticating...; event=Activated
+2026-04-27 18:38:57:495 IBC: detected frame entitled: Authenticating...; event=Focused
+2026-04-27 18:38:57:496 IBC: detected dialog entitled: Enter Mobile Authenticator app code; event=Closed
+2026-04-27 18:38:57:536 IBC: detected frame entitled: ; event=Lost focus
+2026-04-27 18:38:57:536 IBC: detected frame entitled: ; event=Deactivated
+2026-04-27 18:38:57:537 IBC: detected frame entitled: IBKR Gateway; event=Activated
+2026-04-27 18:38:57:551 IBC: detected frame entitled: IBKR Gateway; event=Focused
+2026-04-27 18:39:00:050 IBC: detected frame entitled: IBKR Gateway; event=Closing
+2026-04-27 18:39:00:058 IBC: detected frame entitled: IBKR Gateway; event=Lost focus
+2026-04-27 18:39:00:059 IBC: detected frame entitled: IBKR Gateway; event=Deactivated
+2026-04-27 18:39:00:060 IBC: detected frame entitled: IBKR Gateway; event=Closed
 Program has exited
 Error level is 0
 Check for 2FA dialog timed out
@@ -398,7 +210,7 @@ autorestart file not found: full authentication will be required
 Check for cold restart
 Normal exit
 
-Gateway finished at Mon 04/20/2026 23:45:02.82
+Gateway finished at Mon 04/27/2026 18:39:00.76
 
-IBC running GATEWAY 1037 has finished at Mon 04/20/2026 23:45:02.83
+IBC running GATEWAY 1037 has finished at Mon 04/27/2026 18:39:00.77
 
