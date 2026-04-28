@@ -5,18 +5,14 @@ Architecture:
   Phase 2 - IBKR: qualify 4 legs (get conId), send BAG order
   Exit     - Next morning at 09:30 EST: close all 4 legs
 """
-import ssl
-ssl._create_default_https_context = ssl._create_unverified_context
-
 import streamlit as st
-import requests
 import time
 from datetime import datetime, timezone, timedelta
 
 import config
+import api_ibkr
+import api_yahoo
 
-YAHOO = config.YAHOO_API_URL
-IBKR  = config.IBKR_API_URL
 _TIMEOUT = 30
 
 # ── Strike rounding ────────────────────────────────────────────────────────
@@ -33,80 +29,28 @@ def _round_strike(price: float, spot: float) -> float:
 # ── IBKR helpers ──────────────────────────────────────────────────────────
 
 def _qualify(ticker, strike, expiry, right):
-    try:
-        r = requests.post(f"{IBKR}/qualify", json={
-            "ticker": ticker, "strike": float(strike),
-            "expiry": str(expiry), "right": right
-        }, timeout=_TIMEOUT)
-        return r.json()
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
+    return api_ibkr.qualify_contract(ticker, strike, expiry, right)
 
 # ── Yahoo Finance data fetch ───────────────────────────────────────────────
 
 def _fetch_structure(ticker: str):
     """
     Phase 1: Fetch spot, nearest expiration, ATM straddle → Expected Move.
-    Uses yfinance with global SSL bypass (no custom session — yf 0.2.x requirement).
+    Uses the Yahoo SDK.
     """
-    import yfinance as yf
-    from dateutil.parser import parse
-
-    t = yf.Ticker(ticker)
-
-    # Spot price
-    try:
-        spot = float(t.fast_info.last_price or 0)
-    except Exception:
-        spot = 0.0
-    if spot <= 0:
-        hist = t.history(period="1d")
-        spot = float(hist["Close"].iloc[-1]) if not hist.empty else 0.0
-    if spot <= 0:
-        raise ValueError(f"לא ניתן לשלוף מחיר עבור {ticker}")
-
-    exps = t.options
-    if not exps:
-        raise ValueError(f"אין אופציות זמינות עבור {ticker}")
-
-    today = datetime.now()
-    nearest = None
-    for e in sorted(exps):
-        try:
-            dte = (parse(e) - today).days
-            if dte >= 5:
-                nearest = (e, dte)
-                break
-        except Exception:
-            continue
-    if not nearest:
-        nearest = (exps[0], 0)
-
-    exp_str, dte = nearest
-    chain = t.option_chain(exp_str)
-    calls = chain.calls
-    puts  = chain.puts
-
-    atm_call = calls.iloc[(calls["strike"] - spot).abs().argsort()[:1]]
-    atm_put  = puts.iloc[(puts["strike"]  - spot).abs().argsort()[:1]]
-
-    call_ask = float(atm_call["ask"].values[0]) if not atm_call.empty else 0.0
-    put_ask  = float(atm_put["ask"].values[0])  if not atm_put.empty else 0.0
-
-    # Fallback to lastPrice if ask is 0
-    if call_ask <= 0:
-        call_ask = float(atm_call["lastPrice"].values[0]) if not atm_call.empty else 0.0
-    if put_ask <= 0:
-        put_ask  = float(atm_put["lastPrice"].values[0])  if not atm_put.empty else 0.0
-
-    em = round(call_ask + put_ask, 2)
+    data = api_yahoo.get_expected_move(ticker)
+    if not data.get("ok"):
+        err = data.get('error', data.get('detail', 'Unknown error'))
+        raise ValueError(f"שגיאה משירות Yahoo: {err}")
+        
+    d = data["data"]
     return {
-        "spot": round(spot, 2),
-        "expiry": exp_str,
-        "dte": dte,
-        "call_ask": round(call_ask, 2),
-        "put_ask": round(put_ask, 2),
-        "expected_move": em,
+        "spot": d["spot"],
+        "expiry": d["expiry"],
+        "dte": d["dte"],
+        "call_ask": d["call_ask"],
+        "put_ask": d["put_ask"],
+        "expected_move": d["expected_move"],
     }
 
 def _build_strikes(spot, em, multiplier, wing_width):
@@ -172,9 +116,9 @@ def render_earnings_tab(tws=None) -> None:
                                          multiplier, wing_width)
                 st.session_state["earn_data"]    = data
                 st.session_state["earn_strikes"] = strikes
-                st.session_state["earn_mult"]    = multiplier
-                st.session_state["earn_wing"]    = wing_width
-                st.session_state["earn_qty"]     = qty
+                st.session_state["saved_earn_mult"]    = multiplier
+                st.session_state["saved_earn_wing"]    = wing_width
+                st.session_state["saved_earn_qty"]     = qty
             except Exception as e:
                 st.error(f"❌ {e}")
 
@@ -192,8 +136,8 @@ def render_earnings_tab(tws=None) -> None:
                 'text-transform:uppercase;letter-spacing:0.07em;padding:0.8rem 0 0.5rem;">B — ניתוח Expected Move</div>',
                 unsafe_allow_html=True)
 
-    saved_mult = st.session_state.get("earn_mult", 1.15)
-    saved_wing = st.session_state.get("earn_wing", 10.0)
+    saved_mult = st.session_state.get("saved_earn_mult", 1.15)
+    saved_wing = st.session_state.get("saved_earn_wing", 10.0)
 
     m1, m2, m3, m4, m5, m6 = st.columns(6)
     m1.metric("מחיר נוכחי", f"${data['spot']:.2f}")
@@ -218,52 +162,46 @@ def render_earnings_tab(tws=None) -> None:
     sp, lp = strikes["short_put"],  strikes["long_put"]
 
     st.markdown(f"""
-    <div style="background:rgba(15,23,42,0.95);border:1px solid rgba(99,102,241,0.35);
-         border-radius:14px;padding:1.2rem 1rem;margin-bottom:0.8rem;">
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.6rem;text-align:center;align-items:center;">
+<div style="background:rgba(15,23,42,0.95);border:1px solid rgba(99,102,241,0.35);border-radius:14px;padding:1.2rem 1rem;margin-bottom:0.8rem;">
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.6rem;text-align:center;align-items:center;">
 
-        <div style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.5);
-             border-radius:10px;padding:0.7rem 0.3rem;">
-          <div style="font-size:0.58rem;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Long Put</div>
-          <div style="font-size:1.35rem;font-weight:900;color:#34d399;">${lp:.0f}</div>
-          <div style="font-size:0.6rem;color:#64748b;">BUY</div>
-        </div>
+    <div style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.5);border-radius:10px;padding:0.7rem 0.3rem;">
+      <div style="font-size:0.58rem;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Long Put</div>
+      <div style="font-size:1.35rem;font-weight:900;color:#34d399;">${lp:.0f}</div>
+      <div style="font-size:0.6rem;color:#64748b;">BUY</div>
+    </div>
 
-        <div style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.55);
-             border-radius:10px;padding:0.7rem 0.3rem;">
-          <div style="font-size:0.58rem;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Short Put</div>
-          <div style="font-size:1.35rem;font-weight:900;color:#f87171;">${sp:.0f}</div>
-          <div style="font-size:0.6rem;color:#94a3b8;">{((spot-sp)/spot*100):.1f}% OTM</div>
-        </div>
+    <div style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.55);border-radius:10px;padding:0.7rem 0.3rem;">
+      <div style="font-size:0.58rem;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Short Put</div>
+      <div style="font-size:1.35rem;font-weight:900;color:#f87171;">${sp:.0f}</div>
+      <div style="font-size:0.6rem;color:#94a3b8;">{((spot-sp)/spot*100):.1f}% OTM</div>
+    </div>
 
-        <div style="background:rgba(99,102,241,0.15);border:2px solid rgba(99,102,241,0.6);
-             border-radius:10px;padding:0.7rem 0.3rem;">
-          <div style="font-size:0.58rem;color:#94a3b8;text-transform:uppercase;margin-bottom:2px;">SPOT</div>
-          <div style="font-size:1.4rem;font-weight:900;color:#f1f5f9;">${spot:.0f}</div>
-          <div style="font-size:0.6rem;color:#6366f1;">EM ±${em:.2f}</div>
-        </div>
+    <div style="background:rgba(99,102,241,0.15);border:2px solid rgba(99,102,241,0.6);border-radius:10px;padding:0.7rem 0.3rem;">
+      <div style="font-size:0.58rem;color:#94a3b8;text-transform:uppercase;margin-bottom:2px;">SPOT</div>
+      <div style="font-size:1.4rem;font-weight:900;color:#f1f5f9;">${spot:.0f}</div>
+      <div style="font-size:0.6rem;color:#6366f1;">EM ±${em:.2f}</div>
+    </div>
 
-        <div style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.55);
-             border-radius:10px;padding:0.7rem 0.3rem;">
-          <div style="font-size:0.58rem;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Short Call</div>
-          <div style="font-size:1.35rem;font-weight:900;color:#f87171;">${sc:.0f}</div>
-          <div style="font-size:0.6rem;color:#94a3b8;">{((sc-spot)/spot*100):.1f}% OTM</div>
-        </div>
+    <div style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.55);border-radius:10px;padding:0.7rem 0.3rem;">
+      <div style="font-size:0.58rem;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Short Call</div>
+      <div style="font-size:1.35rem;font-weight:900;color:#f87171;">${sc:.0f}</div>
+      <div style="font-size:0.6rem;color:#94a3b8;">{((sc-spot)/spot*100):.1f}% OTM</div>
+    </div>
 
-        <div style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.5);
-             border-radius:10px;padding:0.7rem 0.3rem;">
-          <div style="font-size:0.58rem;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Long Call</div>
-          <div style="font-size:1.35rem;font-weight:900;color:#34d399;">${lc:.0f}</div>
-          <div style="font-size:0.6rem;color:#64748b;">BUY</div>
-        </div>
+    <div style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.5);border-radius:10px;padding:0.7rem 0.3rem;">
+      <div style="font-size:0.58rem;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Long Call</div>
+      <div style="font-size:1.35rem;font-weight:900;color:#34d399;">${lc:.0f}</div>
+      <div style="font-size:0.6rem;color:#64748b;">BUY</div>
+    </div>
 
-      </div>
-      <div style="text-align:center;margin-top:0.8rem;font-size:0.72rem;color:#64748b;">
-        Wing: <b style="color:#f59e0b;">${saved_wing:.0f}</b> per side &nbsp;|&nbsp;
-        Max Profit: <b style="color:#34d399;">קרדיט × {qty} חוזים × 100</b> &nbsp;|&nbsp;
-        Max Loss: <b style="color:#f87171;">${(saved_wing - 0):.0f} - קרדיט</b>
-      </div>
-    </div>""", unsafe_allow_html=True)
+  </div>
+  <div style="text-align:center;margin-top:0.8rem;font-size:0.72rem;color:#64748b;">
+    Wing: <b style="color:#f59e0b;">${saved_wing:.0f}</b> per side &nbsp;|&nbsp;
+    Max Profit: <b style="color:#34d399;">קרדיט × {qty} חוזים × 100</b> &nbsp;|&nbsp;
+    Max Loss: <b style="color:#f87171;">${(saved_wing - 0):.0f} - קרדיט</b>
+  </div>
+</div>""", unsafe_allow_html=True)
 
     # ══════════════════════════════════════════════════
     # SECTION D — Entry Execution + Scheduling
@@ -292,7 +230,7 @@ def render_earnings_tab(tws=None) -> None:
 
     if entry_btn:
         saved_ticker = st.session_state.get("earn_ticker", ticker)
-        saved_qty    = st.session_state.get("earn_qty", qty)
+        saved_qty    = st.session_state.get("saved_earn_qty", qty)
         expiry       = data["expiry"]
         sched        = None if immediate else (sched_time.strip() or None)
 
@@ -336,24 +274,24 @@ def render_earnings_tab(tws=None) -> None:
                 </tr>"""
 
             st.markdown(f"""
-            <div style="background:rgba(15,23,42,0.9);border:1px solid rgba(52,211,153,0.3);
-                 border-radius:10px;padding:0.8rem;margin:0.5rem 0;">
-              <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
-                <thead><tr style="color:#64748b;font-size:0.68rem;text-transform:uppercase;">
-                  <th>Action</th><th>Right</th><th>Strike</th><th>Expiry</th><th>conId</th><th>Mid</th>
-                </tr></thead>
-                <tbody>{rows_html}</tbody>
-              </table>
-              <div style="text-align:center;margin-top:0.6rem;font-size:0.9rem;">
-                קרדיט נטו: <b style="color:#34d399;font-size:1.1rem;">${max(0,credit):.2f}</b>
-                {'&nbsp;|&nbsp; שמיר 15:50 EST ⏰' if sched else '&nbsp;|&nbsp; ⚡ שולח מיד'}
-              </div>
-            </div>""", unsafe_allow_html=True)
+<div style="background:rgba(15,23,42,0.9);border:1px solid rgba(52,211,153,0.3);
+     border-radius:10px;padding:0.8rem;margin:0.5rem 0;">
+  <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+    <thead><tr style="color:#64748b;font-size:0.68rem;text-transform:uppercase;">
+      <th>Action</th><th>Right</th><th>Strike</th><th>Expiry</th><th>conId</th><th>Mid</th>
+    </tr></thead>
+    <tbody>{rows_html}</tbody>
+  </table>
+  <div style="text-align:center;margin-top:0.6rem;font-size:0.9rem;">
+    קרדיט נטו: <b style="color:#34d399;font-size:1.1rem;">${max(0,credit):.2f}</b>
+    {'&nbsp;|&nbsp; שמיר 15:50 EST ⏰' if sched else '&nbsp;|&nbsp; ⚡ שולח מיד'}
+  </div>
+</div>""", unsafe_allow_html=True)
 
             # Phase 2B: Send BAG order
             legs_payload = [
                 {"strike": ql["strike"], "expiry": expiry,
-                 "right": ql["right"], "action": ql["action"], "qty": saved_qty}
+                 "right": ql["right"], "action": ql["action"], "qty": saved_qty, "conId": ql.get("conId")}
                 for ql in qual_results
             ]
             limit_price = round(max(0.01, credit), 2)
@@ -371,9 +309,8 @@ def render_earnings_tab(tws=None) -> None:
 
             with st.spinner("⏳ שולח Iron Condor BAG..."):
                 try:
-                    resp = requests.post(f"{IBKR}/order/combo",
-                                         json=payload, timeout=60)
-                    rj = resp.json()
+                    resp = api_ibkr.place_combo(payload["ticker"], payload["legs"], payload["limit_price"], payload["use_market"], payload["escalation_step_pct"], payload["escalation_wait_secs"])
+                    rj = resp
                 except Exception as e:
                     st.error(f"❌ תקשורת: {e}")
                     rj = {}
@@ -404,13 +341,13 @@ def render_earnings_tab(tws=None) -> None:
                     unsafe_allow_html=True)
 
         st.markdown(f"""
-        <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);
-             border-radius:10px;padding:0.8rem 1rem;margin-bottom:0.7rem;">
-          <b style="color:#f87171;">Iron Condor פתוח:</b> &nbsp;
-          {open_order['ticker']} | {open_order['expiry']} |
-          <span style="color:#34d399;">קרדיט: ${open_order['credit']:.2f}</span> |
-          Order ID: {open_order['order_id']}
-        </div>""", unsafe_allow_html=True)
+<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);
+     border-radius:10px;padding:0.8rem 1rem;margin-bottom:0.7rem;">
+  <b style="color:#f87171;">Iron Condor פתוח:</b> &nbsp;
+  {open_order['ticker']} | {open_order['expiry']} |
+  <span style="color:#34d399;">קרדיט: ${open_order['credit']:.2f}</span> |
+  Order ID: {open_order['order_id']}
+</div>""", unsafe_allow_html=True)
 
         ee1, ee2 = st.columns(2)
         with ee1:
@@ -461,7 +398,7 @@ def render_earnings_tab(tws=None) -> None:
                     with st.spinner("⏳ שולח פקודת סגירה..."):
                         try:
                             cr = requests.post(f"{IBKR}/order/combo",
-                                               json=close_payload, timeout=60).json()
+                                               json=close_payload, timeout=60)
                         except Exception as e:
                             cr = {"ok": False, "error": str(e)}
 
@@ -494,8 +431,8 @@ def render_earnings_tab(tws=None) -> None:
             st.rerun()
 
     try:
-        r = requests.get(f"{IBKR}/api/orders/active", timeout=5)
-        orders = r.json().get("orders", [])
+        r = api_ibkr.get_active_orders()
+        orders = r.get("orders", []) if isinstance(r, dict) else []
         if not orders:
             st.info("אין פקודות פעילות.")
         else:

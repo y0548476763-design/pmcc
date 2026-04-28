@@ -6,12 +6,10 @@ Option chain search uses api_yahoo (:8001).
 import streamlit as st
 from datetime import datetime
 from typing import Optional
-import requests
 import config
 import settings_manager
-
-YAHOO = config.YAHOO_API_URL
-IBKR  = config.IBKR_API_URL
+import api_ibkr
+import api_yahoo
 
 
 # ── Signal meta ────────────────────────────────────────────────────────────
@@ -35,10 +33,7 @@ def _get_dte(expiry_str: str) -> int:
 def _send_telegram(msg: str) -> bool:
     """Send a Telegram message. Returns True on success."""
     # Always notify internal hub first
-    try:
-        requests.post(f"{IBKR}/api/notify", json={"message": msg}, timeout=2)
-    except Exception:
-        pass
+    api_ibkr.notify(msg)
 
     try:
         import requests
@@ -56,13 +51,13 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
 
     # ── Header ────────────────────────────────────────────────────────────
     st.markdown("""
-    <div style="padding:0.2rem 0 1rem 0;">
-      <div class="pmcc-title">📞 מנוע השורט קולים</div>
-      <div style="font-size:0.72rem;color:#64748b;margin-top:3px;">
-        ניהול מכירת, גלגול, ורווח שורט קולים — כל הפעולות לפי כללי PMCC המוגדרים
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
+<div style="padding:0.2rem 0 1rem 0;">
+  <div class="pmcc-title">📞 מנוע השורט קולים</div>
+  <div style="font-size:0.72rem;color:#64748b;margin-top:3px;">
+    ניהול מכירת, גלגול, ורווח שורט קולים — כל הפעולות לפי כללי PMCC המוגדרים
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
     bot_mode = settings_manager.get_bot_mode()
 
@@ -99,11 +94,11 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
                 st.success("נשמר!")
 
         st.markdown("""
-        <div style="font-size:0.72rem;color:#64748b;margin-top:0.5rem;direction:rtl;">
-        📝 <b>זכור:</b> פקודות המכירה נשלחות כ-Limit חכם עם הסלמה לכיוון הביד — 
-        מחיר אמצע → ביד בכל X דקות. פקודות Take Profit נשלחות מיד לאחר מכירה (GTC Limit).
-        </div>
-        """, unsafe_allow_html=True)
+<div style="font-size:0.72rem;color:#64748b;margin-top:0.5rem;direction:rtl;">
+📝 <b>זכור:</b> פקודות המכירה נשלחות כ-Limit חכם עם הסלמה לכיוון הביד — 
+מחיר אמצע → ביד בכל X דקות. פקודות Take Profit נשלחות מיד לאחר מכירה (GTC Limit).
+</div>
+""", unsafe_allow_html=True)
 
     tp_pct    = settings_manager.get_rule("take_profit_pct", 30) / 100.0
     time_stop = settings_manager.get_rule("time_stop_days", 21)
@@ -128,11 +123,11 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
     def _kpi(col, label, val, color, sub=""):
         with col:
             st.markdown(f"""
-            <div class="kpi-card">
-              <div class="kpi-label">{label}</div>
-              <div class="kpi-val" style="color:{color};">{val}</div>
-              <div class="kpi-sub">{sub}</div>
-            </div>""", unsafe_allow_html=True)
+<div class="kpi-card">
+  <div class="kpi-label">{label}</div>
+  <div class="kpi-val" style="color:{color};">{val}</div>
+  <div class="kpi-sub">{sub}</div>
+</div>""", unsafe_allow_html=True)
 
     _kpi(c1, "LEAPS בצי",        str(n_leaps),                 "#38bdf8", "חוזי Long Call")
     _kpi(c2, "שורטים פעילים",    str(n_shorts),                "#818cf8", "Short Calls")
@@ -155,10 +150,10 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
 
             if sig == "NO_TRADE":
                 st.markdown(f"""
-                <div class="alert-box alert-high" style="direction:rtl;">
-                  ⛔ <b>{ticker}</b> — האיתות הוא NO_TRADE. אל תמכור שורט קול עכשיו.
-                  המנוע חוסם מסחר: RSI נמוך / מתחת BB תחתון / ירידה עמוקה.
-                </div>""", unsafe_allow_html=True)
+<div class="alert-box alert-high" style="direction:rtl;">
+  ⛔ <b>{ticker}</b> — האיתות הוא NO_TRADE. אל תמכור שורט קול עכשיו.
+  המנוע חוסם מסחר: RSI נמוך / מתחת BB תחתון / ירידה עמוקה.
+</div>""", unsafe_allow_html=True)
                 continue
 
             tgt_delta = meta["delta"]
@@ -170,15 +165,15 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
                 cost_basis = float(lp.get("cost_basis", 0))
                 breakeven  = strike_lp + cost_basis
                 st.markdown(f"""
-                <div class="alert-box alert-info" style="direction:rtl;">
-                  {meta['icon']} <b>{ticker}</b> —
-                  <span class="badge" style="background:rgba(56,189,248,0.12);color:{meta['color']};
-                  border:1px solid {meta['color']};">{meta['label']}</span>
-                  &nbsp; מכור שורט קול ב-<b style="color:{meta['color']};">Δ {tgt_delta:.2f}</b>
-                  &nbsp;|&nbsp; יעד DTE: <b>{short_dte}</b> ימים
-                  &nbsp;|&nbsp; מחיר מניה: <b>${underlying:.1f}</b>
-                  &nbsp;|&nbsp; Breakeven: <b>${breakeven:.1f}</b>
-                </div>""", unsafe_allow_html=True)
+<div class="alert-box alert-info" style="direction:rtl;">
+  {meta['icon']} <b>{ticker}</b> —
+  <span class="badge" style="background:rgba(56,189,248,0.12);color:{meta['color']};
+  border:1px solid {meta['color']};">{meta['label']}</span>
+  &nbsp; מכור שורט קול ב-<b style="color:{meta['color']};">Δ {tgt_delta:.2f}</b>
+  &nbsp;|&nbsp; יעד DTE: <b>{short_dte}</b> ימים
+  &nbsp;|&nbsp; מחיר מניה: <b>${underlying:.1f}</b>
+  &nbsp;|&nbsp; Breakeven: <b>${breakeven:.1f}</b>
+</div>""", unsafe_allow_html=True)
 
             with col_btn:
                 st.write("")
@@ -193,7 +188,7 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
                                                      "right": "C",
                                                      "n": 3},
                                              timeout=20)
-                            data = r.json()
+                            data = r
                             chain = data.get("data", []) if data.get("ok") else []
                             if chain:
                                 st.session_state[f"short_chain_{ticker}"] = chain
@@ -218,17 +213,17 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
 
                     with cols[i]:
                         st.markdown(f"""
-                        <div class="pmcc-card" style="border-top:3px solid {meta['color']};
-                             padding:0.9rem;text-align:center;min-height:200px;">
-                          <div style="font-size:0.62rem;color:#64748b;">אופציה {i+1}</div>
-                          <div style="font-size:1.6rem;font-weight:900;color:#f1f5f9;">${strike:.0f}</div>
-                          <div style="font-size:0.72rem;color:#64748b;">{expiry} · {dte_o}d</div>
-                          <div style="margin:0.5rem 0;">
-                            <span style="color:{meta['color']};font-weight:700;">Δ {delta:.3f}</span>
-                          </div>
-                          <div style="font-size:1.2rem;font-weight:800;color:#34d399;">Mid ${mid:.2f}</div>
-                          <div style="font-size:0.7rem;color:#64748b;">TP Target: ${tp_price:.2f}</div>
-                        </div>""", unsafe_allow_html=True)
+<div class="pmcc-card" style="border-top:3px solid {meta['color']};
+     padding:0.9rem;text-align:center;min-height:200px;">
+  <div style="font-size:0.62rem;color:#64748b;">אופציה {i+1}</div>
+  <div style="font-size:1.6rem;font-weight:900;color:#f1f5f9;">${strike:.0f}</div>
+  <div style="font-size:0.72rem;color:#64748b;">{expiry} · {dte_o}d</div>
+  <div style="margin:0.5rem 0;">
+    <span style="color:{meta['color']};font-weight:700;">Δ {delta:.3f}</span>
+  </div>
+  <div style="font-size:1.2rem;font-weight:800;color:#34d399;">Mid ${mid:.2f}</div>
+  <div style="font-size:0.7rem;color:#64748b;">TP Target: ${tp_price:.2f}</div>
+</div>""", unsafe_allow_html=True)
 
                         if st.button("🚀 פתח שורט קול (SELL)", key=f"sell_{ticker}_{i}",
                                      use_container_width=True, type="primary"):
@@ -277,24 +272,24 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
             col_info, col_actions = st.columns([4, 1])
             with col_info:
                 st.markdown(f"""
-                <div style="background:rgba(10,22,40,0.7);border:1px solid {border};
-                     border-radius:14px;padding:0.9rem 1.2rem;margin-bottom:0.6rem;">
-                  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-                    <span style="font-size:1.2rem;font-weight:900;color:#f1f5f9;">{ticker}</span>
-                    <span style="font-size:0.85rem;color:#94a3b8;">Strike ${strike:.0f}</span>
-                    <span style="font-size:0.75rem;color:{dte_color};">DTE {dte}d</span>
-                    <span style="font-size:0.78rem;font-weight:700;color:{('#10b981' if profit_pct>0 else '#f87171')};">
-                      {'+' if profit_pct>=0 else ''}{profit_pct:.1%} PnL
-                    </span>
-                    {status_badge}
-                  </div>
-                  <div style="display:flex;gap:16px;margin-top:8px;font-size:0.72rem;color:#64748b;">
-                    <span>פקיעה: {expiry}</span>
-                    <span>מחיר כניסה: ${entry_px:.2f}</span>
-                    <span>מחיר כעת: ${cur_px:.2f}</span>
-                    <span>Δ {delta:.3f}</span>
-                  </div>
-                </div>""", unsafe_allow_html=True)
+<div style="background:rgba(10,22,40,0.7);border:1px solid {border};
+     border-radius:14px;padding:0.9rem 1.2rem;margin-bottom:0.6rem;">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <span style="font-size:1.2rem;font-weight:900;color:#f1f5f9;">{ticker}</span>
+    <span style="font-size:0.85rem;color:#94a3b8;">Strike ${strike:.0f}</span>
+    <span style="font-size:0.75rem;color:{dte_color};">DTE {dte}d</span>
+    <span style="font-size:0.78rem;font-weight:700;color:{('#10b981' if profit_pct>0 else '#f87171')};">
+      {'+' if profit_pct>=0 else ''}{profit_pct:.1%} PnL
+    </span>
+    {status_badge}
+  </div>
+  <div style="display:flex;gap:16px;margin-top:8px;font-size:0.72rem;color:#64748b;">
+    <span>פקיעה: {expiry}</span>
+    <span>מחיר כניסה: ${entry_px:.2f}</span>
+    <span>מחיר כעת: ${cur_px:.2f}</span>
+    <span>Δ {delta:.3f}</span>
+  </div>
+</div>""", unsafe_allow_html=True)
 
             with col_actions:
                 if not is_ok and action_btn_label:
@@ -338,9 +333,9 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
                         "expiry": man_expiry, "action": man_action, "qty": man_qty,
                         "limit_price": man_mid, "order_type": "LMT", "tif": "DAY"
                     }
-                    r = requests.post(f"{IBKR}/order/place", json=payload, timeout=10)
+                    r = api_ibkr.place_order(payload["ticker"], payload["strike"], payload["expiry"], payload["right"], payload["action"], payload["qty"], payload.get("limit_price"))
                     if r.status_code == 200:
-                        st.success(f"✅ פקודה נשלחה: {r.json().get('order_id','')}")
+                        st.success(f"✅ פקודה נשלחה: {r.get('order_id','')}")
                         if bot_mode >= 1:
                             _send_telegram(
                                 f"📤 פקודה ידנית: {man_action} {man_qty}x {man_ticker} "
@@ -397,11 +392,11 @@ def _execute_short_sell(tws, leaps_pos: dict, opt: dict, tp_pct: float,
             "action": "SELL", "qty": qty, "limit_price": mid,
             "order_type": "LMT", "tif": "DAY"
         }
-        r_sell = requests.post(f"{IBKR}/order/place", json=sell_payload, timeout=15)
+        r_sell = api_ibkr.place_order(sell_payload["ticker"], sell_payload["strike"], sell_payload["expiry"], sell_payload["right"], sell_payload["action"], sell_payload["qty"], sell_payload.get("limit_price"))
         if r_sell.status_code != 200:
             st.error(f"כשל במכירה: {r_sell.text}")
             return
-        oid = r_sell.json().get("order_id", "???")
+        oid = r_sell.get("order_id", "???")
         
         # 2. Place TP Order (GTC)
         if tp_price > 0:
@@ -410,7 +405,7 @@ def _execute_short_sell(tws, leaps_pos: dict, opt: dict, tp_pct: float,
                 "action": "BUY", "qty": qty, "limit_price": tp_price,
                 "order_type": "LMT", "tif": "GTC"
             }
-            requests.post(f"{IBKR}/order/place", json=tp_payload, timeout=10)
+            api_ibkr.place_order(tp_payload["ticker"], tp_payload["strike"], tp_payload["expiry"], tp_payload["right"], tp_payload["action"], tp_payload["qty"], tp_payload.get("limit_price"), tp_payload.get("order_type", "LMT"))
 
         msg = (f"🚀 <b>שורט קול נמכר!</b>\n"
                f"📞 SELL {qty}x {ticker} ${strike:.0f}C {expiry} @ ${mid:.2f}\n"
@@ -468,7 +463,7 @@ def _handle_short_action(tws, sc: dict, is_tp: bool, is_roll: bool,
                 "action": "BUY", "qty": qty, "limit_price": cur_px * 1.02,
                 "order_type": "LMT", "tif": "DAY"
             }
-            r = requests.post(f"{IBKR}/order/place", json=payload, timeout=10)
+            r = api_ibkr.place_order(payload["ticker"], payload["strike"], payload["expiry"], payload["right"], payload["action"], payload["qty"], payload.get("limit_price"))
             if r.status_code == 200:
                 st.success(f"✅ פקודת סגירה (TP) נשלחה עבור {ticker}")
             else:
@@ -486,7 +481,7 @@ def _handle_short_action(tws, sc: dict, is_tp: bool, is_roll: bool,
                     "ticker": ticker, "min_dte": short_dte - 10, "max_dte": short_dte + 20,
                     "target_delta": tgt_delta, "right": "C", "n": 1
                 }, timeout=15)
-                search_data = r_search.json()
+                search_data = r_search
                 targets = search_data.get("data", [])
             
             if not targets:
@@ -512,7 +507,7 @@ def _handle_short_action(tws, sc: dict, is_tp: bool, is_roll: bool,
                 "limit_price": combo_mid,
                 "escalation_step_pct": 1.0
             }
-            r_combo = requests.post(f"{IBKR}/order/combo", json=combo_payload, timeout=20)
+            r_combo = api_ibkr.place_combo(combo_payload["ticker"], combo_payload["legs"], combo_payload["limit_price"], combo_payload["use_market"], combo_payload["escalation_step_pct"], combo_payload["escalation_wait_secs"])
             if r_combo.status_code == 200:
                 st.success(f"✅ פקודת גלגול קומבו נשלחה עבור {ticker}!")
                 st.info(f"🔄 גלגול: {strike}@{expiry} -> {new_strike}@{new_expiry} | Net Mid: ${combo_mid:.2f}")

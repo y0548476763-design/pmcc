@@ -62,6 +62,16 @@ class ComboLeg(BaseModel):
     right: str
     action: str  # BUY or SELL
     qty: int = 1
+    conId: Optional[int] = None
+
+class PlaceComboRequest(BaseModel):
+    ticker: str
+    legs: List[ComboLeg]
+    limit_price: float
+    use_market: bool = False
+    escalation_step_pct: float = 1.0
+    escalation_wait_secs: int = 180
+    scheduled_time: Optional[str] = None
 
 class QualifyComboRequest(BaseModel):
     ticker: str
@@ -113,8 +123,8 @@ async def get_positions():
     
     # We can read positions directly if cached, but safer to run in IB loop
     async def _get_pos():
-        pos = ib.positions()
-        acc = ib.accountSummary()
+        pos = await ib.reqPositionsAsync()
+        acc = await ib.accountSummaryAsync()
         return pos, acc
         
     positions, acc_summary = await asyncio.get_running_loop().run_in_executor(None, lambda: run_ib(_get_pos()))
@@ -176,9 +186,61 @@ async def qualify_combo(req: QualifyComboRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/order/combo")
+async def order_combo(req: PlaceComboRequest):
+    if not ib.isConnected():
+        raise HTTPException(status_code=503, detail="IBKR not connected")
+        
+    async def _place():
+        combo_legs = []
+        for l in req.legs:
+            if not l.conId:
+                raise ValueError(f"Missing conId for leg {l.strike} {l.right}")
+            combo_legs.append(ibi.ComboLeg(conId=l.conId, ratio=l.qty, action=l.action, exchange='SMART'))
+        bag = ibi.Bag(symbol=req.ticker, currency='USD', exchange='SMART', comboLegs=combo_legs)
+        if req.use_market:
+            order = ibi.MarketOrder('BUY', 1)
+        else:
+            order = ibi.LimitOrder('BUY', 1, req.limit_price)
+            
+        if req.scheduled_time:
+            from datetime import datetime
+            try: from zoneinfo import ZoneInfo
+            except: from backports.zoneinfo import ZoneInfo
+            now_ny = datetime.now(ZoneInfo("America/New_York"))
+            hr, mn = map(int, req.scheduled_time.split(':'))
+            sched_dt = now_ny.replace(hour=hr, minute=mn, second=0, microsecond=0)
+            if sched_dt > now_ny:
+                # Format: 20260427 15:50:00 EST
+                order.conditionsIgnoreRth = True
+                order.goodAfterTime = sched_dt.strftime('%Y%m%d %H:%M:%S EST')
+            
+        trade = ib.placeOrder(bag, order)
+        return trade.order.orderId
+
+    loop = asyncio.get_running_loop()
+    try:
+        oid = await loop.run_in_executor(None, lambda: run_ib(_place()))
+        return {"ok": True, "result": {"order_id": oid}}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
 @app.post("/api/ibkr/place_order")
 async def place_order(req: PlaceOrderRequest):
     return {"ok": True, "message": "Endpoint stub. Ready for implementation."}
+
+@app.get("/api/orders/active")
+async def get_active_orders():
+    if not ib.isConnected():
+        return {"ok": False, "error": "Not connected"}
+    async def _fetch():
+        return ib.openOrders()
+    try:
+        loop = asyncio.get_running_loop()
+        orders = await loop.run_in_executor(None, lambda: run_ib(_fetch()))
+        return {"ok": True, "orders": [{"orderId": o.orderId, "action": o.action, "totalQuantity": o.totalQuantity, "lmtPrice": getattr(o, 'lmtPrice', 0)} for o in orders]}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 @app.get("/api/ibkr/get_iv/{ticker}")
 async def get_iv(ticker: str):

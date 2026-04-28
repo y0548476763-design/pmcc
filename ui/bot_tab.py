@@ -10,16 +10,12 @@ from datetime import datetime
 import requests
 import config
 import settings_manager
-
-IBKR = config.IBKR_API_URL   # http://localhost:8002
+import api_ibkr
 
 
 def _send_telegram(msg: str, token: str = None, chat_id: str = None) -> bool:
     # Always notify internal hub first
-    try:
-        requests.post(f"{IBKR}/api/notify", json={"message": msg}, timeout=2)
-    except Exception:
-        pass
+    api_ibkr.notify(msg)
 
     try:
         import requests
@@ -39,13 +35,13 @@ def _send_telegram(msg: str, token: str = None, chat_id: str = None) -> bool:
 def render_bot_tab(tws) -> None:
 
     st.markdown("""
-    <div style="padding:0.2rem 0 1rem 0;">
-      <div class="pmcc-title">🤖 מרכז שליטה בבוט</div>
-      <div style="font-size:0.72rem;color:#64748b;margin-top:3px;">
-        הגדרת מצב הבוט · טלגרם · חיבור IBKR · לוגים בעברית
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
+<div style="padding:0.2rem 0 1rem 0;">
+  <div class="pmcc-title">🤖 מרכז שליטה בבוט</div>
+  <div style="font-size:0.72rem;color:#64748b;margin-top:3px;">
+    הגדרת מצב הבוט · טלגרם · חיבור IBKR · לוגים בעברית
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
     bot_mode = settings_manager.get_bot_mode()
 
@@ -64,18 +60,18 @@ def render_bot_tab(tws) -> None:
         with cols[mode_val]:
             border_css = css_active if is_active else ""
             st.markdown(f"""
-            <div class="bot-mode-card {border_css if is_active else ''}"
-                 style="{'border:2px solid rgba(255,255,255,0.05);' if not is_active else ''}">
-              <div style="font-size:2.4rem;">{icon}</div>
-              <div style="font-size:1rem;font-weight:800;color:#e2e8f0;margin:6px 0 4px 0;">
-                {label}
-              </div>
-              <div style="font-size:0.7rem;color:#94a3b8;line-height:1.5;">
-                {desc}
-              </div>
-              {'<div style="margin-top:8px;font-size:0.65rem;background:rgba(255,255,255,0.06);'
-               'padding:3px 10px;border-radius:20px;color:#f1f5f9;">✓ פעיל כעת</div>' if is_active else ''}
-            </div>""", unsafe_allow_html=True)
+<div class="bot-mode-card {border_css if is_active else ''}"
+     style="{'border:2px solid rgba(255,255,255,0.05);' if not is_active else ''}">
+  <div style="font-size:2.4rem;">{icon}</div>
+  <div style="font-size:1rem;font-weight:800;color:#e2e8f0;margin:6px 0 4px 0;">
+    {label}
+  </div>
+  <div style="font-size:0.7rem;color:#94a3b8;line-height:1.5;">
+    {desc}
+  </div>
+  {'<div style="margin-top:8px;font-size:0.65rem;background:rgba(255,255,255,0.06);'
+   'padding:3px 10px;border-radius:20px;color:#f1f5f9;">✓ פעיל כעת</div>' if is_active else ''}
+</div>""", unsafe_allow_html=True)
 
             if not is_active:
                 if st.button(f"הפעל {label}", key=f"set_mode_{mode_val}",
@@ -86,10 +82,10 @@ def render_bot_tab(tws) -> None:
 
     mode_badge_txt = {0: "🔴 כבוי", 1: "🟡 מעקב", 2: "🟢 פעיל"}
     st.markdown(f"""
-    <div style="margin-top:0.8rem;text-align:center;font-size:0.8rem;color:#64748b;">
-      ⚙️ מצב ברירת מחדל בהפעלה: <b>מעקב בלבד</b> — הבוט שולח הודעות ללא ביצוע אוטומטי.
-      &nbsp;|&nbsp; מצב נוכחי: <b>{mode_badge_txt.get(bot_mode, '—')}</b>
-    </div>""", unsafe_allow_html=True)
+<div style="margin-top:0.8rem;text-align:center;font-size:0.8rem;color:#64748b;">
+  ⚙️ מצב ברירת מחדל בהפעלה: <b>מעקב בלבד</b> — הבוט שולח הודעות ללא ביצוע אוטומטי.
+  &nbsp;|&nbsp; מצב נוכחי: <b>{mode_badge_txt.get(bot_mode, '—')}</b>
+</div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -136,13 +132,12 @@ def render_bot_tab(tws) -> None:
             if st.button("🔗 חבר", key="bot_connect", use_container_width=True):
                 with st.spinner("מתחבר דרך api_ibkr..."):
                     try:
-                        r = requests.get(f"{IBKR}/connect/{mode_val}", timeout=12)
-                        data = r.json()
+                        r = {"status_code": 200}; data = api_ibkr.connect(mode_val)
                         ok = data.get("ok", False)
                         st.session_state["connected"] = ok
                         if ok:
                             # Refresh portfolio to get account info
-                            p = requests.get(f"{IBKR}/portfolio", timeout=5).json()
+                            p = api_ibkr.get_positions()
                             st.session_state["tws_account_id"] = p.get("account_id", "—")
                             st.session_state["tws_cash"]       = float(p.get("cash", 0))
                             st.session_state["tws_netliq"]     = float(p.get("net_liq", 0))
@@ -157,7 +152,7 @@ def render_bot_tab(tws) -> None:
         with col_dc:
             if st.button("⏏ נתק", key="bot_disconnect", use_container_width=True):
                 try:
-                    requests.get(f"{IBKR}/connect/NONE", timeout=3)
+                    api_ibkr.connect("NONE")
                 except Exception:
                     pass
                 st.session_state["connected"] = False
@@ -169,14 +164,14 @@ def render_bot_tab(tws) -> None:
     conn_color = "#34d399" if is_conn else "#f87171"
     conn_label = f"LIVE — {st.session_state.get('tws_account_id','—')}" if is_conn else "לא מחובר"
     st.markdown(f"""
-    <div style="text-align:center;margin:0.8rem 0;">
-      <span class="badge" style="background:rgba(52,211,153,0.1);color:{conn_color};
-            border:1px solid {conn_color};font-size:0.8rem;padding:5px 16px;">
-        <span class="pulse-dot {'pulse-green' if is_conn else 'pulse-red'}"></span>
-        &nbsp; {conn_label}
-      </span>
-      {f'<span style="color:#64748b;font-size:0.72rem;">&nbsp;&nbsp;Cash: ${float(st.session_state.get("tws_cash",0)):,.0f} | NetLiq: ${float(st.session_state.get("tws_netliq",0)):,.0f}</span>' if is_conn else ''}
-    </div>""", unsafe_allow_html=True)
+<div style="text-align:center;margin:0.8rem 0;">
+  <span class="badge" style="background:rgba(52,211,153,0.1);color:{conn_color};
+        border:1px solid {conn_color};font-size:0.8rem;padding:5px 16px;">
+    <span class="pulse-dot {'pulse-green' if is_conn else 'pulse-red'}"></span>
+    &nbsp; {conn_label}
+  </span>
+  {f'<span style="color:#64748b;font-size:0.72rem;">&nbsp;&nbsp;Cash: ${float(st.session_state.get("tws_cash",0)):,.0f} | NetLiq: ${float(st.session_state.get("tws_netliq",0)):,.0f}</span>' if is_conn else ''}
+</div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -209,7 +204,7 @@ def render_bot_tab(tws) -> None:
         if st.button("📊 עדכן פרטי חשבון", use_container_width=True, key="bot_refresh_acct"):
             if is_conn:
                 try:
-                    p = requests.get(f"{IBKR}/portfolio", timeout=5).json()
+                    p = api_ibkr.get_positions()
                     st.session_state["tws_cash"]   = float(p.get("cash", 0))
                     st.session_state["tws_netliq"] = float(p.get("net_liq", 0))
                     cash = st.session_state["tws_cash"]
@@ -276,10 +271,10 @@ def render_bot_tab(tws) -> None:
 
     if not logs:
         st.markdown("""
-        <div class="console-box" style="text-align:center;color:#1e3a5f;padding:2rem;">
-          — אין לוגים עדיין —<br>
-          <span style="font-size:0.7rem;">הלוגים יופיעו כאן כאשר הבוט יבצע פעולות</span>
-        </div>""", unsafe_allow_html=True)
+<div class="console-box" style="text-align:center;color:#1e3a5f;padding:2rem;">
+  — אין לוגים עדיין —<br>
+  <span style="font-size:0.7rem;">הלוגים יופיעו כאן כאשר הבוט יבצע פעולות</span>
+</div>""", unsafe_allow_html=True)
     else:
         level_color = {
             "INFO":   "var(--accent)",
@@ -317,29 +312,29 @@ def render_bot_tab(tws) -> None:
     icon_m, desc_m = mode_desc.get(bot_mode, ("—", "—"))
 
     st.markdown(f"""
-    <div class="pmcc-card" style="direction:rtl;">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;">
-        <div style="text-align:center;">
-          <div class="kpi-label">מצב בוט</div>
-          <div style="font-size:1.4rem;font-weight:800;">{icon_m} {desc_m.split('—')[0]}</div>
-          <div style="font-size:0.7rem;color:#64748b;">{desc_m.split('—')[1] if '—' in desc_m else ''}</div>
-        </div>
-        <div style="text-align:center;">
-          <div class="kpi-label">חיבור IBKR</div>
-          <div style="font-size:1.4rem;font-weight:800;color:{'#34d399' if is_conn else '#f87171'};">
-            {'✅ מחובר' if is_conn else '❌ לא מחובר'}
-          </div>
-          <div style="font-size:0.7rem;color:#64748b;">
-            {mode_val} @ {host_val}:{port_val}
-          </div>
-        </div>
-        <div style="text-align:center;">
-          <div class="kpi-label">לוגים</div>
-          <div style="font-size:1.4rem;font-weight:800;">{len(logs)}</div>
-          <div style="font-size:0.7rem;color:#64748b;">רשומות</div>
-        </div>
+<div class="pmcc-card" style="direction:rtl;">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;">
+    <div style="text-align:center;">
+      <div class="kpi-label">מצב בוט</div>
+      <div style="font-size:1.4rem;font-weight:800;">{icon_m} {desc_m.split('—')[0]}</div>
+      <div style="font-size:0.7rem;color:#64748b;">{desc_m.split('—')[1] if '—' in desc_m else ''}</div>
+    </div>
+    <div style="text-align:center;">
+      <div class="kpi-label">חיבור IBKR</div>
+      <div style="font-size:1.4rem;font-weight:800;color:{'#34d399' if is_conn else '#f87171'};">
+        {'✅ מחובר' if is_conn else '❌ לא מחובר'}
       </div>
-    </div>""", unsafe_allow_html=True)
+      <div style="font-size:0.7rem;color:#64748b;">
+        {mode_val} @ {host_val}:{port_val}
+      </div>
+    </div>
+    <div style="text-align:center;">
+      <div class="kpi-label">לוגים</div>
+      <div style="font-size:1.4rem;font-weight:800;">{len(logs)}</div>
+      <div style="font-size:0.7rem;color:#64748b;">רשומות</div>
+    </div>
+  </div>
+</div>""", unsafe_allow_html=True)
 
 
 def _append_log(level: str, msg: str) -> None:

@@ -44,13 +44,13 @@ def _send_telegram(msg: str) -> bool:
 def render_cash_tab(positions: list, quant_results: dict, tws) -> None:
 
     st.markdown("""
-    <div style="padding:0.2rem 0 1rem 0;">
-      <div class="pmcc-title">💰 ניהול מזומן ושרידות הצי</div>
-      <div style="font-size:0.72rem;color:#64748b;margin-top:3px;">
-        מכל המזומן · כללי כניסה · VIX טריגרים · חיסול חירום
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
+<div style="padding:0.2rem 0 1rem 0;">
+  <div class="pmcc-title">💰 ניהול מזומן ושרידות הצי</div>
+  <div style="font-size:0.72rem;color:#64748b;margin-top:3px;">
+    מכל המזומן · כללי כניסה · VIX טריגרים · חיסול חירום
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
     bot_mode = settings_manager.get_bot_mode()
 
@@ -104,11 +104,11 @@ def render_cash_tab(positions: list, quant_results: dict, tws) -> None:
     def _kpi(col, label, val, color, sub=""):
         with col:
             st.markdown(f"""
-            <div class="kpi-card">
-              <div class="kpi-label">{label}</div>
-              <div class="kpi-val" style="color:{color};">{val}</div>
-              <div class="kpi-sub">{sub}</div>
-            </div>""", unsafe_allow_html=True)
+<div class="kpi-card">
+  <div class="kpi-label">{label}</div>
+  <div class="kpi-val" style="color:{color};">{val}</div>
+  <div class="kpi-sub">{sub}</div>
+</div>""", unsafe_allow_html=True)
 
     _kpi(c1, "מזומן כולל",        f"${total_cash:,.0f}", "#38bdf8", f"IB ${ib_cash:,.0f} + חיצוני ${ext_cash:,.0f}")
     _kpi(c2, "עלות רכישת LEAPS",  f"${total_leaps_cost:,.0f}", "#818cf8", "Cost Basis סך הצי")
@@ -121,27 +121,27 @@ def render_cash_tab(positions: list, quant_results: dict, tws) -> None:
     st.markdown('<div class="section-hdr">🛢️ מד הטנק — Cash Tank</div>', unsafe_allow_html=True)
 
     st.markdown(f"""
-    <div class="pmcc-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
-        <div style="font-size:1.2rem;font-weight:800;color:{tank_color};">${total_cash:,.0f}</div>
-        <div style="font-size:0.78rem;color:#64748b;">{pct_raw:.1f}% מהיעד</div>
-      </div>
-      <div class="tank-bar">
-        <div class="tank-bar-fill" style="width:{pct_bar:.1f}%;background:{tank_color};"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:0.62rem;
-           color:#64748b;margin-top:6px;">
-        <span>$0</span>
-        <span style="color:#f87171;">🔴 ${red_line:,.0f} (15%)</span>
-        <span style="color:#fbbf24;">🟡 ${yellow_line:,.0f} (20%)</span>
-        <span style="color:#3b82f6;">🔵 ${blue_line:,.0f} (30%)</span>
-      </div>
-      <div style="margin-top:1rem;font-size:0.75rem;color:#94a3b8;
-           background:rgba(255,255,255,0.03);border-radius:8px;padding:0.6rem;
-           direction:rtl;text-align:right;">
-        {tank_msg}
-      </div>
-    </div>""", unsafe_allow_html=True)
+<div class="pmcc-card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+    <div style="font-size:1.2rem;font-weight:800;color:{tank_color};">${total_cash:,.0f}</div>
+    <div style="font-size:0.78rem;color:#64748b;">{pct_raw:.1f}% מהיעד</div>
+  </div>
+  <div class="tank-bar">
+    <div class="tank-bar-fill" style="width:{pct_bar:.1f}%;background:{tank_color};"></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;font-size:0.62rem;
+       color:#64748b;margin-top:6px;">
+    <span>$0</span>
+    <span style="color:#f87171;">🔴 ${red_line:,.0f} (15%)</span>
+    <span style="color:#fbbf24;">🟡 ${yellow_line:,.0f} (20%)</span>
+    <span style="color:#3b82f6;">🔵 ${blue_line:,.0f} (30%)</span>
+  </div>
+  <div style="margin-top:1rem;font-size:0.75rem;color:#94a3b8;
+       background:rgba(255,255,255,0.03);border-radius:8px;padding:0.6rem;
+       direction:rtl;text-align:right;">
+    {tank_msg}
+  </div>
+</div>""", unsafe_allow_html=True)
 
     if total_cash < red_line:
         if bot_mode >= 1:
@@ -168,16 +168,16 @@ def render_cash_tab(positions: list, quant_results: dict, tws) -> None:
     vix_color = "#f87171" if vix_triggered else ("#fbbf24" if vix_val > 25 else "#34d399")
 
     st.markdown(f"""
-    <div class="pmcc-card" style="text-align:center;">
-      <div class="kpi-label">VIX — מדד הפחד</div>
-      <div style="font-size:3rem;font-weight:900;color:{vix_color};
-           {'animation:pulse-ring 1s infinite;' if vix_triggered else ''}">
-        {vix_val:.1f}
-      </div>
-      {'<div class="webhook-badge">🚨 VIX TRIGGER ACTIVE — שקול פריסת מזומן מלאה!</div>'
-       if vix_triggered else
-       f'<div style="font-size:0.75rem;color:#64748b;">טריגר בסף: >{vix_threshold:.0f}</div>'}
-    </div>""", unsafe_allow_html=True)
+<div class="pmcc-card" style="text-align:center;">
+  <div class="kpi-label">VIX — מדד הפחד</div>
+  <div style="font-size:3rem;font-weight:900;color:{vix_color};
+       {'animation:pulse-ring 1s infinite;' if vix_triggered else ''}">
+    {vix_val:.1f}
+  </div>
+  {'<div class="webhook-badge">🚨 VIX TRIGGER ACTIVE — שקול פריסת מזומן מלאה!</div>'
+   if vix_triggered else
+   f'<div style="font-size:0.75rem;color:#64748b;">טריגר בסף: >{vix_threshold:.0f}</div>'}
+</div>""", unsafe_allow_html=True)
 
     if vix_triggered and bot_mode >= 1:
         if st.button("📱 שלח התראת VIX לטלגרם", key="vix_tg_alert"):
@@ -249,13 +249,13 @@ def render_cash_tab(positions: list, quant_results: dict, tws) -> None:
         with cols[col_idx % len(cols)]:
             vix_color2 = "#f87171" if vix_triggered else "#34d399"
             st.markdown(f"""
-            <div class="pmcc-card" style="text-align:center;padding:0.8rem;">
-              <div class="kpi-label">VIX</div>
-              <div style="font-size:1.4rem;font-weight:900;color:{vix_color2};">{vix_val:.1f}</div>
-              <div style="font-size:0.65rem;color:{vix_color2};">
-                {'⚡ TRIGGERED' if vix_triggered else 'Normal'}
-              </div>
-            </div>""", unsafe_allow_html=True)
+<div class="pmcc-card" style="text-align:center;padding:0.8rem;">
+  <div class="kpi-label">VIX</div>
+  <div style="font-size:1.4rem;font-weight:900;color:{vix_color2};">{vix_val:.1f}</div>
+  <div style="font-size:0.65rem;color:{vix_color2};">
+    {'⚡ TRIGGERED' if vix_triggered else 'Normal'}
+  </div>
+</div>""", unsafe_allow_html=True)
         col_idx += 1
 
         for ticker, qr in quant_results.items():
@@ -281,13 +281,13 @@ def render_cash_tab(positions: list, quant_results: dict, tws) -> None:
 
             with cols[col_idx % len(cols)]:
                 st.markdown(f"""
-                <div class="pmcc-card" style="text-align:center;padding:0.8rem;">
-                  <div style="font-size:1rem;font-weight:800;color:#e2e8f0;">{ticker}</div>
-                  <div style="font-size:1.2rem;font-weight:900;color:{color};">{dd:.1%}</div>
-                  <div style="font-size:0.65rem;color:{color};font-weight:700;">{label}</div>
-                  {f'<div style="font-size:0.65rem;color:#64748b;margin-top:4px;">ניתן לפרוס: ${tranche_amount:,.0f}</div>'
-                   if label not in ["Waiting"] else ''}
-                </div>""", unsafe_allow_html=True)
+<div class="pmcc-card" style="text-align:center;padding:0.8rem;">
+  <div style="font-size:1rem;font-weight:800;color:#e2e8f0;">{ticker}</div>
+  <div style="font-size:1.2rem;font-weight:900;color:{color};">{dd:.1%}</div>
+  <div style="font-size:0.65rem;color:{color};font-weight:700;">{label}</div>
+  {f'<div style="font-size:0.65rem;color:#64748b;margin-top:4px;">ניתן לפרוס: ${tranche_amount:,.0f}</div>'
+   if label not in ["Waiting"] else ''}
+</div>""", unsafe_allow_html=True)
 
                 if label not in ["Waiting", "Normal"] and bot_mode >= 1:
                     if st.button(f"📱 {ticker}", key=f"trig_tg_{ticker}",
@@ -318,9 +318,9 @@ def render_cash_tab(positions: list, quant_results: dict, tws) -> None:
 
     if not leaps_to_roll:
         st.markdown("""
-        <div class="alert-box alert-low" style="text-align:center;">
-          ✅ כל הליפסים מרוחקים מספיק מגלגול — אין פעולה נדרשת
-        </div>""", unsafe_allow_html=True)
+<div class="alert-box alert-low" style="text-align:center;">
+  ✅ כל הליפסים מרוחקים מספיק מגלגול — אין פעולה נדרשת
+</div>""", unsafe_allow_html=True)
     else:
         for lp, dte in leaps_to_roll:
             ticker = lp.get("ticker", "")
@@ -332,12 +332,12 @@ def render_cash_tab(positions: list, quant_results: dict, tws) -> None:
             col_l, col_b = st.columns([4, 1])
             with col_l:
                 st.markdown(f"""
-                <div class="alert-box {'alert-high' if urgent else 'alert-medium'}"
-                     style="direction:rtl;">
-                  {'🚨' if urgent else '⚠️'} <b>{ticker}</b> — Strike ${strike:.0f}C | פקיעה: {expiry}
-                  | <span style="color:{color};font-weight:700;">DTE: {dte}</span>
-                  {'— גלגול מיידי נדרש!' if urgent else '— קרוב לגלגול'}
-                </div>""", unsafe_allow_html=True)
+<div class="alert-box {'alert-high' if urgent else 'alert-medium'}"
+     style="direction:rtl;">
+  {'🚨' if urgent else '⚠️'} <b>{ticker}</b> — Strike ${strike:.0f}C | פקיעה: {expiry}
+  | <span style="color:{color};font-weight:700;">DTE: {dte}</span>
+  {'— גלגול מיידי נדרש!' if urgent else '— קרוב לגלגול'}
+</div>""", unsafe_allow_html=True)
             with col_b:
                 if st.button(f"📱 התרע", key=f"roll_alert_{ticker}_{strike}",
                              use_container_width=True) and bot_mode >= 1:
@@ -355,11 +355,11 @@ def render_cash_tab(positions: list, quant_results: dict, tws) -> None:
                 unsafe_allow_html=True)
 
     st.markdown("""
-    <div class="alert-box alert-high" style="direction:rtl;">
-    ⚠️ <b>כלל חיסול חירום:</b> רק כאשר הטנק מתחת לקו האדום (15%) ואין ברירה.
-    המנוע מחסל ליפסים קטנים/חלשים כדי לממן גלגול של שאר הצי ל-180+ DTE ב-Δ0.80.
-    </div>
-    """, unsafe_allow_html=True)
+<div class="alert-box alert-high" style="direction:rtl;">
+⚠️ <b>כלל חיסול חירום:</b> רק כאשר הטנק מתחת לקו האדום (15%) ואין ברירה.
+המנוע מחסל ליפסים קטנים/חלשים כדי לממן גלגול של שאר הצי ל-180+ DTE ב-Δ0.80.
+</div>
+""", unsafe_allow_html=True)
 
     if total_cash < red_line:
         st.warning(f"⚠️ מזומן נמוך (${total_cash:,.0f}) — מתחת לקו האדום (${red_line:,.0f})")
@@ -368,11 +368,11 @@ def render_cash_tab(positions: list, quant_results: dict, tws) -> None:
                               key=lambda p: float(p.get("current_price", 0)))[0]
             tk = smallest.get("ticker", "")
             st.markdown(f"""
-            <div class="alert-box alert-medium">
-              💡 ליפס קטן ביותר לחיסול: <b>{tk}</b>
-              Strike ${float(smallest.get('strike',0)):.0f}C | פקיעה {smallest.get('expiry','')}
-              | ערך נוכחי: ~${float(smallest.get('current_price',0))*100:.0f}
-            </div>""", unsafe_allow_html=True)
+<div class="alert-box alert-medium">
+  💡 ליפס קטן ביותר לחיסול: <b>{tk}</b>
+  Strike ${float(smallest.get('strike',0)):.0f}C | פקיעה {smallest.get('expiry','')}
+  | ערך נוכחי: ~${float(smallest.get('current_price',0))*100:.0f}
+</div>""", unsafe_allow_html=True)
 
             col_f1, col_f2 = st.columns(2)
             with col_f1:
@@ -404,6 +404,6 @@ def render_cash_tab(positions: list, quant_results: dict, tws) -> None:
                     st.info("הודעה נשלחה לטלגרם")
     else:
         st.markdown("""
-        <div class="alert-box alert-low">
-          ✅ הטנק מעל קו האדום — חיסול חירום אינו נדרש כעת
-        </div>""", unsafe_allow_html=True)
+<div class="alert-box alert-low">
+  ✅ הטנק מעל קו האדום — חיסול חירום אינו נדרש כעת
+</div>""", unsafe_allow_html=True)

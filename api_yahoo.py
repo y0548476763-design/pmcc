@@ -5,8 +5,10 @@ No yfinance logic here.
 """
 import requests
 
+import config
+
 # The Yahoo worker is running on port 8002
-WORKER_URL = "http://localhost:8002"
+WORKER_URL = config.YAHOO_API_URL
 TIMEOUT = 30
 
 def health_check() -> dict:

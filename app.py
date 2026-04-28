@@ -6,7 +6,8 @@ All heavy work delegated to:
 """
 import os, time
 import streamlit as st
-import requests
+import api_ibkr
+import api_yahoo
 
 st.set_page_config(
     page_title="PMCC NextOffice — נדל\"ן דיגיטלי",
@@ -68,11 +69,10 @@ def _log(lvl, msg):
 now = time.time()
 if now - st.session_state["last_live_refresh"] > 60:
     try:
-        r = requests.get(f"{IBKR}/portfolio", timeout=_TIMEOUT)
-        if r.status_code == 200:
-            data = r.json()
-            src  = data.get("source", "DEMO")
-            is_c = data.get("tws_connected", False)
+        data = api_ibkr.get_positions()
+        if data.get("ok"):
+            src  = st.session_state.get("positions_source", "DEMO")
+            is_c = True
             st.session_state["connected"]        = is_c
             st.session_state["positions_source"] = src
             st.session_state["tws_account_id"]   = data.get("account_id", "—")
@@ -124,29 +124,26 @@ bBadge = '<span class="badge badge-green">● LIVE</span>' if is_conn else '<spa
 c1, c2, c3 = st.columns([5, 1, 1])
 with c1:
     st.markdown(f"""
-    <div class="page-header">
-      <div class="page-title">מערכת ניהול PMCC | נדל"ן דיגיטלי {bBadge}</div>
-    </div>""", unsafe_allow_html=True)
+<div class="page-header">
+  <div class="page-title">מערכת ניהול PMCC | נדל"ן דיגיטלי {bBadge}</div>
+</div>""", unsafe_allow_html=True)
 with c2:
     if not is_conn:
         if st.button("🔗 חבר", key="header_connect", use_container_width=True):
             with st.spinner("מחפש Gateway פעיל (7496/4002)..."):
                 try:
-                    # /connect/LIVE in our api_ibkr tries LIVE then DEMO then 7497
-                    r = requests.get(f"{IBKR}/connect/LIVE", timeout=12)
-                    data = r.json()
-                    if r.status_code == 200 and data.get("ok"):
+                    data = api_ibkr.connect("LIVE")
+                    if data.get("ok"):
                         st.session_state["connected"] = True
                         st.session_state["positions_source"] = data.get("mode")
                         st.session_state["last_live_refresh"] = 0
-                        st.success(f"מחובר! חשבון: {data.get('account_id')}")
+                        st.success(f"מחובר בהצלחה!")
                         time.sleep(1)
                         st.rerun()
                     else:
                         st.error("לא נמצא Gateway פעיל בפורטים המוגדרים.")
                 except Exception as e:
-                    st.error(f"שגיאת תקשורת עם ה-API: {e}")
-                    st.error(f"api_ibkr לא זמין: {e}")
+                    st.error(f"שגיאת תקשורת: {e}")
 with c3:
     if st.button("🔄 רענן", key="refresh", use_container_width=True):
         st.session_state["last_live_refresh"] = 0
@@ -162,6 +159,7 @@ with t1:
             with st.spinner("מנתח ב-api_yahoo... (עשוי לקחת כדקה)"):
                 try:
                     wl = settings_manager.get_watchlist()
+                    import requests
                     r = requests.post(
                         f"{YAHOO}/analyse",
                         json={"positions": positions, "watchlist": wl},

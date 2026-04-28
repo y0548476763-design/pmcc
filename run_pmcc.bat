@@ -8,13 +8,13 @@ echo  PMCC NextOffice — Starting 3 services in parallel
 echo ============================================================
 echo.
 
-echo [1/3] Starting Yahoo API server on port 8001...
-start "PMCC Yahoo API :8001" cmd /k "color 0A & python -m uvicorn api_yahoo:app --port 8001 --reload"
+echo [1/3] Starting IBKR Worker Service on port 8001...
+start "PMCC IBKR Worker :8001" cmd /k "color 0A & python services/ibkr_worker.py"
 
 timeout /t 2 /nobreak > nul
 
-echo [2/3] Starting IBKR API server on port 8002...
-start "PMCC IBKR API :8002" cmd /k "color 0B & python -m uvicorn api_ibkr:app --port 8002 --reload"
+echo [2/3] Starting Yahoo Worker Service on port 8002...
+start "PMCC Yahoo Worker :8002" cmd /k "color 0B & python services/yahoo_worker.py"
 
 timeout /t 3 /nobreak > nul
 

@@ -15,8 +15,11 @@ REMOTE_TWS_HOST      = os.getenv("REMOTE_TWS_HOST", "")
 REMOTE_COMMAND_PORT  = int(os.getenv("REMOTE_COMMAND_PORT", 5000))
 
 # ─── Microservices URLs ────────────────────────────────────────────────────
-YAHOO_API_URL = os.getenv("YAHOO_API_URL", "http://localhost:8001")
-IBKR_API_URL  = os.getenv("IBKR_API_URL",  "http://localhost:8002")
+IBKR_PORT  = int(os.getenv("IBKR_PORT", 8001))
+YAHOO_PORT = int(os.getenv("YAHOO_PORT", 8002))
+
+IBKR_API_URL  = f"http://localhost:{IBKR_PORT}"
+YAHOO_API_URL = f"http://localhost:{YAHOO_PORT}"
 
 # ─── File Paths ────────────────────────────────────────────────────────────
 BASE_DIR      = os.getenv("PMCC_BASE_DIR", os.path.dirname(os.path.abspath(__file__)))
