@@ -57,18 +57,18 @@ def _option_card(opt, idx, key_prefix, select_label="✅ בחר"):
     dte_color = "#f87171" if dte < 400 else ("#fbbf24" if dte < 600 else "#34d399")
     st.markdown(f"""
 <div style="background:linear-gradient(135deg,rgba(30,41,59,0.9),rgba(15,23,42,0.9));
-     border:1px solid rgba(99,102,241,0.4);border-top:3px solid #6366f1;
-     border-radius:12px;padding:1rem 0.8rem;text-align:center;
-     box-shadow:0 4px 15px rgba(0,0,0,0.3);">
-  <div style="font-size:0.6rem;color:#64748b;margin-bottom:4px;">#{idx+1}</div>
-  <div style="font-size:1.6rem;font-weight:900;color:#f1f5f9;line-height:1;">
-    ${opt['strike']:.0f}</div>
-  <div style="font-size:0.68rem;color:#94a3b8;margin:4px 0;">{opt['expiry']}</div>
-  <div style="display:flex;justify-content:space-around;margin:8px 0;">
-    <span style="color:{dte_color};font-weight:700;font-size:0.8rem;">{dte}d</span>
-    <span style="color:#818cf8;font-weight:700;font-size:0.8rem;">Δ {opt['delta']:.2f}</span>
-    <span style="color:#34d399;font-weight:900;font-size:1rem;">${opt['mid']:.2f}</span>
-  </div>
+border:1px solid rgba(99,102,241,0.4);border-top:3px solid #6366f1;
+border-radius:12px;padding:1rem 0.8rem;text-align:center;
+box-shadow:0 4px 15px rgba(0,0,0,0.3);">
+<div style="font-size:0.6rem;color:#64748b;margin-bottom:4px;">#{idx+1}</div>
+<div style="font-size:1.6rem;font-weight:900;color:#f1f5f9;line-height:1;">
+${opt['strike']:.0f}</div>
+<div style="font-size:0.68rem;color:#94a3b8;margin:4px 0;">{opt['expiry']}</div>
+<div style="display:flex;justify-content:space-around;margin:8px 0;">
+<span style="color:{dte_color};font-weight:700;font-size:0.8rem;">{dte}d</span>
+<span style="color:#818cf8;font-weight:700;font-size:0.8rem;">Δ {opt['delta']:.2f}</span>
+<span style="color:#34d399;font-weight:900;font-size:1rem;">${opt['mid']:.2f}</span>
+</div>
 </div>""", unsafe_allow_html=True)
     return st.button(select_label, key=f"{key_prefix}_{idx}", use_container_width=True)
 
@@ -124,13 +124,13 @@ def render_roll_tab(tws=None) -> None:
 
     st.markdown("""
 <div style="padding:0.5rem 0 1.2rem 0;">
-  <div style="font-size:1.5rem;font-weight:900;background:linear-gradient(135deg,#6366f1,#38bdf8);
-       -webkit-background-clip:text;-webkit-text-fill-color:transparent;">
-    🔄 LEAPS Roll Engine
-  </div>
-  <div style="font-size:0.75rem;color:#64748b;margin-top:4px;">
-    חיפוש ביאהו פיננס → אימות conId ב-IBKR → פקודת BAG עם הסלמה חכמה
-  </div>
+<div style="font-size:1.5rem;font-weight:900;background:linear-gradient(135deg,#6366f1,#38bdf8);
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+🔄 LEAPS Roll Engine
+</div>
+<div style="font-size:0.75rem;color:#64748b;margin-top:4px;">
+חיפוש ביאהו פיננס → אימות conId ב-IBKR → פקודת BAG עם הסלמה חכמה
+</div>
 </div>""", unsafe_allow_html=True)
 
     bot_mode = settings_manager.get_bot_mode()
@@ -193,13 +193,13 @@ def render_roll_tab(tws=None) -> None:
             st.markdown("---")
             st.markdown(f"""
 <div style="background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.35);
-     border-radius:10px;padding:0.8rem 1rem;margin-bottom:1rem;">
-  <span style="color:#38bdf8;font-weight:700;">ליפס שנבחר (BUY):</span> &nbsp;
-  {new_tgt['ticker']} &nbsp;|&nbsp; Strike <b>${new_tgt['strike']:.0f}</b>
-  &nbsp;|&nbsp; {new_tgt['expiry']}
-  &nbsp;|&nbsp; <span style="color:#34d399;">{new_tgt['dte']}d</span>
-  &nbsp;|&nbsp; Δ {new_tgt['delta']:.2f}
-  &nbsp;|&nbsp; <b style="color:#34d399;">${new_tgt['mid']:.2f}</b>
+border-radius:10px;padding:0.8rem 1rem;margin-bottom:1rem;">
+<span style="color:#38bdf8;font-weight:700;">ליפס שנבחר (BUY):</span> &nbsp;
+{new_tgt['ticker']} &nbsp;|&nbsp; Strike <b>${new_tgt['strike']:.0f}</b>
+&nbsp;|&nbsp; {new_tgt['expiry']}
+&nbsp;|&nbsp; <span style="color:#34d399;">{new_tgt['dte']}d</span>
+&nbsp;|&nbsp; Δ {new_tgt['delta']:.2f}
+&nbsp;|&nbsp; <b style="color:#34d399;">${new_tgt['mid']:.2f}</b>
 </div>""", unsafe_allow_html=True)
 
             all_pos = st.session_state.get("positions", [])
@@ -229,11 +229,11 @@ def render_roll_tab(tws=None) -> None:
                     nc      = "#f87171" if net > 0 else "#34d399"
                     st.markdown(f"""
 <div style="background:rgba(248,113,113,0.07);border:1px solid rgba(248,113,113,0.3);
-     border-radius:8px;padding:0.6rem 1rem;font-size:0.82rem;margin-top:0.5rem;">
-  <b style="color:#f87171;">SELL:</b> {old_lp['ticker']} ${float(old_lp['strike']):.0f}C
-  {old_lp.get('expiry','')} <span style="color:{oc};">({od}d)</span>
-  &nbsp;&nbsp;
-  <b style="color:{nc};">{'עלות' if net>0 else 'קרדיט'}: ${abs(net):.2f}</b>
+border-radius:8px;padding:0.6rem 1rem;font-size:0.82rem;margin-top:0.5rem;">
+<b style="color:#f87171;">SELL:</b> {old_lp['ticker']} ${float(old_lp['strike']):.0f}C
+{old_lp.get('expiry','')} <span style="color:{oc};">({od}d)</span>
+&nbsp;&nbsp;
+<b style="color:{nc};">{'עלות' if net>0 else 'קרדיט'}: ${abs(net):.2f}</b>
 </div>""", unsafe_allow_html=True)
 
                 with col_r:
@@ -300,12 +300,12 @@ def render_roll_tab(tws=None) -> None:
             st.markdown("---")
             st.markdown(f"""
 <div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.35);
-     border-radius:10px;padding:0.8rem 1rem;margin-bottom:1rem;">
-  <span style="color:#34d399;font-weight:700;">נבחר:</span> &nbsp;
-  {buy_sel['ticker']} ${buy_sel['strike']:.0f}C &nbsp;|&nbsp;
-  {buy_sel['expiry']} ({buy_sel['dte']}d) &nbsp;|&nbsp;
-  Δ {buy_sel['delta']:.2f} &nbsp;|&nbsp;
-  <b style="color:#34d399;">Mid ${buy_sel['mid']:.2f}</b>
+border-radius:10px;padding:0.8rem 1rem;margin-bottom:1rem;">
+<span style="color:#34d399;font-weight:700;">נבחר:</span> &nbsp;
+{buy_sel['ticker']} ${buy_sel['strike']:.0f}C &nbsp;|&nbsp;
+{buy_sel['expiry']} ({buy_sel['dte']}d) &nbsp;|&nbsp;
+Δ {buy_sel['delta']:.2f} &nbsp;|&nbsp;
+<b style="color:#34d399;">Mid ${buy_sel['mid']:.2f}</b>
 </div>""", unsafe_allow_html=True)
 
             fc1, fc2, fc3 = st.columns(3)
@@ -363,8 +363,8 @@ def render_roll_tab(tws=None) -> None:
     st.markdown("---")
     st.markdown("""
 <div style="font-size:0.85rem;font-weight:700;color:#94a3b8;
-     letter-spacing:0.05em;text-transform:uppercase;padding:0.5rem 0;">
-  📋 Live Order Monitor
+letter-spacing:0.05em;text-transform:uppercase;padding:0.5rem 0;">
+📋 Live Order Monitor
 </div>""", unsafe_allow_html=True)
 
     try:

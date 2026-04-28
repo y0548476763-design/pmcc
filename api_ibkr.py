@@ -63,12 +63,14 @@ def place_order(ticker: str, strike: float, expiry: str, right: str = "C", actio
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
-def place_combo(ticker: str, legs: List[dict], limit_price: float, use_market: bool = False, escalation_step_pct: float = 1.0, escalation_wait_secs: int = 180) -> dict:
+def place_combo(ticker: str, legs: List[dict], limit_price: float, use_market: bool = False, escalation_step_pct: float = 1.0, escalation_wait_secs: int = 180, scheduled_time: str = None) -> dict:
     try:
         payload = {
             "ticker": ticker, "legs": legs, "limit_price": limit_price, "use_market": use_market,
             "escalation_step_pct": escalation_step_pct, "escalation_wait_secs": escalation_wait_secs
         }
+        if scheduled_time:
+            payload["scheduled_time"] = scheduled_time
         return requests.post(f"{WORKER_URL}/order/combo", json=payload, timeout=60).json()
     except Exception as e:
         return {"ok": False, "error": str(e)}

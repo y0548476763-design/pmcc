@@ -66,16 +66,16 @@ def _build_strikes(spot, em, multiplier, wing_width):
 def render_earnings_tab(tws=None) -> None:
 
     st.markdown("""
-    <div style="padding:0.5rem 0 1rem 0;">
-      <div style="font-size:1.5rem;font-weight:900;
-           background:linear-gradient(135deg,#f59e0b,#ef4444);
-           -webkit-background-clip:text;-webkit-text-fill-color:transparent;">
-        📈 Model B — Earnings IV Crush
-      </div>
-      <div style="font-size:0.75rem;color:#64748b;margin-top:4px;">
-        Iron Condor לפני דוחות · Yahoo Finance לחישוב · IBKR לאישור conId + ביצוע BAG
-      </div>
-    </div>""", unsafe_allow_html=True)
+<div style="padding:0.5rem 0 1rem 0;">
+<div style="font-size:1.5rem;font-weight:900;
+background:linear-gradient(135deg,#f59e0b,#ef4444);
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+📈 Model B — Earnings IV Crush
+</div>
+<div style="font-size:0.75rem;color:#64748b;margin-top:4px;">
+Iron Condor לפני דוחות · Yahoo Finance לחישוב · IBKR לאישור conId + ביצוע BAG
+</div>
+</div>""", unsafe_allow_html=True)
 
     # ══════════════════════════════════════════════════
     # SECTION A — Setup parameters
@@ -163,44 +163,44 @@ def render_earnings_tab(tws=None) -> None:
 
     st.markdown(f"""
 <div style="background:rgba(15,23,42,0.95);border:1px solid rgba(99,102,241,0.35);border-radius:14px;padding:1.2rem 1rem;margin-bottom:0.8rem;">
-  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.6rem;text-align:center;align-items:center;">
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.6rem;text-align:center;align-items:center;">
 
-    <div style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.5);border-radius:10px;padding:0.7rem 0.3rem;">
-      <div style="font-size:0.58rem;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Long Put</div>
-      <div style="font-size:1.35rem;font-weight:900;color:#34d399;">${lp:.0f}</div>
-      <div style="font-size:0.6rem;color:#64748b;">BUY</div>
-    </div>
+<div style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.5);border-radius:10px;padding:0.7rem 0.3rem;">
+<div style="font-size:0.58rem;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Long Put</div>
+<div style="font-size:1.35rem;font-weight:900;color:#34d399;">${lp:.0f}</div>
+<div style="font-size:0.6rem;color:#64748b;">BUY</div>
+</div>
 
-    <div style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.55);border-radius:10px;padding:0.7rem 0.3rem;">
-      <div style="font-size:0.58rem;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Short Put</div>
-      <div style="font-size:1.35rem;font-weight:900;color:#f87171;">${sp:.0f}</div>
-      <div style="font-size:0.6rem;color:#94a3b8;">{((spot-sp)/spot*100):.1f}% OTM</div>
-    </div>
+<div style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.55);border-radius:10px;padding:0.7rem 0.3rem;">
+<div style="font-size:0.58rem;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Short Put</div>
+<div style="font-size:1.35rem;font-weight:900;color:#f87171;">${sp:.0f}</div>
+<div style="font-size:0.6rem;color:#94a3b8;">{((spot-sp)/spot*100):.1f}% OTM</div>
+</div>
 
-    <div style="background:rgba(99,102,241,0.15);border:2px solid rgba(99,102,241,0.6);border-radius:10px;padding:0.7rem 0.3rem;">
-      <div style="font-size:0.58rem;color:#94a3b8;text-transform:uppercase;margin-bottom:2px;">SPOT</div>
-      <div style="font-size:1.4rem;font-weight:900;color:#f1f5f9;">${spot:.0f}</div>
-      <div style="font-size:0.6rem;color:#6366f1;">EM ±${em:.2f}</div>
-    </div>
+<div style="background:rgba(99,102,241,0.15);border:2px solid rgba(99,102,241,0.6);border-radius:10px;padding:0.7rem 0.3rem;">
+<div style="font-size:0.58rem;color:#94a3b8;text-transform:uppercase;margin-bottom:2px;">SPOT</div>
+<div style="font-size:1.4rem;font-weight:900;color:#f1f5f9;">${spot:.0f}</div>
+<div style="font-size:0.6rem;color:#6366f1;">EM ±${em:.2f}</div>
+</div>
 
-    <div style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.55);border-radius:10px;padding:0.7rem 0.3rem;">
-      <div style="font-size:0.58rem;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Short Call</div>
-      <div style="font-size:1.35rem;font-weight:900;color:#f87171;">${sc:.0f}</div>
-      <div style="font-size:0.6rem;color:#94a3b8;">{((sc-spot)/spot*100):.1f}% OTM</div>
-    </div>
+<div style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.55);border-radius:10px;padding:0.7rem 0.3rem;">
+<div style="font-size:0.58rem;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Short Call</div>
+<div style="font-size:1.35rem;font-weight:900;color:#f87171;">${sc:.0f}</div>
+<div style="font-size:0.6rem;color:#94a3b8;">{((sc-spot)/spot*100):.1f}% OTM</div>
+</div>
 
-    <div style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.5);border-radius:10px;padding:0.7rem 0.3rem;">
-      <div style="font-size:0.58rem;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Long Call</div>
-      <div style="font-size:1.35rem;font-weight:900;color:#34d399;">${lc:.0f}</div>
-      <div style="font-size:0.6rem;color:#64748b;">BUY</div>
-    </div>
+<div style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.5);border-radius:10px;padding:0.7rem 0.3rem;">
+<div style="font-size:0.58rem;color:#64748b;text-transform:uppercase;margin-bottom:2px;">Long Call</div>
+<div style="font-size:1.35rem;font-weight:900;color:#34d399;">${lc:.0f}</div>
+<div style="font-size:0.6rem;color:#64748b;">BUY</div>
+</div>
 
-  </div>
-  <div style="text-align:center;margin-top:0.8rem;font-size:0.72rem;color:#64748b;">
-    Wing: <b style="color:#f59e0b;">${saved_wing:.0f}</b> per side &nbsp;|&nbsp;
-    Max Profit: <b style="color:#34d399;">קרדיט × {qty} חוזים × 100</b> &nbsp;|&nbsp;
-    Max Loss: <b style="color:#f87171;">${(saved_wing - 0):.0f} - קרדיט</b>
-  </div>
+</div>
+<div style="text-align:center;margin-top:0.8rem;font-size:0.72rem;color:#64748b;">
+Wing: <b style="color:#f59e0b;">${saved_wing:.0f}</b> per side &nbsp;|&nbsp;
+Max Profit: <b style="color:#34d399;">קרדיט × {qty} חוזים × 100</b> &nbsp;|&nbsp;
+Max Loss: <b style="color:#f87171;">${(saved_wing - 0):.0f} - קרדיט</b>
+</div>
 </div>""", unsafe_allow_html=True)
 
     # ══════════════════════════════════════════════════
@@ -275,17 +275,17 @@ def render_earnings_tab(tws=None) -> None:
 
             st.markdown(f"""
 <div style="background:rgba(15,23,42,0.9);border:1px solid rgba(52,211,153,0.3);
-     border-radius:10px;padding:0.8rem;margin:0.5rem 0;">
-  <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
-    <thead><tr style="color:#64748b;font-size:0.68rem;text-transform:uppercase;">
-      <th>Action</th><th>Right</th><th>Strike</th><th>Expiry</th><th>conId</th><th>Mid</th>
-    </tr></thead>
-    <tbody>{rows_html}</tbody>
-  </table>
-  <div style="text-align:center;margin-top:0.6rem;font-size:0.9rem;">
-    קרדיט נטו: <b style="color:#34d399;font-size:1.1rem;">${max(0,credit):.2f}</b>
-    {'&nbsp;|&nbsp; שמיר 15:50 EST ⏰' if sched else '&nbsp;|&nbsp; ⚡ שולח מיד'}
-  </div>
+border-radius:10px;padding:0.8rem;margin:0.5rem 0;">
+<table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+<thead><tr style="color:#64748b;font-size:0.68rem;text-transform:uppercase;">
+<th>Action</th><th>Right</th><th>Strike</th><th>Expiry</th><th>conId</th><th>Mid</th>
+</tr></thead>
+<tbody>{rows_html}</tbody>
+</table>
+<div style="text-align:center;margin-top:0.6rem;font-size:0.9rem;">
+קרדיט נטו: <b style="color:#34d399;font-size:1.1rem;">${max(0,credit):.2f}</b>
+{'&nbsp;|&nbsp; שמיר 15:50 EST ⏰' if sched else '&nbsp;|&nbsp; ⚡ שולח מיד'}
+</div>
 </div>""", unsafe_allow_html=True)
 
             # Phase 2B: Send BAG order
@@ -342,11 +342,11 @@ def render_earnings_tab(tws=None) -> None:
 
         st.markdown(f"""
 <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);
-     border-radius:10px;padding:0.8rem 1rem;margin-bottom:0.7rem;">
-  <b style="color:#f87171;">Iron Condor פתוח:</b> &nbsp;
-  {open_order['ticker']} | {open_order['expiry']} |
-  <span style="color:#34d399;">קרדיט: ${open_order['credit']:.2f}</span> |
-  Order ID: {open_order['order_id']}
+border-radius:10px;padding:0.8rem 1rem;margin-bottom:0.7rem;">
+<b style="color:#f87171;">Iron Condor פתוח:</b> &nbsp;
+{open_order['ticker']} | {open_order['expiry']} |
+<span style="color:#34d399;">קרדיט: ${open_order['credit']:.2f}</span> |
+Order ID: {open_order['order_id']}
 </div>""", unsafe_allow_html=True)
 
         ee1, ee2 = st.columns(2)
@@ -397,8 +397,15 @@ def render_earnings_tab(tws=None) -> None:
 
                     with st.spinner("⏳ שולח פקודת סגירה..."):
                         try:
-                            cr = requests.post(f"{IBKR}/order/combo",
-                                               json=close_payload, timeout=60)
+                            cr = api_ibkr.place_combo(
+                                ticker=close_payload["ticker"],
+                                legs=close_payload["legs"],
+                                limit_price=close_payload["limit_price"],
+                                use_market=close_payload["use_market"],
+                                escalation_step_pct=close_payload["escalation_step_pct"],
+                                escalation_wait_secs=close_payload["escalation_wait_secs"],
+                                scheduled_time=close_payload.get("scheduled_time")
+                            )
                         except Exception as e:
                             cr = {"ok": False, "error": str(e)}
 

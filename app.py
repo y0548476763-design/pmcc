@@ -102,20 +102,20 @@ src = st.session_state.get("positions_source","DEMO")
 
 st.markdown(f"""
 <div class="status-bar">
-  <span class="brand">PMCC NextOffice</span>
-  <span class="status-chip {'online' if mkt else 'offline'}">
-    {'🟢 שוק פתוח' if mkt else '🔴 שוק סגור'} &nbsp;{ny.strftime('%H:%M')} NY
-  </span>
-  <span class="status-chip {'online' if is_conn else 'offline'}">
-    {'🟢 ' + st.session_state.get('tws_account_id','—') if is_conn else '🔴 לא מחובר'}
-  </span>
-  <span class="status-chip">📡 {src}</span>
-  <span class="status-chip {'online' if bot_mode==2 else ('warning' if bot_mode==1 else 'offline')}">
-    {bm.get(bot_mode)}
-  </span>
-  <span class="status-chip" style="margin-right:auto;color:var(--text-sm)">
-    {len(positions)} פוזיציות · {ny.strftime('%H:%M:%S')}
-  </span>
+<span class="brand">PMCC NextOffice</span>
+<span class="status-chip {'online' if mkt else 'offline'}">
+{'🟢 שוק פתוח' if mkt else '🔴 שוק סגור'} &nbsp;{ny.strftime('%H:%M')} NY
+</span>
+<span class="status-chip {'online' if is_conn else 'offline'}">
+{'🟢 ' + st.session_state.get('tws_account_id','—') if is_conn else '🔴 לא מחובר'}
+</span>
+<span class="status-chip">📡 {src}</span>
+<span class="status-chip {'online' if bot_mode==2 else ('warning' if bot_mode==1 else 'offline')}">
+{bm.get(bot_mode)}
+</span>
+<span class="status-chip" style="margin-right:auto;color:var(--text-sm)">
+{len(positions)} פוזיציות · {ny.strftime('%H:%M:%S')}
+</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -125,7 +125,7 @@ c1, c2, c3 = st.columns([5, 1, 1])
 with c1:
     st.markdown(f"""
 <div class="page-header">
-  <div class="page-title">מערכת ניהול PMCC | נדל"ן דיגיטלי {bBadge}</div>
+<div class="page-title">מערכת ניהול PMCC | נדל"ן דיגיטלי {bBadge}</div>
 </div>""", unsafe_allow_html=True)
 with c2:
     if not is_conn:

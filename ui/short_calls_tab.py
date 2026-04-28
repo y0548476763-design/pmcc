@@ -52,10 +52,10 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
     # ── Header ────────────────────────────────────────────────────────────
     st.markdown("""
 <div style="padding:0.2rem 0 1rem 0;">
-  <div class="pmcc-title">📞 מנוע השורט קולים</div>
-  <div style="font-size:0.72rem;color:#64748b;margin-top:3px;">
-    ניהול מכירת, גלגול, ורווח שורט קולים — כל הפעולות לפי כללי PMCC המוגדרים
-  </div>
+<div class="pmcc-title">📞 מנוע השורט קולים</div>
+<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">
+ניהול מכירת, גלגול, ורווח שורט קולים — כל הפעולות לפי כללי PMCC המוגדרים
+</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -124,9 +124,9 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
         with col:
             st.markdown(f"""
 <div class="kpi-card">
-  <div class="kpi-label">{label}</div>
-  <div class="kpi-val" style="color:{color};">{val}</div>
-  <div class="kpi-sub">{sub}</div>
+<div class="kpi-label">{label}</div>
+<div class="kpi-val" style="color:{color};">{val}</div>
+<div class="kpi-sub">{sub}</div>
 </div>""", unsafe_allow_html=True)
 
     _kpi(c1, "LEAPS בצי",        str(n_leaps),                 "#38bdf8", "חוזי Long Call")
@@ -151,8 +151,8 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
             if sig == "NO_TRADE":
                 st.markdown(f"""
 <div class="alert-box alert-high" style="direction:rtl;">
-  ⛔ <b>{ticker}</b> — האיתות הוא NO_TRADE. אל תמכור שורט קול עכשיו.
-  המנוע חוסם מסחר: RSI נמוך / מתחת BB תחתון / ירידה עמוקה.
+⛔ <b>{ticker}</b> — האיתות הוא NO_TRADE. אל תמכור שורט קול עכשיו.
+המנוע חוסם מסחר: RSI נמוך / מתחת BB תחתון / ירידה עמוקה.
 </div>""", unsafe_allow_html=True)
                 continue
 
@@ -166,13 +166,13 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
                 breakeven  = strike_lp + cost_basis
                 st.markdown(f"""
 <div class="alert-box alert-info" style="direction:rtl;">
-  {meta['icon']} <b>{ticker}</b> —
-  <span class="badge" style="background:rgba(56,189,248,0.12);color:{meta['color']};
-  border:1px solid {meta['color']};">{meta['label']}</span>
-  &nbsp; מכור שורט קול ב-<b style="color:{meta['color']};">Δ {tgt_delta:.2f}</b>
-  &nbsp;|&nbsp; יעד DTE: <b>{short_dte}</b> ימים
-  &nbsp;|&nbsp; מחיר מניה: <b>${underlying:.1f}</b>
-  &nbsp;|&nbsp; Breakeven: <b>${breakeven:.1f}</b>
+{meta['icon']} <b>{ticker}</b> —
+<span class="badge" style="background:rgba(56,189,248,0.12);color:{meta['color']};
+border:1px solid {meta['color']};">{meta['label']}</span>
+&nbsp; מכור שורט קול ב-<b style="color:{meta['color']};">Δ {tgt_delta:.2f}</b>
+&nbsp;|&nbsp; יעד DTE: <b>{short_dte}</b> ימים
+&nbsp;|&nbsp; מחיר מניה: <b>${underlying:.1f}</b>
+&nbsp;|&nbsp; Breakeven: <b>${breakeven:.1f}</b>
 </div>""", unsafe_allow_html=True)
 
             with col_btn:
@@ -214,15 +214,15 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
                     with cols[i]:
                         st.markdown(f"""
 <div class="pmcc-card" style="border-top:3px solid {meta['color']};
-     padding:0.9rem;text-align:center;min-height:200px;">
-  <div style="font-size:0.62rem;color:#64748b;">אופציה {i+1}</div>
-  <div style="font-size:1.6rem;font-weight:900;color:#f1f5f9;">${strike:.0f}</div>
-  <div style="font-size:0.72rem;color:#64748b;">{expiry} · {dte_o}d</div>
-  <div style="margin:0.5rem 0;">
-    <span style="color:{meta['color']};font-weight:700;">Δ {delta:.3f}</span>
-  </div>
-  <div style="font-size:1.2rem;font-weight:800;color:#34d399;">Mid ${mid:.2f}</div>
-  <div style="font-size:0.7rem;color:#64748b;">TP Target: ${tp_price:.2f}</div>
+padding:0.9rem;text-align:center;min-height:200px;">
+<div style="font-size:0.62rem;color:#64748b;">אופציה {i+1}</div>
+<div style="font-size:1.6rem;font-weight:900;color:#f1f5f9;">${strike:.0f}</div>
+<div style="font-size:0.72rem;color:#64748b;">{expiry} · {dte_o}d</div>
+<div style="margin:0.5rem 0;">
+<span style="color:{meta['color']};font-weight:700;">Δ {delta:.3f}</span>
+</div>
+<div style="font-size:1.2rem;font-weight:800;color:#34d399;">Mid ${mid:.2f}</div>
+<div style="font-size:0.7rem;color:#64748b;">TP Target: ${tp_price:.2f}</div>
 </div>""", unsafe_allow_html=True)
 
                         if st.button("🚀 פתח שורט קול (SELL)", key=f"sell_{ticker}_{i}",
@@ -273,22 +273,22 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
             with col_info:
                 st.markdown(f"""
 <div style="background:rgba(10,22,40,0.7);border:1px solid {border};
-     border-radius:14px;padding:0.9rem 1.2rem;margin-bottom:0.6rem;">
-  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-    <span style="font-size:1.2rem;font-weight:900;color:#f1f5f9;">{ticker}</span>
-    <span style="font-size:0.85rem;color:#94a3b8;">Strike ${strike:.0f}</span>
-    <span style="font-size:0.75rem;color:{dte_color};">DTE {dte}d</span>
-    <span style="font-size:0.78rem;font-weight:700;color:{('#10b981' if profit_pct>0 else '#f87171')};">
-      {'+' if profit_pct>=0 else ''}{profit_pct:.1%} PnL
-    </span>
-    {status_badge}
-  </div>
-  <div style="display:flex;gap:16px;margin-top:8px;font-size:0.72rem;color:#64748b;">
-    <span>פקיעה: {expiry}</span>
-    <span>מחיר כניסה: ${entry_px:.2f}</span>
-    <span>מחיר כעת: ${cur_px:.2f}</span>
-    <span>Δ {delta:.3f}</span>
-  </div>
+border-radius:14px;padding:0.9rem 1.2rem;margin-bottom:0.6rem;">
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+<span style="font-size:1.2rem;font-weight:900;color:#f1f5f9;">{ticker}</span>
+<span style="font-size:0.85rem;color:#94a3b8;">Strike ${strike:.0f}</span>
+<span style="font-size:0.75rem;color:{dte_color};">DTE {dte}d</span>
+<span style="font-size:0.78rem;font-weight:700;color:{('#10b981' if profit_pct>0 else '#f87171')};">
+{'+' if profit_pct>=0 else ''}{profit_pct:.1%} PnL
+</span>
+{status_badge}
+</div>
+<div style="display:flex;gap:16px;margin-top:8px;font-size:0.72rem;color:#64748b;">
+<span>פקיעה: {expiry}</span>
+<span>מחיר כניסה: ${entry_px:.2f}</span>
+<span>מחיר כעת: ${cur_px:.2f}</span>
+<span>Δ {delta:.3f}</span>
+</div>
 </div>""", unsafe_allow_html=True)
 
             with col_actions:

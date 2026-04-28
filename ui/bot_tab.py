@@ -36,10 +36,10 @@ def render_bot_tab(tws) -> None:
 
     st.markdown("""
 <div style="padding:0.2rem 0 1rem 0;">
-  <div class="pmcc-title">🤖 מרכז שליטה בבוט</div>
-  <div style="font-size:0.72rem;color:#64748b;margin-top:3px;">
-    הגדרת מצב הבוט · טלגרם · חיבור IBKR · לוגים בעברית
-  </div>
+<div class="pmcc-title">🤖 מרכז שליטה בבוט</div>
+<div style="font-size:0.72rem;color:#64748b;margin-top:3px;">
+הגדרת מצב הבוט · טלגרם · חיבור IBKR · לוגים בעברית
+</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -61,16 +61,16 @@ def render_bot_tab(tws) -> None:
             border_css = css_active if is_active else ""
             st.markdown(f"""
 <div class="bot-mode-card {border_css if is_active else ''}"
-     style="{'border:2px solid rgba(255,255,255,0.05);' if not is_active else ''}">
-  <div style="font-size:2.4rem;">{icon}</div>
-  <div style="font-size:1rem;font-weight:800;color:#e2e8f0;margin:6px 0 4px 0;">
-    {label}
-  </div>
-  <div style="font-size:0.7rem;color:#94a3b8;line-height:1.5;">
-    {desc}
-  </div>
-  {'<div style="margin-top:8px;font-size:0.65rem;background:rgba(255,255,255,0.06);'
-   'padding:3px 10px;border-radius:20px;color:#f1f5f9;">✓ פעיל כעת</div>' if is_active else ''}
+style="{'border:2px solid rgba(255,255,255,0.05);' if not is_active else ''}">
+<div style="font-size:2.4rem;">{icon}</div>
+<div style="font-size:1rem;font-weight:800;color:#e2e8f0;margin:6px 0 4px 0;">
+{label}
+</div>
+<div style="font-size:0.7rem;color:#94a3b8;line-height:1.5;">
+{desc}
+</div>
+{'<div style="margin-top:8px;font-size:0.65rem;background:rgba(255,255,255,0.06);'
+'padding:3px 10px;border-radius:20px;color:#f1f5f9;">✓ פעיל כעת</div>' if is_active else ''}
 </div>""", unsafe_allow_html=True)
 
             if not is_active:
@@ -83,8 +83,8 @@ def render_bot_tab(tws) -> None:
     mode_badge_txt = {0: "🔴 כבוי", 1: "🟡 מעקב", 2: "🟢 פעיל"}
     st.markdown(f"""
 <div style="margin-top:0.8rem;text-align:center;font-size:0.8rem;color:#64748b;">
-  ⚙️ מצב ברירת מחדל בהפעלה: <b>מעקב בלבד</b> — הבוט שולח הודעות ללא ביצוע אוטומטי.
-  &nbsp;|&nbsp; מצב נוכחי: <b>{mode_badge_txt.get(bot_mode, '—')}</b>
+⚙️ מצב ברירת מחדל בהפעלה: <b>מעקב בלבד</b> — הבוט שולח הודעות ללא ביצוע אוטומטי.
+&nbsp;|&nbsp; מצב נוכחי: <b>{mode_badge_txt.get(bot_mode, '—')}</b>
 </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -165,12 +165,12 @@ def render_bot_tab(tws) -> None:
     conn_label = f"LIVE — {st.session_state.get('tws_account_id','—')}" if is_conn else "לא מחובר"
     st.markdown(f"""
 <div style="text-align:center;margin:0.8rem 0;">
-  <span class="badge" style="background:rgba(52,211,153,0.1);color:{conn_color};
-        border:1px solid {conn_color};font-size:0.8rem;padding:5px 16px;">
-    <span class="pulse-dot {'pulse-green' if is_conn else 'pulse-red'}"></span>
-    &nbsp; {conn_label}
-  </span>
-  {f'<span style="color:#64748b;font-size:0.72rem;">&nbsp;&nbsp;Cash: ${float(st.session_state.get("tws_cash",0)):,.0f} | NetLiq: ${float(st.session_state.get("tws_netliq",0)):,.0f}</span>' if is_conn else ''}
+<span class="badge" style="background:rgba(52,211,153,0.1);color:{conn_color};
+border:1px solid {conn_color};font-size:0.8rem;padding:5px 16px;">
+<span class="pulse-dot {'pulse-green' if is_conn else 'pulse-red'}"></span>
+&nbsp; {conn_label}
+</span>
+{f'<span style="color:#64748b;font-size:0.72rem;">&nbsp;&nbsp;Cash: ${float(st.session_state.get("tws_cash",0)):,.0f} | NetLiq: ${float(st.session_state.get("tws_netliq",0)):,.0f}</span>' if is_conn else ''}
 </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -272,8 +272,8 @@ def render_bot_tab(tws) -> None:
     if not logs:
         st.markdown("""
 <div class="console-box" style="text-align:center;color:#1e3a5f;padding:2rem;">
-  — אין לוגים עדיין —<br>
-  <span style="font-size:0.7rem;">הלוגים יופיעו כאן כאשר הבוט יבצע פעולות</span>
+— אין לוגים עדיין —<br>
+<span style="font-size:0.7rem;">הלוגים יופיעו כאן כאשר הבוט יבצע פעולות</span>
 </div>""", unsafe_allow_html=True)
     else:
         level_color = {
@@ -313,27 +313,27 @@ def render_bot_tab(tws) -> None:
 
     st.markdown(f"""
 <div class="pmcc-card" style="direction:rtl;">
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;">
-    <div style="text-align:center;">
-      <div class="kpi-label">מצב בוט</div>
-      <div style="font-size:1.4rem;font-weight:800;">{icon_m} {desc_m.split('—')[0]}</div>
-      <div style="font-size:0.7rem;color:#64748b;">{desc_m.split('—')[1] if '—' in desc_m else ''}</div>
-    </div>
-    <div style="text-align:center;">
-      <div class="kpi-label">חיבור IBKR</div>
-      <div style="font-size:1.4rem;font-weight:800;color:{'#34d399' if is_conn else '#f87171'};">
-        {'✅ מחובר' if is_conn else '❌ לא מחובר'}
-      </div>
-      <div style="font-size:0.7rem;color:#64748b;">
-        {mode_val} @ {host_val}:{port_val}
-      </div>
-    </div>
-    <div style="text-align:center;">
-      <div class="kpi-label">לוגים</div>
-      <div style="font-size:1.4rem;font-weight:800;">{len(logs)}</div>
-      <div style="font-size:0.7rem;color:#64748b;">רשומות</div>
-    </div>
-  </div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;">
+<div style="text-align:center;">
+<div class="kpi-label">מצב בוט</div>
+<div style="font-size:1.4rem;font-weight:800;">{icon_m} {desc_m.split('—')[0]}</div>
+<div style="font-size:0.7rem;color:#64748b;">{desc_m.split('—')[1] if '—' in desc_m else ''}</div>
+</div>
+<div style="text-align:center;">
+<div class="kpi-label">חיבור IBKR</div>
+<div style="font-size:1.4rem;font-weight:800;color:{'#34d399' if is_conn else '#f87171'};">
+{'✅ מחובר' if is_conn else '❌ לא מחובר'}
+</div>
+<div style="font-size:0.7rem;color:#64748b;">
+{mode_val} @ {host_val}:{port_val}
+</div>
+</div>
+<div style="text-align:center;">
+<div class="kpi-label">לוגים</div>
+<div style="font-size:1.4rem;font-weight:800;">{len(logs)}</div>
+<div style="font-size:0.7rem;color:#64748b;">רשומות</div>
+</div>
+</div>
 </div>""", unsafe_allow_html=True)
 
 
