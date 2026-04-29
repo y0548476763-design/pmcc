@@ -425,35 +425,109 @@ Order ID: {open_order['order_id']}
                 st.rerun()
 
     # ══════════════════════════════════════════════════
-    # SECTION F — Live Monitor
+    # SECTION F — Live Escalation Monitor
     # ══════════════════════════════════════════════════
     st.markdown("---")
-    st.markdown('<div style="font-size:0.75rem;font-weight:700;color:#94a3b8;'
-                'text-transform:uppercase;letter-spacing:0.07em;padding:0.5rem 0;">F — Live Order Monitor</div>',
-                unsafe_allow_html=True)
+    st.markdown(
+        '<div style="font-size:0.75rem;font-weight:700;color:#94a3b8;'
+        'text-transform:uppercase;letter-spacing:0.07em;padding:0.5rem 0;">'
+        '🔴 F — Live Escalation Monitor</div>',
+        unsafe_allow_html=True
+    )
 
-    col_mon, col_ref = st.columns([4, 1])
+    col_mon, col_ref, col_auto = st.columns([3, 1, 1])
     with col_ref:
         if st.button("🔄 רענן", key="earn_mon_ref"):
             st.rerun()
+    with col_auto:
+        auto_refresh = st.toggle("אוטו", value=False, key="earn_mon_auto")
 
+    # Fetch escalation status from worker
     try:
-        r = api_ibkr.get_active_orders()
-        orders = r.get("orders", []) if isinstance(r, dict) else []
-        if not orders:
-            st.info("אין פקודות פעילות.")
-        else:
-            import pandas as pd
-            df = pd.DataFrame(orders)
-            # Keep relevant columns if they exist
-            cols = [c for c in ["internal_id","ticker","strike","expiry",
-                                 "status","current_price","escalation_count","is_combo"]
-                    if c in df.columns]
-            df = df[cols].rename(columns={
-                "internal_id": "ID", "ticker": "Ticker", "strike": "Strike",
-                "expiry": "Expiry", "status": "Status", "current_price": "Price",
-                "escalation_count": "Escals", "is_combo": "Combo?"
-            })
-            st.dataframe(df, use_container_width=True, hide_index=True)
+        esc_data = api_ibkr.get_escalations_status()
+        escalations = esc_data.get("escalations", [])
     except Exception as e:
-        st.warning(f"api_ibkr לא זמין: {e}")
+        escalations = []
+        st.warning(f"לא ניתן להתחבר לוורקר: {e}")
+
+    if not escalations:
+        st.info("אין הסלמות פעילות כרגע.")
+    else:
+        import pandas as pd
+        from datetime import datetime, timezone
+
+        rows = []
+        for esc in escalations:
+            oid = esc.get("order_id", "—")
+            ticker = esc.get("ticker", "—")
+            start_p = esc.get("start_price", 0)
+            curr_p  = esc.get("current_price", 0)
+            steps   = esc.get("escalation_count", 0)
+            status  = esc.get("status", "—")
+            wait    = esc.get("wait_secs", 0)
+
+            # Time since last update
+            try:
+                last_upd = datetime.fromisoformat(esc.get("last_updated", ""))
+                elapsed = int((datetime.now(timezone.utc) - last_upd).total_seconds())
+                next_esc = max(0, wait - elapsed)
+                next_str = f"{next_esc}s" if status in ("PENDING", "ACTIVE") else "—"
+            except Exception:
+                next_str = "—"
+
+            # Colour badge for status
+            colour_map = {
+                "PENDING": "#fbbf24",
+                "ACTIVE":  "#34d399",
+                "CANCEL_REQUESTED": "#f87171",
+                "CANCELLED": "#94a3b8",
+            }
+            colour = colour_map.get(status, "#94a3b8")
+            status_badge = f'<span style="color:{colour};font-weight:700">{status}</span>'
+
+            rows.append({
+                "OrderID":    oid,
+                "Ticker":     ticker,
+                "התחלה $":    f"${start_p:.2f}",
+                "מחיר נוכחי": f"${curr_p:.2f}",
+                "שלבים":      steps,
+                "הבא בעוד":   next_str,
+                "סטטוס":      status,
+            })
+
+        df = pd.DataFrame(rows)
+
+        # Style the dataframe
+        def _colour_status(val):
+            colours = {
+                "PENDING": "color: #fbbf24; font-weight: bold",
+                "ACTIVE":  "color: #34d399; font-weight: bold",
+                "CANCEL_REQUESTED": "color: #f87171",
+                "CANCELLED": "color: #94a3b8",
+            }
+            return colours.get(val, "")
+
+        styled = df.style.applymap(_colour_status, subset=["סטטוס"])
+        st.dataframe(styled, use_container_width=True, hide_index=True)
+
+        # Cancel buttons
+        st.markdown("**ביטול הסלמה:**")
+        active_ids = [e["order_id"] for e in escalations
+                      if e.get("status") in ("PENDING", "ACTIVE")]
+        if active_ids:
+            cancel_cols = st.columns(min(len(active_ids), 4))
+            for i, oid in enumerate(active_ids):
+                with cancel_cols[i % 4]:
+                    if st.button(f"🛑 ביטול #{oid}", key=f"cancel_esc_{oid}"):
+                        api_ibkr.cancel_escalation(oid)
+                        st.success(f"בקשת ביטול נשלחה לפקודה {oid}")
+                        st.rerun()
+        else:
+            st.caption("אין הסלמות פעילות לביטול.")
+
+    # Auto-refresh every 10 seconds
+    if auto_refresh:
+        import time as _time
+        _time.sleep(10)
+        st.rerun()
+

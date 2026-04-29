@@ -81,6 +81,20 @@ def get_active_orders() -> dict:
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
+def get_escalations_status() -> dict:
+    """Return live status of all escalation loops from the worker."""
+    try:
+        return requests.get(f"{WORKER_URL}/api/escalations/status", timeout=5).json()
+    except Exception as e:
+        return {"ok": False, "escalations": [], "error": str(e)}
+
+def cancel_escalation(order_id: int) -> dict:
+    """Request the worker to stop escalating a specific order."""
+    try:
+        return requests.delete(f"{WORKER_URL}/api/escalations/{order_id}", timeout=5).json()
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
 def get_iv(ticker: str) -> dict:
     try:
         return requests.get(f"{WORKER_URL}/api/ibkr/get_iv/{ticker}", timeout=15).json()
@@ -92,3 +106,4 @@ def notify(message: str) -> dict:
         return requests.post(f"{WORKER_URL}/api/notify", json={"message": message}, timeout=5).json()
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
