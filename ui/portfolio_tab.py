@@ -76,17 +76,24 @@ def _calc_iv(target_price, S, K, T, r, right="C"):
 @st.cache_data(ttl=600, show_spinner=False)
 def _fetch_vol_data(ticker: str, strike: float, expiry_str: str, right: str = "C"):
     """
-    Fetch from yfinance:
-    - HV30: 30-day historical (realized) volatility from daily closes
-    - IV:   Implied volatility from the live option chain (bid/ask mid)
-    - spot: current underlying price
-    Returns dict with keys: spot, hv30, iv, iv_source
+    Fetch from yfinance with a persistent, spoofed session to prevent 401 Unauthorized errors.
     """
     try:
         import yfinance as yf
         import numpy as np
+        import requests
 
-        yf_t = yf.Ticker(ticker)
+        # --- התיקון: יצירת סשן מתחזה לדפדפן כדי למנוע 401 ---
+        session = requests.Session()
+        session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive"
+        })
+        
+        # שימוש בסשן בתוך האובייקט של יאהו
+        yf_t = yf.Ticker(ticker, session=session)
 
         # 1. Spot price
         try:
@@ -94,7 +101,7 @@ def _fetch_vol_data(ticker: str, strike: float, expiry_str: str, right: str = "C
         except Exception:
             spot = 0.0
 
-        # 2. HV30 – annualised σ of log-returns over last 30 trading days (~45 calendar days)
+        # 2. HV30 – annualised σ of log-returns over last 30 trading days
         hv30 = 0.0
         try:
             hist = yf_t.history(period="3mo", interval="1d")
@@ -109,13 +116,11 @@ def _fetch_vol_data(ticker: str, strike: float, expiry_str: str, right: str = "C
         iv = 0.0
         iv_source = "—"
         try:
-            # Normalize expiry to YYYY-MM-DD format yfinance expects
             if len(expiry_str) == 8:  # YYYYMMDD
                 exp_fmt = f"{expiry_str[:4]}-{expiry_str[4:6]}-{expiry_str[6:8]}"
             else:
                 exp_fmt = expiry_str[:10]
 
-            # Find nearest listed expiry
             avail = yf_t.options
             if avail:
                 nearest = min(avail, key=lambda x: abs((
@@ -125,7 +130,6 @@ def _fetch_vol_data(ticker: str, strike: float, expiry_str: str, right: str = "C
                 chain = yf_t.option_chain(nearest)
                 df = chain.calls if right.upper() == "C" else chain.puts
                 if df is not None and not df.empty:
-                    # Find row closest to our strike
                     row = df.iloc[(df["strike"] - strike).abs().argsort().iloc[0]]
                     bid = float(row.get("bid", 0) or 0)
                     ask = float(row.get("ask", 0) or 0)
@@ -145,8 +149,8 @@ def _fetch_vol_data(ticker: str, strike: float, expiry_str: str, right: str = "C
 
         return {"spot": spot, "hv30": hv30, "iv": iv, "iv_source": iv_source}
 
-    except Exception:
-        return {"spot": 0.0, "hv30": 0.0, "iv": 0.0, "iv_source": "error"}
+    except Exception as e:
+        return {"spot": 0.0, "hv30": 0.0, "iv": 0.0, "iv_source": f"error: {str(e)}"}
 
 
 def render_portfolio_tab(positions: list, quant_results: dict) -> None:

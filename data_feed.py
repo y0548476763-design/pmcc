@@ -51,12 +51,15 @@ def get_historical_bars(ticker: str, period: str = "1y",
     import urllib3
     urllib3.disable_warnings((urllib3.exceptions.InsecureRequestWarning))
     
-    # Direct Yahoo endpoint (very fast, rarely blocked if user-agent is randomized/modern)
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval={interval}&range=2y"
+    # Direct Yahoo endpoint (using query2 as it's often more reliable for historical)
+    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?interval={interval}&range=2y"
     
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "Accept": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Origin": "https://finance.yahoo.com",
+        "Referer": "https://finance.yahoo.com/",
     }
 
     last_err = None

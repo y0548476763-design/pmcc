@@ -1,9 +1,10 @@
-"""
-yahoo_worker.py — Standalone Yahoo Finance Service (port 8002)
-Handles all yfinance requests natively, completely detached from the main UI.
-Implements the SSL bypass to avoid Antivirus inspection errors.
-"""
+import os
+import sys
 import ssl
+
+# Add parent directory to path so we can import from root (quant_engine, data_feed, etc.)
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import logging
 import time
 from datetime import datetime
@@ -25,6 +26,10 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # 3. Custom session as requested, though we fall back to standard if yfinance complains about curl_cffi
 custom_session = requests.Session()
 custom_session.verify = False
+# --- התיקון לוורקר: הוספת User Agent כדי למנוע חסימות 401 מיאהו ---
+custom_session.headers.update({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+})
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -201,6 +206,29 @@ def search_leaps(
         logger.error(f"Search LEAPS error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.post("/analyse")
+def analyse_portfolio(req: dict):
+    """
+    Handles comprehensive portfolio analysis.
+    Request body: {"positions": [...], "watchlist": [...]}
+    """
+    try:
+        from quant_engine import get_engine
+        engine = get_engine()
+        
+        positions = req.get("positions", [])
+        watchlist = req.get("watchlist", [])
+        
+        results = engine.analyse_portfolio(positions, watchlist)
+        
+        # Convert QuantResult objects to dicts for JSON serialization
+        results_dict = {t: vars(res) for t, res in results.items()}
+        
+        return {"ok": True, "results": results_dict}
+    except Exception as e:
+        logger.error(f"Analysis error: {e}")
+        return {"ok": False, "error": str(e)}
 
 @app.get("/api/yahoo/options/search")
 def search_options(
