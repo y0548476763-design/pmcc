@@ -16,8 +16,20 @@ with st.sidebar:
             st.success(f"מחובר (Port: {status.get('port')})")
         else:
             st.error("לא מחובר")
-            if st.button("רענן חיבור"): st.rerun()
-    except: st.warning("אין תקשורת עם הוורקר")
+            if st.button("🔗 התחבר לגאטווי", use_container_width=True):
+                try:
+                    res = requests.post(f"{WORKER_URL}/connect").json()
+                    if "Connected" in res.get("status", ""):
+                        st.success("מחובר!")
+                    else:
+                        st.error(f"כשלון: {res.get('status')}")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"שגיאת תקשורת: {e}")
+            if st.button("🔄 רענן סטטוס", use_container_width=True): st.rerun()
+    except:
+        st.warning("אין תקשורת עם הוורקר")
+        if st.button("🔄 נסה להתחבר לוורקר", use_container_width=True): st.rerun()
 
     st.write("---")
     if st.button("🛑 ביטול חירום (Cancel All)", type="primary"):
@@ -34,55 +46,56 @@ tabs = st.tabs(["🚀 ביצוע פקודות", "🔍 ConID", "📈 ציטוט �
 
 # --- TAB 2: Greeks ---
 with tabs[2]:
-    st.subheader("📊 נתוני שוק ויווניות בזמן אמת")
-    with st.form("quote_form"):
-        c1, c2, c3, c4 = st.columns(4)
-        q_sym = c1.text_input("סימול", value="AAPL")
-        q_exp = c2.text_input("פקיעה (YYYYMMDD) - אופציונלי")
-        q_str = c3.number_input("סטרייק", value=0.0)
-        q_rgh = c4.selectbox("Right", ["None", "C", "P"])
+    st.write("---")
+    st.subheader("🔍 ציטוט נכס ויווניות (Ticker & Greeks)")
+    with st.form("ticker_form"):
+        st.write("הזן ConID למשיכה מהירה, או מלא את פרטי האופציה/מניה:")
+        t1, t2, t3 = st.columns(3)
+        t_con = t1.number_input("ConID (מומלץ לאופציות)", value=0)
+        t_sym = t2.text_input("סימול (למשל AAPL)")
+        t_type = t3.selectbox("סוג נכס", ["OPT", "STK"])
         
-        submit_quote = st.form_submit_button("שלח בקשת ציטוט")
+        t4, t5, t6 = st.columns(3)
+        t_exp = t4.text_input("פקיעה (YYYYMMDD)")
+        t_str = t5.number_input("סטרייק", value=0.0)
+        t_rgh = t6.selectbox("סוג אופציה", ["C", "P"])
         
-    if submit_quote:
-        params = {}
-        if q_exp: params["expiry"] = q_exp
-        if q_str > 0: params["strike"] = q_str
-        if q_rgh != "None": params["right"] = q_rgh
-        
-        try:
-            res = requests.get(f"{WORKER_URL}/ticker/{q_sym}", params=params).json()
-            if "error" in res:
-                st.error(res["error"])
-                st.session_state["quote_result"] = None
-            else:
-                st.session_state["quote_result"] = res
-        except Exception as e:
-            st.error(f"שגיאת תקשורת: {e}")
-
-    # Display results from session state (persists across reruns)
-    if st.session_state["quote_result"]:
-        res = st.session_state["quote_result"]
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("מחיר שוק", f"${res.get('price', 0) if res.get('price') else 'N/A'}")
-        m2.metric("Bid", f"${res.get('bid', 0) if res.get('bid') else 'N/A'}")
-        m3.metric("Ask", f"${res.get('ask', 0) if res.get('ask') else 'N/A'}")
-        m4.metric("IV", f"{res.get('iv', 0):.2%}" if res.get('iv') else "N/A")
-        
-        st.write("---")
-        st.subheader("🧬 יווניות (Greeks)")
-        g1, g2, g3, g4 = st.columns(4)
-        def fmt_g(v, p=".3f"):
-            if v is None: return "N/A"
-            return f"{v:{p}}"
-        
-        g1.metric("Delta", fmt_g(res.get('delta')))
-        g2.metric("Gamma", fmt_g(res.get('gamma'), ".4f"))
-        g3.metric("Theta", fmt_g(res.get('theta')))
-        g4.metric("Vega", fmt_g(res.get('vega')))
-        
-        mp = res.get('modelPrice')
-        st.info(f"מחיר מודל: " + (f"${mp:.2f}" if mp is not None else "N/A"))
+        if st.form_submit_button("קבל נתוני שוק"):
+            payload = {
+                "symbol": t_sym or "N/A", 
+                "secType": t_type, 
+                "action": "BUY", 
+                "ratio": 1, 
+                "con_id": t_con
+            }
+            if t_type == "OPT":
+                payload.update({"expiry": t_exp, "strike": t_str, "right": t_rgh})
+                
+            try:
+                res = requests.post(f"{WORKER_URL}/ticker", json=payload).json()
+                if "error" in res:
+                    st.error(res["error"])
+                else:
+                    st.success(f"נתונים עבור: {res.get('symbol')} (ConID: {res.get('con_id')})")
+                    
+                    # תצוגה יפה של הנתונים
+                    c_price, c_bid, c_ask, c_iv = st.columns(4)
+                    c_price.metric("מחיר שוק", f"${res.get('price', 0)}")
+                    c_bid.metric("Bid", f"${res.get('bid', 0)}")
+                    c_ask.metric("Ask", f"${res.get('ask', 0)}")
+                    c_iv.metric("IV", f"{res.get('iv', 0)}")
+                    
+                    if res.get("delta") is not None:
+                        st.write("**יווניות המודל (Greeks):**")
+                        g1, g2, g3, g4 = st.columns(4)
+                        g1.metric("Delta (Δ)", round(res.get('delta', 0), 4))
+                        g2.metric("Gamma (Γ)", round(res.get('gamma', 0), 4))
+                        g3.metric("Theta (Θ)", round(res.get('theta', 0), 4))
+                        g4.metric("Vega (V)", round(res.get('vega', 0), 4))
+                    else:
+                        st.info("יווניות אינן זמינות כרגע (ייתכן שזהו סוף שבוע או שאין דאטה חי).")
+            except Exception as e:
+                st.error(f"שגיאת תקשורת: {e}")
 
 # --- TAB 1: ConID ---
 with tabs[1]:

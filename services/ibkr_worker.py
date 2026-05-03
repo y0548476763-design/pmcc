@@ -91,6 +91,19 @@ async def get_status():
     if ib is None: return {"connected": False, "error": "Initializing..."}
     return {"connected": ib.isConnected(), "port": ib.client.port if ib.isConnected() else None, "clientId": ib.client.clientId if ib.isConnected() else None}
 
+@app.post("/connect")
+async def manual_connect():
+    if ib is None: return {"status": "Initializing"}
+    if ib.isConnected(): return {"status": "Already connected"}
+    async def _do_connect():
+        try:
+            await ib.connectAsync('127.0.0.1', 4002, clientId=99)
+            return {"status": "Connected"}
+        except Exception as e:
+            return {"status": f"Failed: {e}"}
+    try: return run_in_ib(_do_connect())
+    except Exception as e: return {"status": str(e)}
+
 @app.post("/qualify")
 async def qualify_contract(leg: Leg):
     if ib is None or not ib.isConnected(): return {"ok": False, "error": "Not connected"}
@@ -137,58 +150,52 @@ async def get_account():
     try: return sanitize(run_in_ib(_get_acc()))
     except Exception as e: return {"error": str(e)}
 
-@app.get("/ticker/{symbol}")
-async def get_ticker_data(symbol: str, expiry: Optional[str] = None, strike: Optional[float] = None, right: Optional[str] = None):
-    if ib is None or not ib.isConnected(): return {"error": "Not connected"}
+@app.post("/ticker")
+async def get_ticker_data(leg: Leg):
+    """משיכת ציטוט ונתוני יווניות לאופציות ומניות"""
+    if not ib.isConnected(): return {"error": "Not connected"}
+    
     async def _get_ticker():
-        if expiry and strike and right and right != "None":
-            contract = Option(symbol, expiry, strike, right, 'SMART', currency='USD', multiplier='100')
+        # 1. בניית החוזה בהתאם לסוג
+        if leg.con_id:
+            contract = Contract(conId=leg.con_id, exchange='SMART')
+        elif leg.secType == 'OPT':
+            contract = Option(leg.symbol, leg.expiry, leg.strike, leg.right, 'SMART')
         else:
-            contract = Stock(symbol, 'SMART', 'USD')
+            contract = Stock(leg.symbol, 'SMART', 'USD')
             
         contracts = await ib.qualifyContractsAsync(contract)
-        if not contracts: return {"error": f"Contract not found for {symbol} {expiry or ''}"}
+        if not contracts: return {"error": "Contract not found"}
         
+        # 2. בקשת נתוני שוק
+        ib.reqMarketDataType(1) # Live data (or 3 for delayed if no subscription)
         tickers = await ib.reqTickersAsync(contracts[0])
         if not tickers: return {"error": "No ticker data"}
         
-        # Wait a bit for data to stream in
-        await asyncio.sleep(2)
         t = tickers[0]
         
-        # Advanced Data Extraction
-        g = t.modelGreeks or t.lastGreeks
+        # 3. חילוץ יווניות (אם קיימות - רלוונטי רק לאופציות)
+        iv = getattr(t, 'impliedVolatility', None) or getattr(t, 'impliedVol', None)
+        greeks = t.modelGreeks
         
-        # Priority for Price: ModelPrice (for options) -> Last -> Close -> MarketPrice
-        price = t.marketPrice()
-        if isinstance(contract, Option) and g and g.optPrice:
-            price = g.optPrice
-        
-        data = {
-            "symbol": symbol,
-            "price": price,
-            "bid": t.bid if t.bid > 0 else None,
-            "ask": t.ask if t.ask > 0 else None,
-            "iv": getattr(t, 'impliedVolatility', None) or (g.undPrice if g else None) # fallback or logic
+        return {
+            "symbol": contracts[0].localSymbol,
+            "con_id": contracts[0].conId,
+            "price": t.marketPrice(), 
+            "bid": t.bid, 
+            "ask": t.ask, 
+            "last": t.last,
+            "iv": iv,
+            "delta": greeks.delta if greeks else None,
+            "gamma": greeks.gamma if greeks else None,
+            "theta": greeks.theta if greeks else None,
+            "vega": greeks.vega if greeks else None
         }
         
-        # IV specific logic
-        if isinstance(contract, Option):
-            data["iv"] = getattr(t, 'impliedVolatility', None) or (g.impliedVol if g else None)
-
-        if g or isinstance(contract, Option):
-            data.update({
-                "delta": getattr(g, 'delta', None) if g else None,
-                "gamma": getattr(g, 'gamma', None) if g else None,
-                "theta": getattr(g, 'theta', None) if g else None,
-                "vega": getattr(g, 'vega', None) if g else None,
-                "modelPrice": getattr(g, 'optPrice', None) if g else None,
-                "pvDividend": getattr(g, 'pvDividend', None) if g else None
-            })
-            
-        return data
-    try: return sanitize(run_in_ib(_get_ticker()))
-    except Exception as e: return {"error": str(e)}
+    try: 
+        return run_in_ib(_get_ticker())
+    except Exception as e: 
+        return {"error": str(e)}
 
 @app.post("/cancel_all")
 async def cancel_all():
