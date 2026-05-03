@@ -1,24 +1,65 @@
 import asyncio
 import logging
 import uuid
+import threading
+import time
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional, Dict
 from ib_insync import *
 
-app = FastAPI(title="IBKR Standalone Execution Worker")
-ib = IB()
+# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# --- Global State ---
+ib = IB()
+_ib_loop: Optional[asyncio.AbstractEventLoop] = None
 escalation_monitor: Dict[str, dict] = {}
 
+def _run_ib_loop():
+    """Background thread to run the IBKR event loop."""
+    global _ib_loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    _ib_loop = loop
+    
+    async def connect_and_maintain():
+        while True:
+            if not ib.isConnected():
+                try:
+                    logger.info("Attempting to connect to IB Gateway (Port 4002)...")
+                    await ib.connectAsync('127.0.0.1', 4002, clientId=99)
+                    logger.info("✅ Successfully connected to IB Gateway!")
+                except Exception as e:
+                    logger.error(f"Connection failed: {e}. Retrying in 10s...")
+                    await asyncio.sleep(10)
+            else:
+                await asyncio.sleep(5)
+    
+    loop.create_task(connect_and_maintain())
+    loop.run_forever()
+
+# Start the IB thread
+ib_thread = threading.Thread(target=_run_ib_loop, daemon=True)
+ib_thread.start()
+
+# Helper to run coros in the IB thread
+def run_in_ib(coro, timeout=30):
+    if _ib_loop is None:
+        raise RuntimeError("IB loop is not running")
+    future = asyncio.run_coroutine_threadsafe(coro, _ib_loop)
+    return future.result(timeout=timeout)
+
+app = FastAPI(title="IBKR Standalone Execution Worker")
+
+# --- מודלים ---
 class Leg(BaseModel):
     symbol: str
-    secType: str  # 'OPT' or 'STK'
-    action: str   # 'BUY' or 'SELL'
+    secType: str  
+    action: str   
     ratio: int
-    con_id: Optional[int] = 0       # הוספנו אפשרות להזנת ConID ידנית
+    con_id: Optional[int] = 0       
     strike: Optional[float] = None
     expiry: Optional[str] = None
     right: Optional[str] = None
@@ -32,67 +73,61 @@ class OrderRequest(BaseModel):
     esc_interval: int = 30
     max_steps: int = 5
 
-async def ensure_connection():
-    if ib.isConnected():
-        return
-    
-    # Priority for Gateway (4002/4001) then TWS (7497/7496)
-    target_ports = [4002, 7497, 4001, 7496]
-    
-    msg = "Starting connection sequence..."
-    logger.info(msg)
-    connection_logs.append(msg)
-    
-    for port in target_ports:
-        # Try a few random client IDs to avoid "clientId already in use"
-        for _ in range(2):
-            cid = random.randint(10, 999)
-            try:
-                msg = f"Trying 127.0.0.1:{port} with clientId={cid}"
-                logger.info(msg)
-                connection_logs.append(msg)
-                
-                # Force clean slate
-                if ib.client.isConnected():
-                    ib.disconnect()
-                
-                await ib.connectAsync('127.0.0.1', port, clientId=cid, timeout=4)
-                
-                if ib.isConnected():
-                    msg = f"✅ Connected successfully to port {port} (clientId={cid})"
-                    logger.info(msg)
-                    connection_logs.append(msg)
-                    return
-            except Exception as e:
-                msg = f"❌ Port {port}/CID {cid} failed: {e}"
-                logger.warning(msg)
-                connection_logs.append(msg)
-                await asyncio.sleep(0.5)
-                continue
-    
-    msg = "FAILED: All connection attempts exhausted."
-    logger.error(msg)
-    connection_logs.append(msg)
+# --- Endpoints ---
 
-# --- מנוע חילוץ ConID ---
+@app.get("/status")
+async def get_status():
+    return {
+        "connected": ib.isConnected(),
+        "port": ib.client.port if ib.isConnected() else None,
+        "clientId": ib.client.clientId if ib.isConnected() else None
+    }
+
 @app.post("/qualify")
 async def qualify_contract(leg: Leg):
-    await ensure_connection()
-    c = Option(leg.symbol, leg.expiry, leg.strike, leg.right, 'SMART') if leg.secType == 'OPT' else Stock(leg.symbol, 'SMART', 'USD')
-    try:
+    if not ib.isConnected():
+        return {"ok": False, "error": "Not connected to IBKR"}
+        
+    async def _qualify():
+        c = Option(leg.symbol, leg.expiry, leg.strike, leg.right, 'SMART') if leg.secType == 'OPT' else Stock(leg.symbol, 'SMART', 'USD')
         q = await ib.qualifyContractsAsync(c)
         if q:
             return {"ok": True, "con_id": q[0].conId, "localSymbol": q[0].localSymbol}
+        return {"ok": False, "error": "Contract not found"}
+
+    try:
+        return run_in_ib(_qualify())
     except Exception as e:
         return {"ok": False, "error": str(e)}
-    return {"ok": False, "error": "Contract not found"}
 
-# --- מנוע הסלמה מתקדם עם ניטור IBKR אמיתי ---
-async def run_managed_order(order_id: str, req: OrderRequest):
-    await ensure_connection()
-    current_price = req.lmt_price
+@app.get("/portfolio")
+async def get_portfolio():
+    if not ib.isConnected(): return []
+    return [{"symbol": p.contract.symbol, "qty": p.position, "marketPrice": p.marketPrice, "unrealizedPNL": p.unrealizedPNL} for p in ib.portfolio()]
+
+@app.get("/ticker/{symbol}")
+async def get_ticker_data(symbol: str):
+    if not ib.isConnected(): return {"error": "Not connected"}
     
-    # בניית חוזה (תמיכה מלאה ב-ConID)
+    async def _get_ticker():
+        contracts = await ib.qualifyContractsAsync(Stock(symbol, 'SMART', 'USD'))
+        if not contracts: return {"error": "Symbol not found"}
+        tickers = ib.reqTickers(contracts[0])
+        if not tickers: return {"error": "No ticker data"}
+        t = tickers[0]
+        return {"price": t.marketPrice(), "bid": t.bid, "ask": t.ask, "iv": t.impliedVol}
+        
+    try:
+        return run_in_ib(_get_ticker())
+    except Exception as e:
+        return {"error": str(e)}
+
+# --- מנוע הסלמה ---
+async def run_managed_order_logic(order_id: str, req: OrderRequest):
+    # This logic runs in the IB thread to avoid async context issues
+    current_price = req.lmt_price
+    escalation_monitor[order_id] = {"internal_status": "מתחיל...", "ib_status": "N/A", "steps": [], "errors": []}
+    
     try:
         if len(req.legs) == 1:
             l = req.legs[0]
@@ -113,8 +148,6 @@ async def run_managed_order(order_id: str, req: OrderRequest):
                 legs_list.append(ComboLeg(conId=con_id, ratio=l.ratio, action=l.action, exchange='SMART'))
             contract.comboLegs = legs_list
 
-        escalation_monitor[order_id] = {"internal_status": "מתחיל", "ib_status": "N/A", "steps": [], "errors": []}
-
         for step in range(req.max_steps):
             msg = f"שלב {step+1}: שיגור במחיר {current_price:.2f}"
             escalation_monitor[order_id]["steps"].append(msg)
@@ -122,12 +155,10 @@ async def run_managed_order(order_id: str, req: OrderRequest):
             order = LimitOrder(req.action, req.total_qty, round(current_price, 2))
             trade = ib.placeOrder(contract, order)
             
-            # לולאת המתנה שדוגמת את הסטטוס מ-IBKR בכל שנייה
             for _ in range(req.esc_interval):
                 await asyncio.sleep(1)
                 escalation_monitor[order_id]["ib_status"] = trade.orderStatus.status
                 
-                # בדיקת שגיאות מהלוג של אינטראקטיב (חשוב לבדיקות סופ"ש)
                 for log in trade.log:
                     if log.status in ['Cancelled', 'Inactive'] or log.errorCode:
                         err_msg = f"IB Error {log.errorCode}: {log.message}"
@@ -138,7 +169,6 @@ async def run_managed_order(order_id: str, req: OrderRequest):
                     escalation_monitor[order_id]["internal_status"] = "בוצע בהצלחה ✅"
                     return
 
-            # אם לא נתפס, מבטלים ומשפרים מחיר
             ib.cancelOrder(order)
             await asyncio.sleep(1)
             
@@ -147,44 +177,14 @@ async def run_managed_order(order_id: str, req: OrderRequest):
 
         escalation_monitor[order_id]["internal_status"] = "ההסלמה הסתיימה ללא ביצוע ❌"
     except Exception as e:
-        logger.error(f"Order error {order_id}: {e}")
-        escalation_monitor[order_id] = {"internal_status": f"שגיאה: {str(e)} ❌", "steps": [], "errors": [str(e)]}
-
-# --- Endpoints רגילים ---
-@app.get("/status")
-async def get_status():
-    await ensure_connection()
-    return {
-        "connected": ib.isConnected(),
-        "port": ib.client.port if ib.isConnected() else None,
-        "clientId": ib.client.clientId if ib.isConnected() else None
-    }
-
-@app.get("/portfolio")
-async def get_portfolio():
-    await ensure_connection()
-    return [{"symbol": p.contract.symbol, "qty": p.position, "marketPrice": p.marketPrice, "unrealizedPNL": p.unrealizedPNL} for p in ib.portfolio()]
-
-@app.get("/ticker/{symbol}")
-async def get_ticker_data(symbol: str):
-    await ensure_connection()
-    try:
-        contracts = await ib.qualifyContractsAsync(Stock(symbol, 'SMART', 'USD'))
-        if not contracts:
-            return {"error": "Symbol not found or could not be qualified"}
-        tickers = ib.reqTickers(contracts[0])
-        if not tickers:
-            return {"error": "No ticker data available"}
-        t = tickers[0]
-        return {"price": t.marketPrice(), "bid": t.bid, "ask": t.ask, "iv": t.impliedVol}
-    except Exception as e:
-        logger.error(f"Ticker data error for {symbol}: {e}")
-        return {"error": str(e)}
+        escalation_monitor[order_id]["internal_status"] = f"שגיאה: {e}"
+        escalation_monitor[order_id]["errors"].append(str(e))
 
 @app.post("/submit")
 async def submit_order(req: OrderRequest, tasks: BackgroundTasks):
     order_id = str(uuid.uuid4())[:8]
-    tasks.add_task(run_managed_order, order_id, req)
+    # We schedule the task in the IB thread loop
+    asyncio.run_coroutine_threadsafe(run_managed_order_logic(order_id, req), _ib_loop)
     return {"order_id": order_id, "message": "הסלמה החלה"}
 
 @app.get("/monitor")
