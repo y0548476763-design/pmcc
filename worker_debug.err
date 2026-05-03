@@ -1,0 +1,99 @@
+INFO:__main__:Attempting to connect to IB Gateway (Port 4002)...
+INFO:ib_insync.client:Connecting to 127.0.0.1:4002 with clientId 99...
+INFO:ib_insync.client:Connected
+INFO:ib_insync.client:Logged on to server version 176
+INFO:ib_insync.wrapper:Warning 2104, reqId -1: Market data farm connection is OK:usopt
+INFO:ib_insync.wrapper:Warning 2104, reqId -1: Market data farm connection is OK:usfarm
+INFO:ib_insync.wrapper:Warning 2107, reqId -1: HMDS data farm connection is inactive but should be available upon demand.ushmds
+INFO:ib_insync.client:API connection ready
+INFO:ib_insync.wrapper:Warning 2158, reqId -1: Sec-def data farm connection is OK:secdefnj
+INFO:ib_insync.wrapper:position: Position(account='DUH867555', contract=Option(conId=863397686, symbol='FSLR', lastTradeDateOrContractMonth='20260501', strike=180.0, right='P', multiplier='100', currency='USD', localSymbol='FSLR  260501P00180000', tradingClass='FSLR'), position=0.0, avgCost=0.0)
+INFO:ib_insync.wrapper:position: Position(account='DUH867555', contract=Option(conId=863397751, symbol='FSLR', lastTradeDateOrContractMonth='20260501', strike=185.0, right='P', multiplier='100', currency='USD', localSymbol='FSLR  260501P00185000', tradingClass='FSLR'), position=0.0, avgCost=0.0)
+INFO:ib_insync.wrapper:position: Position(account='DUH867555', contract=Option(conId=874050810, symbol='AAPL', lastTradeDateOrContractMonth='20260501', strike=287.5, right='C', multiplier='100', currency='USD', localSymbol='AAPL  260501C00287500', tradingClass='AAPL'), position=0.0, avgCost=0.0)
+INFO:ib_insync.wrapper:position: Position(account='DUH867555', contract=Option(conId=868639179, symbol='MRK', lastTradeDateOrContractMonth='20260508', strike=125.0, right='C', multiplier='100', currency='USD', localSymbol='MRK   260508C00125000', tradingClass='MRK'), position=4.0, avgCost=3.79795)
+INFO:ib_insync.wrapper:position: Position(account='DUH867555', contract=Option(conId=869096160, symbol='MRK', lastTradeDateOrContractMonth='20260508', strike=95.0, right='P', multiplier='100', currency='USD', localSymbol='MRK   260508P00095000', tradingClass='MRK'), position=7.0, avgCost=15.83224285)
+INFO:ib_insync.wrapper:position: Position(account='DUH867555', contract=Option(conId=872869707, symbol='AAPL', lastTradeDateOrContractMonth='20260501', strike=262.5, right='P', multiplier='100', currency='USD', localSymbol='AAPL  260501P00262500', tradingClass='AAPL'), position=0.0, avgCost=0.0)
+INFO:ib_insync.wrapper:position: Position(account='DUH867555', contract=Option(conId=863396505, symbol='FSLR', lastTradeDateOrContractMonth='20260501', strike=225.0, right='C', multiplier='100', currency='USD', localSymbol='FSLR  260501C00225000', tradingClass='FSLR'), position=0.0, avgCost=0.0)
+INFO:ib_insync.wrapper:position: Position(account='DUH867555', contract=Option(conId=872869362, symbol='AAPL', lastTradeDateOrContractMonth='20260501', strike=282.5, right='C', multiplier='100', currency='USD', localSymbol='AAPL  260501C00282500', tradingClass='AAPL'), position=0.0, avgCost=0.0)
+INFO:ib_insync.wrapper:position: Position(account='DUH867555', contract=Option(conId=872869659, symbol='AAPL', lastTradeDateOrContractMonth='20260501', strike=257.5, right='P', multiplier='100', currency='USD', localSymbol='AAPL  260501P00257500', tradingClass='AAPL'), position=0.0, avgCost=0.0)
+INFO:ib_insync.wrapper:position: Position(account='DUH867555', contract=Option(conId=863396457, symbol='FSLR', lastTradeDateOrContractMonth='20260501', strike=220.0, right='C', multiplier='100', currency='USD', localSymbol='FSLR  260501C00220000', tradingClass='FSLR'), position=0.0, avgCost=0.0)
+INFO:     Started server process [1372]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+INFO:ib_insync.wrapper:updatePortfolio: PortfolioItem(contract=Option(conId=869096160, symbol='MRK', lastTradeDateOrContractMonth='20260508', strike=95.0, right='P', multiplier='100', primaryExchange='AMEX', currency='USD', localSymbol='MRK   260508P00095000', tradingClass='MRK'), position=7.0, marketPrice=0.00448255, marketValue=3.14, averageCost=15.83224285, unrealizedPNL=-107.69, realizedPNL=0.0, account='DUH867555')
+INFO:ib_insync.wrapper:updatePortfolio: PortfolioItem(contract=Option(conId=868639179, symbol='MRK', lastTradeDateOrContractMonth='20260508', strike=125.0, right='C', multiplier='100', primaryExchange='AMEX', currency='USD', localSymbol='MRK   260508C00125000', tradingClass='MRK'), position=4.0, marketPrice=0.0088314, marketValue=3.53, averageCost=3.79795, unrealizedPNL=-11.66, realizedPNL=0.0, account='DUH867555')
+INFO:ib_insync.ib:Synchronization complete
+INFO:__main__:\u2705 Successfully connected to IB Gateway!
+ERROR:ib_insync.wrapper:Error 10091, reqId 21: Part of requested market data requires additional subscription for API. See link in 'Market Data Connections' dialog for more details.MRK NYSE/TOP/ALL, contract: Option(conId=869096160, symbol='MRK', lastTradeDateOrContractMonth='20260508', strike=95.0, right='P', multiplier='100', exchange='SMART', currency='USD', localSymbol='MRK   260508P00095000', tradingClass='MRK')
+ERROR:ib_insync.wrapper:Error 354, reqId 21: Requested market data is not subscribed. Check API status by selecting the Account menu then under Management choose Market Data Subscription Manager and/or availability of delayed data.Delayed market data is available.MRK MAY 08 '26 95 Put (MRK   260508P00095000) /TOP/ALL
+ERROR:ib_insync.wrapper:Error 354, reqId 21: Requested market data is not subscribed. Check API status by selecting the Account menu then under Management choose Market Data Subscription Manager and/or availability of delayed data.Delayed market data is available.Error&BEST/OPT/Top&BEST/OPT/Top
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\uvicorn\protocols\http\httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\fastapi\applications.py", line 1134, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\starlette\middleware\errors.py", line 186, in __call__
+    raise exc
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\starlette\middleware\errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\starlette\routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\starlette\routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\starlette\routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\fastapi\routing.py", line 124, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\fastapi\routing.py", line 110, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\fastapi\routing.py", line 423, in app
+    response = actual_response_class(content, **response_args)
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\starlette\responses.py", line 190, in __init__
+    super().__init__(content, status_code, headers, media_type, background)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\starlette\responses.py", line 47, in __init__
+    self.body = self.render(content)
+                ~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\User\AppData\Roaming\Python\Python313\site-packages\starlette\responses.py", line 193, in render
+    return json.dumps(
+           ~~~~~~~~~~^
+        content,
+        ^^^^^^^^
+    ...<3 lines>...
+        separators=(",", ":"),
+        ^^^^^^^^^^^^^^^^^^^^^^
+    ).encode("utf-8")
+    ^
+  File "C:\Python313\Lib\json\__init__.py", line 238, in dumps
+    **kw).encode(obj)
+          ~~~~~~^^^^^
+  File "C:\Python313\Lib\json\encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+  File "C:\Python313\Lib\json\encoder.py", line 261, in iterencode
+    return _iterencode(o, 0)
+ValueError: Out of range float values are not JSON compliant: nan
