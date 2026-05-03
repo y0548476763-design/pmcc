@@ -112,10 +112,12 @@ async def get_ticker_data(symbol: str):
     async def _get_ticker():
         contracts = await ib.qualifyContractsAsync(Stock(symbol, 'SMART', 'USD'))
         if not contracts: return {"error": "Symbol not found"}
-        tickers = ib.reqTickers(contracts[0])
+        tickers = await ib.reqTickersAsync(contracts[0])
         if not tickers: return {"error": "No ticker data"}
         t = tickers[0]
-        return {"price": t.marketPrice(), "bid": t.bid, "ask": t.ask, "iv": t.impliedVol}
+        # Get IV safely
+        iv = getattr(t, 'impliedVolatility', None) or getattr(t, 'impliedVol', None)
+        return {"price": t.marketPrice(), "bid": t.bid, "ask": t.ask, "iv": iv}
         
     try:
         return run_in_ib(_get_ticker())
