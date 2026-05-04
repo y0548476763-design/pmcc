@@ -1,0 +1,10 @@
+{
+    "tg_token": "8442918441:AAEGH_Zz7yPMDX5g9BtkkAXqEUXtebI57YA",
+    "tg_chat_id": "7910834714",
+    "index_drop_thresh": 1.25,
+    "index_rsi_thresh": 10.0,
+    "stock_drop_thresh": 4.0,
+    "macro_qqq_thresh": 0.5,
+    "scan_interval_min": 5,
+    "gcs_bucket_name": "nextoffice-alert-scanner-state"
+}

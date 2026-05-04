@@ -7,49 +7,41 @@ st.markdown("<h1 style='text-align:right;'>🎮 דשבורד ביצוע - IBKR W
 
 WORKER_URL = "http://127.0.0.1:8001"
 
-# --- Sidebar ---
+# --- לוח בקרה צדדי (חיבורים וניתוקים) ---
 with st.sidebar:
-    st.subheader("🌐 סטטוס חיבור")
+    st.subheader("🌐 שליטה בחיבור ל-Gateway")
     try:
         status = requests.get(f"{WORKER_URL}/status", timeout=5).json()
         if status.get("connected"):
-            st.success(f"מחובר (Port: {status.get('port')})")
+            st.success(f"מחובר בהצלחה (Port: {status.get('port')})")
+            if st.button("🔌 נתק מאינטראקטיב"):
+                requests.post(f"{WORKER_URL}/disconnect")
+                st.rerun()
         else:
-            st.error("לא מחובר")
-            if st.button("🔗 התחבר לגאטווי", use_container_width=True):
-                try:
+            st.error("לא מחובר כעת")
+            if st.button("🟢 התחבר ל-Gateway (4002)", type="primary"):
+                with st.spinner("מתחבר..."):
                     res = requests.post(f"{WORKER_URL}/connect").json()
-                    if "Connected" in res.get("status", ""):
-                        st.success("מחובר!")
+                    if "Error" in res.get("status", ""):
+                        st.error(res["status"])
                     else:
-                        st.error(f"כשלון: {res.get('status')}")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"שגיאת תקשורת: {e}")
-            if st.button("🔄 רענן סטטוס", use_container_width=True): st.rerun()
-    except:
-        st.warning("אין תקשורת עם הוורקר")
-        if st.button("🔄 נסה להתחבר לוורקר", use_container_width=True): st.rerun()
+                        st.rerun()
+    except Exception as e: 
+        st.warning("אין תקשורת עם שרת הוורקר (האם הוא רץ בפורט 8001?)")
 
     st.write("---")
-    if st.button("🛑 ביטול חירום (Cancel All)", type="primary"):
+    st.subheader("פעולות חירום")
+    if st.button("🛑 ביטול כל הפקודות (Cancel All)"):
         try:
             res = requests.post(f"{WORKER_URL}/cancel_all").json()
             st.error(res.get("status", "בוצע ביטול"))
         except Exception as e: st.error(f"שגיאה: {e}")
 
-# --- Initialize Session State ---
-if "quote_result" not in st.session_state:
-    st.session_state["quote_result"] = None
+tabs = st.tabs(["🚀 ביצוע פקודות", "🔍 ציטוט ו-ConID", "📊 מוניטור פקודות", "💼 תיק ומזומן"])
 
-tabs = st.tabs(["🚀 ביצוע פקודות", "🔍 ConID", "📈 ציטוט נכס (Greeks)", "📊 מוניטור IBKR", "💼 תיק ומזומן"])
-
-# --- TAB 2: Greeks ---
-with tabs[2]:
-    st.write("---")
-    st.subheader("🔍 ציטוט נכס ויווניות (Ticker & Greeks)")
+with tabs[1]:
+    st.subheader("איתור ConID ונתוני שוק (יווניות)")
     with st.form("ticker_form"):
-        st.write("הזן ConID למשיכה מהירה, או מלא את פרטי האופציה/מניה:")
         t1, t2, t3 = st.columns(3)
         t_con = t1.number_input("ConID (מומלץ לאופציות)", value=0)
         t_sym = t2.text_input("סימול (למשל AAPL)")
@@ -60,58 +52,41 @@ with tabs[2]:
         t_str = t5.number_input("סטרייק", value=0.0)
         t_rgh = t6.selectbox("סוג אופציה", ["C", "P"])
         
-        if st.form_submit_button("קבל נתוני שוק"):
-            payload = {
-                "symbol": t_sym or "N/A", 
-                "secType": t_type, 
-                "action": "BUY", 
-                "ratio": 1, 
-                "con_id": t_con
-            }
-            if t_type == "OPT":
-                payload.update({"expiry": t_exp, "strike": t_str, "right": t_rgh})
+        if st.form_submit_button("קבל נתונים"):
+            payload = {"symbol": t_sym or "N/A", "secType": t_type, "action": "BUY", "ratio": 1, "con_id": t_con}
+            if t_type == "OPT": payload.update({"expiry": t_exp, "strike": t_str, "right": t_rgh})
+            res = requests.post(f"{WORKER_URL}/ticker", json=payload).json()
+            if "error" in res:
+                st.error(res["error"])
+            else:
+                st.success(f"נתונים עבור: {res.get('symbol')} (ConID: {res.get('con_id')})")
+                c_price, c_bid, c_ask, c_iv = st.columns(4)
+                c_price.metric("מחיר שוק", f"${res.get('price', 0)}")
+                c_bid.metric("Bid", f"${res.get('bid', 0)}")
+                c_ask.metric("Ask", f"${res.get('ask', 0)}")
+                c_iv.metric("IV", f"{res.get('iv', 0)}")
+                if res.get("delta") is not None:
+                    st.write("**יווניות (Greeks):**")
+                    g1, g2, g3, g4 = st.columns(4)
+                    g1.metric("Delta", round(res.get('delta', 0), 4))
+                    g2.metric("Gamma", round(res.get('gamma', 0), 4))
+                    g3.metric("Theta", round(res.get('theta', 0), 4))
+                    g4.metric("Vega", round(res.get('vega', 0), 4))
                 
-            try:
-                res = requests.post(f"{WORKER_URL}/ticker", json=payload).json()
-                if "error" in res:
-                    st.error(res["error"])
-                else:
-                    st.success(f"נתונים עבור: {res.get('symbol')} (ConID: {res.get('con_id')})")
+                if res.get("avg_iv") is not None or res.get("iv_rank") is not None:
+                    st.write("**תנודתיות נכס הבסיס (Underlying Volatility):**")
+                    v1, v2, v3, v4 = st.columns(4)
                     
-                    # תצוגה יפה של הנתונים
-                    c_price, c_bid, c_ask, c_iv = st.columns(4)
-                    c_price.metric("מחיר שוק", f"${res.get('price', 0)}")
-                    c_bid.metric("Bid", f"${res.get('bid', 0)}")
-                    c_ask.metric("Ask", f"${res.get('ask', 0)}")
-                    c_iv.metric("IV", f"{res.get('iv', 0)}")
+                    def fmt_v(val, p=".2%"):
+                        if val is None: return "N/A"
+                        try: return f"{val:{p}}"
+                        except: return "N/A"
                     
-                    if res.get("delta") is not None:
-                        st.write("**יווניות המודל (Greeks):**")
-                        g1, g2, g3, g4 = st.columns(4)
-                        g1.metric("Delta (Δ)", round(res.get('delta', 0), 4))
-                        g2.metric("Gamma (Γ)", round(res.get('gamma', 0), 4))
-                        g3.metric("Theta (Θ)", round(res.get('theta', 0), 4))
-                        g4.metric("Vega (V)", round(res.get('vega', 0), 4))
-                    else:
-                        st.info("יווניות אינן זמינות כרגע (ייתכן שזהו סוף שבוע או שאין דאטה חי).")
-            except Exception as e:
-                st.error(f"שגיאת תקשורת: {e}")
+                    v1.metric("Avg IV (Index)", fmt_v(res.get('avg_iv')))
+                    v2.metric("Hist Vol (30d)", fmt_v(res.get('hist_vol')))
+                    v3.metric("IV Rank", fmt_v(res.get('iv_rank'), ".1%"))
+                    v4.metric("IV Range (1Y)", f"{fmt_v(res.get('iv_low'), '.1%')} - {fmt_v(res.get('iv_high'), '.1%')}")
 
-# --- TAB 1: ConID ---
-with tabs[1]:
-    st.subheader("חילוץ ConID")
-    with st.form("qualify_form"):
-        q_sym_c = st.text_input("סימול")
-        q_type_c = st.selectbox("סוג", ["OPT", "STK"])
-        q_exp_c = st.text_input("פקיעה (YYYYMMDD)")
-        q_str_c = st.number_input("סטרייק", value=0.0)
-        q_rgh_c = st.selectbox("Right", ["C", "P"])
-        if st.form_submit_button("חלץ ConID"):
-            res = requests.post(f"{WORKER_URL}/qualify", json={"symbol": q_sym_c, "secType": q_type_c, "action": "BUY", "ratio": 1, "expiry": q_exp_c, "strike": q_str_c, "right": q_rgh_c}).json()
-            if res.get("ok"): st.success(f"ConID: {res['con_id']} | {res['localSymbol']}")
-            else: st.error(res.get("error"))
-
-# --- TAB 0: ביצוע פקודות ---
 with tabs[0]:
     with st.form("order_creator"):
         c1, c2, c3, c4 = st.columns(4)
@@ -142,23 +117,19 @@ with tabs[0]:
                     legs.append(leg_data)
 
         st.write("---")
-        st.write("הסלמה (רלוונטי ל-LMT בלבד):")
         e1, e2, e3 = st.columns(3)
-        esc_p = e1.slider("אחוז שיפור", 0.0, 0.05, 0.01)
-        esc_t = e2.number_input("שניות המתנה", value=10)
+        esc_p = e1.slider("אחוז שיפור מחיר (להסלמה)", 0.0, 0.05, 0.01)
+        esc_t = e2.number_input("שניות המתנה בין הסלמות", value=10)
         esc_m = e3.number_input("מקסימום שלבים", value=3)
         
         if st.form_submit_button("שגר פקודה"):
             payload = {"action": action, "order_type": order_type, "total_qty": qty, "lmt_price": price, "legs": legs, "esc_pct": esc_p, "esc_interval": esc_t, "max_steps": esc_m}
             res = requests.post(f"{WORKER_URL}/submit", json=payload).json()
-            st.success(res['message'])
+            st.success(res.get('message', 'הפקודה נשלחה'))
 
-# --- TAB 3: מוניטור IBKR ---
-with tabs[3]:
+with tabs[2]:
     if st.button("רענן מוניטור"):
         monitor = requests.get(f"{WORKER_URL}/monitor").json()
-        if not monitor:
-            st.info("אין פקודות במוניטור כרגע")
         for oid, info in monitor.items():
             st.markdown(f"### מזהה: {oid} | פנימי: {info['internal_status']} | IBKR: {info.get('ib_status', 'N/A')}")
             for step in info.get('steps', []): st.text(f"  • {step}")
@@ -166,8 +137,7 @@ with tabs[3]:
             for e in info.get('errors', []): st.error(e)
             st.divider()
 
-# --- TAB 4: תיק ומזומן ---
-with tabs[4]:
+with tabs[3]:
     if st.button("טען יתרות ומזומן"):
         acc = requests.get(f"{WORKER_URL}/account").json()
         if "error" not in acc:
@@ -182,6 +152,4 @@ with tabs[4]:
         if port:
             df = pd.DataFrame(port)
             df.columns = ["סימול", "כמות", "עלות ממוצעת", "מחיר שוק", "רווח לא ממומש"]
-            st.dataframe(df.style.format({"עלות ממוצעת": "${:.2f}", "מחיר שוק": "${:.2f}", "רווח לא ממומש": "${:.2f}"}), use_container_width=True)
-        else:
-            st.info("אין פוזיציות פתוחות בתיק")
+            st.dataframe(df.style.format({"עלות ממוצעת": "${:.2f}", "מחיר שוק": "${:.2f}", "רווח לא ממומש": "${:.2f}"}))
