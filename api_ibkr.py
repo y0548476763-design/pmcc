@@ -72,13 +72,30 @@ def qualify_contract(ticker: str, strike: float, expiry: str, right: str = "C") 
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
-def place_order(ticker: str, strike: float, expiry: str, right: str = "C", action: str = "BUY", qty: int = 1, limit_price: float = None, order_type: str = "LMT") -> dict:
+def place_order(ticker: str, strike: float, expiry: str, right: str = "C", action: str = "BUY", qty: int = 1, limit_price: float = None, order_type: str = "LMT", **kwargs) -> dict:
     try:
+        # התאמה מלאה למודל OrderRequest של הוורקר
         payload = {
-            "ticker": ticker, "strike": strike, "expiry": expiry,
-            "right": right, "action": action, "qty": qty, "limit_price": limit_price, "order_type": order_type
+            "action": action,
+            "order_type": order_type,
+            "total_qty": float(qty),
+            "lmt_price": float(limit_price or 0.0),
+            "esc_pct": float(kwargs.get("esc_pct", 0.01)),
+            "esc_interval": int(kwargs.get("esc_interval", 30)),
+            "max_steps": int(kwargs.get("max_steps", 5)),
+            "legs": [{
+                "symbol": ticker,
+                "secType": "OPT",
+                "action": action,
+                "ratio": 1.0,
+                "strike": float(strike),
+                "expiry": str(expiry).replace("-", ""), # וודוא פורמט YYYYMMDD
+                "right": right,
+                "con_id": int(kwargs.get("con_id", 0))
+            }]
         }
-        return requests.post(f"{WORKER_URL}/api/ibkr/place_order", json=payload, timeout=15).json()
+        r = requests.post(f"{WORKER_URL}/submit", json=payload, timeout=15).json()
+        return {"ok": True, "order_id": r.get("order_id"), "message": r.get("message")}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 

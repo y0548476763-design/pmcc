@@ -181,7 +181,7 @@ border:1px solid {meta['color']};">{meta['label']}</span>
                 if st.button(f"🔍 סרוק {ticker}", key=f"scan_{ticker}", use_container_width=True):
                     with st.spinner(f"מחפש שורט קול ל-{ticker} ב-api_yahoo..."):
                         try:
-                            r = requests.get(f"{config.YAHOO_API_URL}/options/search",
+                            r = requests.get(f"{config.YAHOO_API_URL}/api/yahoo/options/search",
                                              params={"ticker": ticker,
                                                      "min_dte": max(14, short_dte - 15),
                                                      "max_dte": short_dte + 20,
@@ -192,8 +192,9 @@ border:1px solid {meta['color']};">{meta['label']}</span>
                             data = r.json()
                             chain = data.get("data", []) if data.get("ok") else []
                             if chain:
-                                st.session_state[f"short_chain_{ticker}"] = chain
+                                st.session_state[f"sc_res_{ticker}"] = chain[0]
                             else:
+                                st.session_state[f"sc_res_{ticker}"] = None
                                 st.error(f"לא נמצאו אופציות מתאימות ל-{ticker} (DTE {max(14,short_dte-15)}-{short_dte+20})")
                         except requests.exceptions.ConnectionError:
                             st.error("❌ api_yahoo לא פועל")
@@ -201,34 +202,36 @@ border:1px solid {meta['color']};">{meta['label']}</span>
                             st.error(f"שגיאה: {e}")
 
             # Show chain results if available
-            chain_res = st.session_state.get(f"short_chain_{ticker}", [])
-            if chain_res:
-                cols = st.columns(len(chain_res))
-                for i, opt in enumerate(chain_res):
-                    strike = float(opt.get("strike", 0))
-                    expiry = opt.get("expiry", "")
-                    mid    = float(opt.get("mid", 0))
-                    delta  = float(opt.get("delta", 0))
-                    dte_o  = _get_dte(expiry)
-                    tp_price = round(mid * (1.0 - tp_pct), 2)
+            res = st.session_state.get(f"sc_res_{ticker}")
+            if res and isinstance(res, dict):
+                st.success(f"נמצא חוזה: {res.get('strike')} | דלתא: {res.get('delta')}")
+                
+                # Render the contract details manually as per user requirement
+                strike = float(res.get("strike", 0))
+                expiry = res.get("expiry", "")
+                mid    = float(res.get("mid", 0))
+                delta  = float(res.get("delta", 0))
+                dte_o  = _get_dte(expiry)
+                tp_price = round(mid * (1.0 - tp_pct), 2)
 
-                    with cols[i]:
-                        st.markdown(f"""
-<div class="pmcc-card" style="border-top:3px solid {meta['color']};
-padding:0.9rem;text-align:center;min-height:200px;">
-<div style="font-size:0.62rem;color:#64748b;">אופציה {i+1}</div>
-<div style="font-size:1.6rem;font-weight:900;color:#f1f5f9;">${strike:.0f}</div>
-<div style="font-size:0.72rem;color:#64748b;">{expiry} · {dte_o}d</div>
-<div style="margin:0.5rem 0;">
-<span style="color:{meta['color']};font-weight:700;">Δ {delta:.3f}</span>
-</div>
-<div style="font-size:1.2rem;font-weight:800;color:#34d399;">Mid ${mid:.2f}</div>
-<div style="font-size:0.7rem;color:#64748b;">TP Target: ${tp_price:.2f}</div>
-</div>""", unsafe_allow_html=True)
+                st.markdown(f"""
+                <div class="pmcc-card" style="border-top:3px solid {meta['color']};
+                padding:0.9rem;text-align:center;min-height:200px;">
+                <div style="font-size:0.62rem;color:#64748b;">אופציה מוצעת</div>
+                <div style="font-size:1.6rem;font-weight:900;color:#f1f5f9;">${strike:.0f}</div>
+                <div style="font-size:0.72rem;color:#64748b;">{expiry} · {dte_o}d</div>
+                <div style="margin:0.5rem 0;">
+                <span style="color:{meta['color']};font-weight:700;">Δ {delta:.3f}</span>
+                </div>
+                <div style="font-size:1.2rem;font-weight:800;color:#34d399;">Mid ${mid:.2f}</div>
+                <div style="font-size:0.7rem;color:#64748b;">TP Target: ${tp_price:.2f}</div>
+                </div>""", unsafe_allow_html=True)
 
-                        if st.button("🚀 פתח שורט קול (SELL)", key=f"sell_{ticker}_{i}",
-                                     use_container_width=True, type="primary"):
-                            _execute_short_sell(tws, lp, opt, tp_pct, bot_mode)
+                if st.button("🚀 פתח שורט קול (SELL)", key=f"sell_{ticker}_res",
+                             use_container_width=True, type="primary"):
+                    _execute_short_sell(tws, lp, res, tp_pct, bot_mode)
+            elif res is None:
+                st.info("ממתין לסריקה...")
 
     # ── ROW 3: Active Short Calls Management ───────────────────────────────
     if shorts:
@@ -329,12 +332,15 @@ border-radius:14px;padding:0.9rem 1.2rem;margin-bottom:0.6rem;">
                 st.error("יש להזין תאריך פקיעה")
             else:
                 try:
+                    q = api_ibkr.qualify_contract(man_ticker, man_strike, str(man_expiry).replace("-", ""), "C")
+                    con_id = q.get("conId", 0) if q.get("ok") else 0
+                    
                     payload = {
                         "ticker": man_ticker, "right": "C", "strike": man_strike,
                         "expiry": man_expiry, "action": man_action, "qty": man_qty,
                         "limit_price": man_mid, "order_type": "LMT", "tif": "DAY"
                     }
-                    r = api_ibkr.place_order(payload["ticker"], payload["strike"], payload["expiry"], payload["right"], payload["action"], payload["qty"], payload.get("limit_price"))
+                    r = api_ibkr.place_order(payload["ticker"], payload["strike"], payload["expiry"], payload["right"], payload["action"], payload["qty"], payload.get("limit_price"), con_id=con_id)
                     if r.get("ok"):
                         st.success(f"✅ פקודה נשלחה: {r.get('order_id','')}")
                         if bot_mode >= 1:
@@ -387,13 +393,17 @@ def _execute_short_sell(tws, leaps_pos: dict, opt: dict, tp_pct: float,
         return
 
     try:
+        # 0. Qualify contract
+        q = api_ibkr.qualify_contract(ticker, strike, str(expiry).replace("-", ""), "C")
+        con_id = q.get("conId", 0) if q.get("ok") else 0
+
         # 1. Place Sell Order
         sell_payload = {
             "ticker": ticker, "strike": strike, "expiry": expiry, "right": "C",
             "action": "SELL", "qty": qty, "limit_price": mid,
             "order_type": "LMT", "tif": "DAY"
         }
-        r_sell = api_ibkr.place_order(sell_payload["ticker"], sell_payload["strike"], sell_payload["expiry"], sell_payload["right"], sell_payload["action"], sell_payload["qty"], sell_payload.get("limit_price"))
+        r_sell = api_ibkr.place_order(sell_payload["ticker"], sell_payload["strike"], sell_payload["expiry"], sell_payload["right"], sell_payload["action"], sell_payload["qty"], sell_payload.get("limit_price"), con_id=con_id)
         if not r_sell.get("ok"):
             st.error(f"כשל במכירה: {r_sell.get('error', r_sell)}")
             return
@@ -406,7 +416,7 @@ def _execute_short_sell(tws, leaps_pos: dict, opt: dict, tp_pct: float,
                 "action": "BUY", "qty": qty, "limit_price": tp_price,
                 "order_type": "LMT", "tif": "GTC"
             }
-            api_ibkr.place_order(tp_payload["ticker"], tp_payload["strike"], tp_payload["expiry"], tp_payload["right"], tp_payload["action"], tp_payload["qty"], tp_payload.get("limit_price"), tp_payload.get("order_type", "LMT"))
+            api_ibkr.place_order(tp_payload["ticker"], tp_payload["strike"], tp_payload["expiry"], tp_payload["right"], tp_payload["action"], tp_payload["qty"], tp_payload.get("limit_price"), tp_payload.get("order_type", "LMT"), con_id=con_id)
 
         msg = (f"🚀 <b>שורט קול נמכר!</b>\n"
                f"📞 SELL {qty}x {ticker} ${strike:.0f}C {expiry} @ ${mid:.2f}\n"
@@ -459,12 +469,15 @@ def _handle_short_action(tws, sc: dict, is_tp: bool, is_roll: bool,
     try:
         if is_tp:
             # Simple Close (BUY back)
+            q = api_ibkr.qualify_contract(ticker, strike, str(expiry).replace("-", ""), "C")
+            con_id = q.get("conId", 0) if q.get("ok") else 0
+            
             payload = {
                 "ticker": ticker, "strike": strike, "expiry": expiry, "right": "C",
                 "action": "BUY", "qty": qty, "limit_price": cur_px * 1.02,
                 "order_type": "LMT", "tif": "DAY"
             }
-            r = api_ibkr.place_order(payload["ticker"], payload["strike"], payload["expiry"], payload["right"], payload["action"], payload["qty"], payload.get("limit_price"))
+            r = api_ibkr.place_order(payload["ticker"], payload["strike"], payload["expiry"], payload["right"], payload["action"], payload["qty"], payload.get("limit_price"), con_id=con_id)
             if r.get("ok"):
                 st.success(f"✅ פקודת סגירה (TP) נשלחה עבור {ticker}")
             else:
@@ -478,12 +491,12 @@ def _handle_short_action(tws, sc: dict, is_tp: bool, is_roll: bool,
             tgt_delta = meta["delta"]
             
             with st.spinner(f"מחפש יעד לגלגול עבור {ticker}..."):
-                r_search = requests.get(f"{YAHOO}/options/search", params={
+                r_search = requests.get(f"{config.YAHOO_API_URL}/api/yahoo/options/search", params={
                     "ticker": ticker, "min_dte": short_dte - 10, "max_dte": short_dte + 20,
                     "target_delta": tgt_delta, "right": "C", "n": 1
                 }, timeout=15)
-                search_data = r_search
-                targets = search_data.get("data", [])
+                search_data = r_search.json()
+                targets = search_data.get("data", []) if search_data.get("ok") else []
             
             if not targets:
                 st.error("לא נמצא יעד מתאים לגלגול. בצע פעולה ידנית.")
