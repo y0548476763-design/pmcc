@@ -24,44 +24,13 @@ def connect(mode: str = "DEMO") -> dict:
         return {"ok": False, "error": str(e)}
 
 def get_positions() -> dict:
-    """
-    משיכת התיק והעשרתו ביווניות ופרטי חוזה באמצעות קריאות עקיפות ל-/ticker.
-    """
+    """מושך את הפורטפוליו מהוורקר ומחזיר אותו במבנה שה-PMCC מכיר"""
     try:
-        # 1. משיכת רשימת הפוזיציות הבסיסית מהוורקר
-        raw_portfolio = requests.get(f"{WORKER_URL}/portfolio", timeout=15).json()
-        enriched_positions = []
-
-        for pos in raw_portfolio:
-            # 2. עבור כל פוזיציה, נבצע שאילתה ל-/ticker לקבלת נתונים מלאים
-            leg_payload = {
-                "symbol": pos.get("symbol"),
-                "secType": pos.get("secType", "STK"),
-                "action": "BUY",
-                "ratio": 1,
-                "con_id": pos.get("con_id", 0) 
-            }
-            if pos.get("secType") == "OPT":
-                leg_payload["expiry"] = pos.get("expiry")
-                leg_payload["strike"] = pos.get("strike")
-                leg_payload["right"] = pos.get("right")
-            
-            ticker_data = requests.post(f"{WORKER_URL}/ticker", json=leg_payload, timeout=10).json()
-            
-            # 3. איחוד הנתונים לכדי פוזיציה עשירה אחת
-            enriched_positions.append({
-                **pos,
-                "delta": ticker_data.get("delta"),
-                "theta": ticker_data.get("theta"),
-                "iv": ticker_data.get("iv"),
-                "current_price": ticker_data.get("price"),
-                "bid": ticker_data.get("bid"),
-                "ask": ticker_data.get("ask")
-            })
-            
-        return {"ok": True, "positions": enriched_positions}
+        r = requests.get(f"{WORKER_URL}/portfolio", timeout=15).json()
+        # PMCC מחפש את המפתח 'positions' כדי להציג את הטבלה
+        return {"ok": True, "positions": r}
     except Exception as e:
-        return {"ok": False, "error": str(e)}
+        return {"ok": False, "error": str(e), "positions": []}
 
 def qualify_combo(ticker: str, legs: List[dict]) -> dict:
     """

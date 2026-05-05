@@ -85,16 +85,15 @@ if st.session_state["connected"] and tws.connected:
     now = time.time()
     if now - st.session_state["last_live_refresh"] > 60:
         try:
-            import api_ibkr
             tws._refresh_account()
             st.session_state.update({
                 "tws_account_id": tws.account_id,
                 "tws_cash":       tws.cash_balance,
                 "tws_netliq":     tws.net_liquidation,
             })
-            pos_result = api_ibkr.get_positions()
-            if pos_result.get("ok") and pos_result.get("positions"):
-                st.session_state["positions"] = pos_result["positions"]
+            live_data = tws.get_positions()
+            if live_data:
+                st.session_state["positions"] = live_data
                 st.session_state["positions_source"] = "LIVE" if tws.mode == "LIVE" else "DEMO"
             st.session_state["last_live_refresh"] = now
         except Exception as e:
@@ -163,8 +162,20 @@ with c2:
         st.write("")
 with c3:
     if st.button("🔄 רענן", key="refresh", use_container_width=True):
-        if is_conn: 
-            tws._refresh_account()
+        if is_conn:
+            try:
+                tws._refresh_account()
+                live_data = tws.get_positions()
+                if live_data:
+                    st.session_state["positions"] = live_data
+                    st.session_state["positions_source"] = "LIVE" if tws.mode == "LIVE" else "DEMO"
+                st.session_state.update({
+                    "tws_account_id": tws.account_id,
+                    "tws_cash":       tws.cash_balance,
+                    "tws_netliq":     tws.net_liquidation,
+                })
+            except Exception as e:
+                _log("ERROR", f"רענן נכשל: {e}")
         st.session_state["last_live_refresh"] = 0
         st.rerun()
 

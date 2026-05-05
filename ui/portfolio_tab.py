@@ -188,13 +188,16 @@ def render_portfolio_tab(positions: list, quant_results: dict) -> None:
     # ── KPI Row ────────────────────────────────────────────────────────────
     leaps = [p for p in positions if p.get("type") == "LEAPS"]
     calls = [p for p in positions if p.get("type") in ("SHORT", "SHORT_CALL")]
+    other = [p for p in positions if p.get("type") in ("LONG_CALL", "LONG_PUT")]
     total_leaps_qty = sum(abs(p.get("qty", 1)) for p in leaps)
     total_calls_qty = sum(abs(p.get("qty", 1)) for p in calls)
-    premium    = sum(abs(p.get("current_price", 0)) * 100 * abs(p.get("qty", 1)) for p in calls)
+    premium    = sum(abs(p.get("cost_basis", 0) or p.get("current_price", 0)) * 100 * abs(p.get("qty", 1)) for p in calls)
     cost_basis = sum(abs(p.get("cost_basis", 1)) * 100 * abs(p.get("qty", 1)) for p in leaps) or 1
-    leaps_val  = sum(abs(p.get("current_price", p.get("cost_basis", 0))) * 100 * abs(p.get("qty", 1)) for p in leaps)
+    total_pnl_all = sum(p.get("unrealizedPNL", 0) for p in positions)
     roc        = (premium / cost_basis * 100) if cost_basis else 0
     uncovered  = sum(1 for lp in leaps if not any(s.get("ticker") == lp.get("ticker") for s in calls))
+    pnl_color  = "#34d399" if total_pnl_all >= 0 else "#f87171"
+    pnl_sign   = "+" if total_pnl_all >= 0 else ""
 
     st.markdown(f"""
     <div class="kpi-row" style="grid-template-columns:repeat(5,1fr);margin-top:0.8rem;">
@@ -214,14 +217,14 @@ def render_portfolio_tab(positions: list, quant_results: dict) -> None:
         <div class="kpi-sub">LEAPS ללא שורט</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">פרמיה כוללת</div>
+        <div class="kpi-label">פרמיה גבויה</div>
         <div class="kpi-val" style="color:#10b981;">${premium:,.0f}</div>
-        <div class="kpi-sub">ערך שורטים</div>
+        <div class="kpi-sub">עלות שורטים × 100</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">ROC</div>
-        <div class="kpi-val" style="color:#a78bfa;">{roc:.1f}%</div>
-        <div class="kpi-sub">פרמיה / עלות</div>
+        <div class="kpi-label">רווח/הפסד כולל</div>
+        <div class="kpi-val" style="color:{pnl_color};">{pnl_sign}${total_pnl_all:,.0f}</div>
+        <div class="kpi-sub">ROC {roc:.1f}%</div>
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -242,7 +245,7 @@ def render_portfolio_tab(positions: list, quant_results: dict) -> None:
     for ticker in tickers:
         ticker_pos = [p for p in positions if p.get("ticker") == ticker]
         leaps_list = [p for p in ticker_pos if p.get("type") == "LEAPS"]
-        short_list = [p for p in ticker_pos if p.get("type") in ("SHORT", "SHORT_CALL")]
+        short_list = [p for p in ticker_pos if p.get("type") in ("SHORT", "SHORT_CALL", "LONG_CALL", "LONG_PUT")]
         
         total_ticker_leaps = sum(abs(p.get("qty", 1)) for p in leaps_list)
 
@@ -294,20 +297,29 @@ def render_portfolio_tab(positions: list, quant_results: dict) -> None:
         # Draw physical pairs by duplicating positions by their quantity for visual pairing
         visual_leaps = []
         for lp in leaps_list:
-            visual_leaps.extend([lp] * abs(lp.get("qty", 1)))
+            visual_leaps.extend([lp] * int(abs(lp.get("qty", 1))))
             
         visual_shorts = []
         for sp in short_list:
-            visual_shorts.extend([sp] * abs(sp.get("qty", 1)))
+            visual_shorts.extend([sp] * int(abs(sp.get("qty", 1))))
         
         available_shorts = list(visual_shorts)
         
-        # Fetch real-time fallback data (Spot, HV30) if quant results are missing
-        vol_baseline = _fetch_vol_data(ticker, 0, "", "C")
-        ticker_spot = close_val if close_val else vol_baseline.get("spot", 0)
-        ticker_hv30 = hv30_val if hv30_val and hv30_val > 0.01 else vol_baseline.get("hv30", 0.25)
+        # Fetch baseline spot + HV from yfinance — deferred for speed
+        ticker_spot = close_val if close_val else 0
+        ticker_hv30 = hv30_val if hv30_val and hv30_val > 0.01 else 0.25
+        # Lazy-load vol data only if quant data is missing
+        _vol_loaded = False
+        def _lazy_vol():
+            nonlocal ticker_spot, ticker_hv30, _vol_loaded
+            if not _vol_loaded:
+                vol_baseline = _fetch_vol_data(ticker, 0, "", "C")
+                if not ticker_spot: ticker_spot = vol_baseline.get("spot", 0)
+                if ticker_hv30 <= 0.01: ticker_hv30 = vol_baseline.get("hv30", 0.25)
+                _vol_loaded = True
 
         for leaps_p in visual_leaps:
+            _lazy_vol()  # fetch spot/hv30 lazily — once per ticker
             matched_short = available_shorts.pop(0) if available_shorts else None
             
             # Warn if LEAPS is close to 360 days (roughly 1 year)

@@ -118,31 +118,70 @@ class TWSClient:
             if r.get("ok"):
                 pos_list = []
                 for p in r.get("positions", []):
-                    base_sym = p.get("symbol", "UNKNOWN")
-                    secType = p.get("secType", "STK")
+                    raw_sym = p.get("symbol", "UNKNOWN")
+                    parts   = raw_sym.split()
+                    # Guard: old worker returns "AMZN 20260618 290.0C" — extract base ticker
+                    base_sym = parts[0] if parts else "UNKNOWN"
+
+                    # --- Detect secType, expiry, strike, right ---
+                    # New worker: has explicit fields
+                    # Old worker: everything embedded in symbol string
+                    secType   = p.get("secType", "")
+                    strike    = float(p.get("strike", 0.0) or 0.0)
+                    expiry    = str(p.get("expiry",  "") or "")
+                    right_str = str(p.get("right",   "") or "")
+
+                    if not secType:
+                        # Auto-detect from old format: "AMZN 20260618 290.0C"
+                        if len(parts) >= 3 and len(parts[1]) == 8 and parts[1].isdigit():
+                            secType = "OPT"
+                            if not expiry:    expiry    = parts[1]
+                            if not right_str and parts[2]:
+                                right_str = parts[2][-1].upper()  # 'C' or 'P'
+                            if strike == 0.0:
+                                try: strike = float(parts[2][:-1])
+                                except: pass
+                        else:
+                            secType = "STK"
+
+                    if not right_str: right_str = "C"
                     is_opt = (secType == "OPT")
-                    
-                    strike = float(p.get("strike", 0.0))
-                    expiry = p.get("expiry", "—")
+
                     opt_type = "STOCK"
-                    dte = 9999
-                    delta = float(p.get("delta") or (1.0 if not is_opt else 0.0))
-                    qty = float(p.get("qty", 0))
-                    
+                    dte      = 9999
+                    delta    = float(p.get("delta") or (1.0 if not is_opt else 0.0))
+                    qty      = float(p.get("qty", 0))
+
                     if is_opt:
                         try:
                             from datetime import datetime as dt
                             exp_date = dt.strptime(expiry, "%Y%m%d")
                             dte = (exp_date.date() - dt.utcnow().date()).days
                         except: pass
-                        opt_type = "LEAPS" if (dte > 270 and qty > 0) else ("SHORT_CALL" if qty < 0 else "OTHER")
-                    
+                        if qty < 0:
+                            opt_type = "SHORT_CALL"        # כל שורט (קול או פוט)
+                        elif dte > 270:
+                            opt_type = "LEAPS"             # אופציה ארוכת-טווח
+                        elif right_str.upper() == "P":
+                            opt_type = "LONG_PUT"          # פוט קצר-טווח
+                        else:
+                            opt_type = "LONG_CALL"         # קול קצר-טווח
+
                     pos_list.append({
-                        "conId": p.get("con_id", 0), "ticker": base_sym, "type": opt_type,
-                        "strike": strike, "expiry": expiry,
-                        "qty": qty, "dte": dte, "delta": delta,
-                        "cost_basis": float(p.get("avg_cost", 0)), "current_price": float(p.get("current_price") or p.get("marketPrice") or 0),
-                        "premium_received": 0.0, "underlying_price": float(p.get("marketPrice", 0)),
+                        "conId":             p.get("con_id", 0),
+                        "ticker":            base_sym,
+                        "type":              opt_type,
+                        "right":             right_str,
+                        "strike":            strike,
+                        "expiry":            expiry,
+                        "qty":               qty,
+                        "dte":               dte,
+                        "delta":             delta,
+                        "cost_basis":        float(p.get("avg_cost", 0) or 0),
+                        "current_price":     float(p.get("current_price") or p.get("marketPrice") or 0),
+                        "premium_received":  0.0,
+                        "underlying_price":  float(p.get("marketPrice", 0) or 0),
+                        "unrealizedPNL":     float(p.get("unrealizedPNL") or 0),
                     })
                 return pos_list
         except Exception as e:
