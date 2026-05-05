@@ -9,6 +9,13 @@ import streamlit as st
 import time
 import pandas as pd
 from datetime import datetime, timezone, timedelta
+from streamlit.runtime.scriptrunner import get_script_run_ctx
+
+# בולם זעזועים: אם אנחנו בתהליך רקע (תזמון), נדפיס לטרמינל. אם אנחנו במסך, נדפיס למסך כרגיל.
+orig_write = st.write; orig_success = st.success; orig_error = st.error
+st.write = lambda *a, **k: orig_write(*a, **k) if get_script_run_ctx() else print("[Background]", *a)
+st.success = lambda *a, **k: orig_success(*a, **k) if get_script_run_ctx() else print("[Background SUCCESS]", *a)
+st.error = lambda *a, **k: orig_error(*a, **k) if get_script_run_ctx() else print("[Background ERROR]", *a)
 
 import config
 import api_ibkr
@@ -308,8 +315,11 @@ background:linear-gradient(135deg,#f59e0b,#ef4444);
             
             if st.button(f"📤 פתח Iron Condor ל-{ticker}", type="primary", use_container_width=True):
                 custom_esc = {"step_pct": esc_step, "wait_secs": esc_wait}
-                actual_sched = None if immediate else (sched_time if sched_time else None)
-                _execute_earnings_sequence(ticker, bot_mode, multiplier, wing_width, qty, scheduled_time=actual_sched, custom_esc=custom_esc)
+                if immediate:
+                    _execute_earnings_sequence(ticker, bot_mode, multiplier, wing_width, qty, scheduled_time=None, custom_esc=custom_esc)
+                else:
+                    api_ibkr.schedule_internal_task(sched_time, _execute_earnings_sequence, ticker, bot_mode, multiplier, wing_width, qty, scheduled_time=None, custom_esc=custom_esc)
+                    st.success(f"המערכת תמתין ותריץ את הניתוח המלא מול יאהו והוורקר בשעה {sched_time}")
 
     # 2. Wholesale Wholesale Mode (NEW)
     with st.expander("📦 Wholesale Iron Condor (Bulk & Timer)", expanded=False):
@@ -391,12 +401,14 @@ background:linear-gradient(135deg,#f59e0b,#ef4444);
                     cols[4].write(l.get("expiry", "—"))
                     cols[5].code(l.get("conId", "—"))
                 
-                if st.button(f"🛑 סגור רגליים נבחרות ב-{t}", key=f"final_close_btn_{t}", type="primary", use_container_width=True):
+                close_time = st.text_input(f"שעת סגירה ל-{t}", value="09:30", key=f"close_time_{t}")
+                if st.button(f"🛑 סגור/תזמן סגירה ל-{t}", key=f"final_close_btn_{t}", type="primary", use_container_width=True):
                     selected_data = [legs[idx] for idx in selected_legs_indices]
                     if not selected_data:
                         st.warning("נא לבחור לפחות רגל אחת לסגירה.")
                     else:
-                        _execute_ic_close_direct(t, selected_data, bot_mode)
+                        api_ibkr.schedule_internal_task(close_time, _execute_ic_close_direct, t, selected_data, bot_mode)
+                        st.success(f"סגירת הפוזיציה במחירי זמן-אמת תוזמנה לשעה {close_time}")
     # 4. Escalation Monitor (Premium Redesign)
 
     # 4. Escalation Monitor (Premium Redesign)

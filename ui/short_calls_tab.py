@@ -3,6 +3,7 @@ ui/short_calls_tab.py — Tab 2: Short Calls Engine
 All IBKR actions go through api_ibkr (:8002).
 Option chain search uses api_yahoo (:8001).
 """
+import requests
 import streamlit as st
 from datetime import datetime
 from typing import Optional
@@ -180,7 +181,7 @@ border:1px solid {meta['color']};">{meta['label']}</span>
                 if st.button(f"🔍 סרוק {ticker}", key=f"scan_{ticker}", use_container_width=True):
                     with st.spinner(f"מחפש שורט קול ל-{ticker} ב-api_yahoo..."):
                         try:
-                            r = requests.get(f"{YAHOO}/options/search",
+                            r = requests.get(f"{config.YAHOO_API_URL}/options/search",
                                              params={"ticker": ticker,
                                                      "min_dte": max(14, short_dte - 15),
                                                      "max_dte": short_dte + 20,
@@ -188,14 +189,14 @@ border:1px solid {meta['color']};">{meta['label']}</span>
                                                      "right": "C",
                                                      "n": 3},
                                              timeout=20)
-                            data = r
+                            data = r.json()
                             chain = data.get("data", []) if data.get("ok") else []
                             if chain:
                                 st.session_state[f"short_chain_{ticker}"] = chain
                             else:
                                 st.error(f"לא נמצאו אופציות מתאימות ל-{ticker} (DTE {max(14,short_dte-15)}-{short_dte+20})")
                         except requests.exceptions.ConnectionError:
-                            st.error("❌ api_yahoo לא פועל על פורט 8001")
+                            st.error("❌ api_yahoo לא פועל")
                         except Exception as e:
                             st.error(f"שגיאה: {e}")
 
@@ -334,7 +335,7 @@ border-radius:14px;padding:0.9rem 1.2rem;margin-bottom:0.6rem;">
                         "limit_price": man_mid, "order_type": "LMT", "tif": "DAY"
                     }
                     r = api_ibkr.place_order(payload["ticker"], payload["strike"], payload["expiry"], payload["right"], payload["action"], payload["qty"], payload.get("limit_price"))
-                    if r.status_code == 200:
+                    if r.get("ok"):
                         st.success(f"✅ פקודה נשלחה: {r.get('order_id','')}")
                         if bot_mode >= 1:
                             _send_telegram(
@@ -342,7 +343,7 @@ border-radius:14px;padding:0.9rem 1.2rem;margin-bottom:0.6rem;">
                                 f"${man_strike:.0f} {man_expiry} @ ${man_mid:.2f}"
                             )
                     else:
-                        st.error(f"שגיאה בשליחת פקודה: {r.text}")
+                        st.error(f"שגיאה בשליחת פקודה: {r.get('error', r)}")
                 except Exception as e:
                     st.error(f"שגיאת תקשורת: {e}")
 
@@ -393,8 +394,8 @@ def _execute_short_sell(tws, leaps_pos: dict, opt: dict, tp_pct: float,
             "order_type": "LMT", "tif": "DAY"
         }
         r_sell = api_ibkr.place_order(sell_payload["ticker"], sell_payload["strike"], sell_payload["expiry"], sell_payload["right"], sell_payload["action"], sell_payload["qty"], sell_payload.get("limit_price"))
-        if r_sell.status_code != 200:
-            st.error(f"כשל במכירה: {r_sell.text}")
+        if not r_sell.get("ok"):
+            st.error(f"כשל במכירה: {r_sell.get('error', r_sell)}")
             return
         oid = r_sell.get("order_id", "???")
         
@@ -464,10 +465,10 @@ def _handle_short_action(tws, sc: dict, is_tp: bool, is_roll: bool,
                 "order_type": "LMT", "tif": "DAY"
             }
             r = api_ibkr.place_order(payload["ticker"], payload["strike"], payload["expiry"], payload["right"], payload["action"], payload["qty"], payload.get("limit_price"))
-            if r.status_code == 200:
+            if r.get("ok"):
                 st.success(f"✅ פקודת סגירה (TP) נשלחה עבור {ticker}")
             else:
-                st.error(f"כשל בסגירה: {r.text}")
+                st.error(f"כשל בסגירה: {r.get('error', r)}")
         
         elif is_roll:
             # 1. Search for new target short call
@@ -497,22 +498,17 @@ def _handle_short_action(tws, sc: dict, is_tp: bool, is_roll: bool,
             # Limit Price for credit roll: (BUY_mid - SELL_mid). Usually negative (credit).
             combo_mid = round(cur_px - new_mid, 2)
             
-            combo_payload = {
-                "ticker": ticker,
-                "qty": qty,
-                "buy_strike": strike,
-                "buy_expiry": expiry,
-                "sell_strike": new_strike,
-                "sell_expiry": new_expiry,
-                "limit_price": combo_mid,
-                "escalation_step_pct": 1.0
-            }
-            r_combo = api_ibkr.place_combo(combo_payload["ticker"], combo_payload["legs"], combo_payload["limit_price"], combo_payload["use_market"], combo_payload["escalation_step_pct"], combo_payload["escalation_wait_secs"])
-            if r_combo.status_code == 200:
+            combo_legs = [
+                {"strike": strike, "expiry": expiry, "right": "C", "action": "BUY", "qty": qty},
+                {"strike": new_strike, "expiry": new_expiry, "right": "C", "action": "SELL", "qty": qty}
+            ]
+            
+            r_combo = api_ibkr.place_combo(ticker, combo_legs, limit_price=combo_mid, escalation_step_pct=1.0)
+            if r_combo.get("ok"):
                 st.success(f"✅ פקודת גלגול קומבו נשלחה עבור {ticker}!")
                 st.info(f"🔄 גלגול: {strike}@{expiry} -> {new_strike}@{new_expiry} | Net Mid: ${combo_mid:.2f}")
             else:
-                st.error(f"כשל בגלגול: {r_combo.text}")
+                st.error(f"כשל בגלגול: {r_combo.get('error', r_combo)}")
 
     except Exception as e:
         st.error(f"שגיאת ביצוע פעולה: {e}")

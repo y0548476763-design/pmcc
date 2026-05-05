@@ -4,8 +4,28 @@ Provides Python wrapper functions to interact with the IBKR microservice.
 No ib_insync logic here.
 """
 import requests
+import threading
+import time
+from datetime import datetime
 from typing import List, Dict, Optional
 import config
+
+def schedule_internal_task(target_time_str: str, task_func, *args, **kwargs):
+    def _runner():
+        try:
+            now = datetime.now()
+            if ":" in target_time_str and "T" not in target_time_str:
+                parts = target_time_str.split(":")
+                target = now.replace(hour=int(parts[0]), minute=int(parts[1]), second=0, microsecond=0)
+                if target < now: target = target.replace(day=target.day + 1)
+            else:
+                target = datetime.fromisoformat(target_time_str)
+            delay = (target - now).total_seconds()
+            if delay > 0: time.sleep(delay)
+            task_func(*args, **kwargs)
+        except Exception as e:
+            print(f"Scheduler Error: {e}")
+    threading.Thread(target=_runner, daemon=True).start()
 
 # The IBKR worker is running on port 8001
 WORKER_URL = config.IBKR_API_URL
@@ -13,13 +33,14 @@ TIMEOUT = 30
 
 def health_check() -> dict:
     try:
-        return requests.get(f"{WORKER_URL}/health", timeout=5).json()
+        r = requests.get(f"{WORKER_URL}/status", timeout=5).json()
+        return {"ok": True, "connected": r.get("connected", False)}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
 def connect(mode: str = "DEMO") -> dict:
     try:
-        return requests.post(f"{WORKER_URL}/api/ibkr/connect", params={"mode": mode}, timeout=10).json()
+        return requests.post(f"{WORKER_URL}/connect", timeout=10).json()
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -43,16 +64,11 @@ def qualify_combo(ticker: str, legs: List[dict]) -> dict:
         return {"ok": False, "error": str(e)}
 
 def qualify_contract(ticker: str, strike: float, expiry: str, right: str = "C") -> dict:
-    """Wrapper around qualify_combo for a single leg."""
     try:
-        payload = {
-            "ticker": ticker,
-            "legs": [{"strike": strike, "expiry": expiry, "right": right, "action": "BUY", "qty": 1}]
-        }
-        r = requests.post(f"{WORKER_URL}/api/ibkr/qualify_combo", json=payload, timeout=TIMEOUT).json()
-        if not r.get("ok"): return {"ok": False, "error": r.get("detail", "Error")}
-        leg = r["legs"][0]
-        return {"ok": True, "conId": leg["conId"], "ticker": ticker, "strike": strike, "expiry": expiry, "mid": leg["mid"]}
+        payload = {"symbol": ticker, "secType": "OPT", "action": "BUY", "ratio": 1, "strike": strike, "expiry": expiry, "right": right}
+        r = requests.post(f"{WORKER_URL}/qualify", json=payload, timeout=TIMEOUT).json()
+        if not r.get("ok"): return {"ok": False, "error": r.get("error", "Error")}
+        return {"ok": True, "conId": r.get("con_id"), "ticker": ticker, "strike": strike, "expiry": expiry, "mid": 0.0}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -108,22 +124,24 @@ def get_active_orders() -> dict:
         return {"ok": False, "error": str(e)}
 
 def get_escalations_status() -> dict:
-    """Return live status of all escalation loops from the worker."""
     try:
-        return requests.get(f"{WORKER_URL}/api/escalations/status", timeout=5).json()
+        r = requests.get(f"{WORKER_URL}/monitor", timeout=5).json()
+        escalations = [{"order_id": oid, "status": info.get("internal_status", ""), "ib_status": info.get("ib_status", ""), "current_price": info.get("final_fill", 0.0)} for oid, info in r.items()]
+        return {"ok": True, "escalations": escalations}
     except Exception as e:
         return {"ok": False, "escalations": [], "error": str(e)}
 
 def cancel_escalation(order_id: int) -> dict:
-    """Request the worker to stop escalating a specific order."""
     try:
-        return requests.delete(f"{WORKER_URL}/api/escalations/{order_id}", timeout=5).json()
+        return requests.post(f"{WORKER_URL}/cancel_all", timeout=5).json()
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
 def get_iv(ticker: str) -> dict:
     try:
-        return requests.get(f"{WORKER_URL}/api/ibkr/get_iv/{ticker}", timeout=15).json()
+        r = requests.post(f"{WORKER_URL}/ticker", json={"symbol": ticker, "secType": "STK", "action": "BUY", "ratio": 1}, timeout=15).json()
+        if "error" in r: return {"ok": False, "error": r["error"]}
+        return {"ok": True, "iv": r.get("avg_iv") or r.get("iv") or 0.0, "price": r.get("price", 0.0), "rank": r.get("iv_rank", 0.0)}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
