@@ -103,25 +103,21 @@ async def qualify_contract(leg: Leg):
 @app.get("/portfolio")
 async def get_portfolio():
     if not ib.isConnected(): return []
-    def get_avg_cost(p):
-        cost = getattr(p, "averageCost", 0.0)
-        if p.contract.secType == 'OPT' and getattr(p.contract, "multiplier", None):
-            try: return cost / float(p.contract.multiplier)
-            except: return cost
-        return cost
-
-    def get_sym(p):
-        if p.contract.secType == 'OPT':
-            return f"{p.contract.symbol} {p.contract.lastTradeDateOrContractMonth} {p.contract.strike}{p.contract.right}"
-        return p.contract.symbol
-
-    return sanitize([{
-        "symbol": get_sym(p), 
-        "qty": p.position, 
-        "avg_cost": get_avg_cost(p), 
-        "marketPrice": p.marketPrice, 
-        "unrealizedPNL": p.unrealizedPNL
-    } for p in ib.portfolio()])
+    res = []
+    for p in ib.portfolio():
+        res.append({
+            "symbol": p.contract.symbol,
+            "con_id": getattr(p.contract, 'conId', 0),
+            "secType": getattr(p.contract, 'secType', 'STK'),
+            "strike": getattr(p.contract, 'strike', 0.0),
+            "expiry": getattr(p.contract, 'lastTradeDateOrContractMonth', ''),
+            "right": getattr(p.contract, 'right', ''),
+            "qty": p.position,
+            "avg_cost": getattr(p, "averageCost", 0.0),
+            "marketPrice": p.marketPrice,
+            "unrealizedPNL": p.unrealizedPNL
+        })
+    return sanitize(res)
 
 @app.get("/account")
 async def get_account():

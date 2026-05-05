@@ -34,23 +34,17 @@ def get_positions() -> dict:
 
         for pos in raw_portfolio:
             # 2. עבור כל פוזיציה, נבצע שאילתה ל-/ticker לקבלת נתונים מלאים
-            # אנחנו מניחים שהוורקר מחזיר symbol ו-con_id בסיסי
-            # Extract base symbol from the formatted string like "UNH 20260605 480C"
-            sym_parts = pos.get("symbol", "").split()
-            base_sym = sym_parts[0] if sym_parts else ""
-            
             leg_payload = {
-                "symbol": base_sym,
-                "secType": "OPT" if len(sym_parts) > 1 else "STK",
+                "symbol": pos.get("symbol"),
+                "secType": pos.get("secType", "STK"),
                 "action": "BUY",
                 "ratio": 1,
-                "con_id": pos.get("con_id", 0) # Note: we didn't add con_id to the portfolio output yet, but this is fine as fallback
+                "con_id": pos.get("con_id", 0) 
             }
-            # If it's an option, parse expiry, strike, right from the symbol string
-            if len(sym_parts) >= 3:
-                leg_payload["expiry"] = sym_parts[1]
-                leg_payload["strike"] = float(sym_parts[2][:-1]) if sym_parts[2][:-1].replace('.','',1).isdigit() else 0
-                leg_payload["right"] = sym_parts[2][-1]
+            if pos.get("secType") == "OPT":
+                leg_payload["expiry"] = pos.get("expiry")
+                leg_payload["strike"] = pos.get("strike")
+                leg_payload["right"] = pos.get("right")
             
             ticker_data = requests.post(f"{WORKER_URL}/ticker", json=leg_payload, timeout=10).json()
             

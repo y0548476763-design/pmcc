@@ -148,8 +148,57 @@ with tabs[3]:
     
     st.write("---")
     if st.button("טען פוזיציות בתיק"):
-        port = requests.get(f"{WORKER_URL}/portfolio").json()
-        if port:
-            df = pd.DataFrame(port)
-            df.columns = ["סימול", "כמות", "עלות ממוצעת", "מחיר שוק", "רווח לא ממומש"]
-            st.dataframe(df.style.format({"עלות ממוצעת": "${:.2f}", "מחיר שוק": "${:.2f}", "רווח לא ממומש": "${:.2f}"}))
+        with st.spinner("מייבא נתוני תיק, סטרייקים ויווניות... (יכול לקחת כמה שניות)"):
+            import sys
+            import os
+            from datetime import datetime
+            sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/..")
+            try:
+                import api_ibkr
+                res = api_ibkr.get_positions()
+                if res.get("ok"):
+                    port = res.get("positions", [])
+                    if port:
+                        # Calculate DTE for each position
+                        for p in port:
+                            p['DTE'] = None
+                            exp = p.get('expiry')
+                            if exp and str(exp) != "—":
+                                try:
+                                    exp_date = datetime.strptime(str(exp), "%Y%m%d").date()
+                                    p['DTE'] = (exp_date - datetime.utcnow().date()).days
+                                except: pass
+
+                        df = pd.DataFrame(port)
+                        # Translate some common columns
+                        rename_map = {
+                            "symbol": "סימול",
+                            "expiry": "פקיעה",
+                            "strike": "סטרייק",
+                            "right": "C/P",
+                            "qty": "כמות",
+                            "avg_cost": "עלות",
+                            "current_price": "מחיר שוק",
+                            "unrealizedPNL": "רווח/הפסד",
+                            "delta": "דלתא"
+                        }
+                        df = df.rename(columns=rename_map)
+                        
+                        # Only keep desired columns if they exist
+                        desired_cols = ["סימול", "פקיעה", "DTE", "סטרייק", "C/P", "כמות", "עלות", "מחיר שוק", "רווח/הפסד", "דלתא"]
+                        display_cols = [c for c in desired_cols if c in df.columns]
+                        df = df[display_cols]
+                        
+                        # Only apply formatting to columns that exist
+                        fmt_dict = {}
+                        for col in ["עלות", "מחיר שוק", "רווח/הפסד"]:
+                            if col in df.columns: fmt_dict[col] = "${:.2f}"
+                        if "דלתא" in df.columns: fmt_dict["דלתא"] = "{:.3f}"
+                            
+                        st.dataframe(df.style.format(fmt_dict, na_rep="N/A"))
+                    else:
+                        st.info("התיק ריק.")
+                else:
+                    st.error(f"שגיאה בייבוא התיק: {res.get('error')}")
+            except Exception as e:
+                st.error(f"שגיאה: {e}")

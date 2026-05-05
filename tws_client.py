@@ -118,32 +118,29 @@ class TWSClient:
             if r.get("ok"):
                 pos_list = []
                 for p in r.get("positions", []):
-                    # p format from api_ibkr: {"symbol": "UNH 20260605 480C", "qty": 1, "avg_cost": 15.83, "current_price": 16.0...}
-                    sym_parts = str(p.get("symbol", "")).split()
-                    base_sym = sym_parts[0] if sym_parts else "UNKNOWN"
-                    is_opt = len(sym_parts) >= 3
+                    base_sym = p.get("symbol", "UNKNOWN")
+                    secType = p.get("secType", "STK")
+                    is_opt = (secType == "OPT")
                     
-                    strike = 0.0
-                    expiry = "—"
+                    strike = float(p.get("strike", 0.0))
+                    expiry = p.get("expiry", "—")
                     opt_type = "STOCK"
                     dte = 9999
                     delta = float(p.get("delta") or (1.0 if not is_opt else 0.0))
+                    qty = float(p.get("qty", 0))
                     
                     if is_opt:
-                        expiry = sym_parts[1]
                         try:
-                            strike = float(sym_parts[2][:-1]) if sym_parts[2][:-1].replace('.','',1).isdigit() else 0.0
                             from datetime import datetime as dt
                             exp_date = dt.strptime(expiry, "%Y%m%d")
                             dte = (exp_date.date() - dt.utcnow().date()).days
                         except: pass
-                        qty = float(p.get("qty", 0))
                         opt_type = "LEAPS" if (dte > 270 and qty > 0) else ("SHORT_CALL" if qty < 0 else "OTHER")
                     
                     pos_list.append({
                         "conId": p.get("con_id", 0), "ticker": base_sym, "type": opt_type,
                         "strike": strike, "expiry": expiry,
-                        "qty": float(p.get("qty", 0)), "dte": dte, "delta": delta,
+                        "qty": qty, "dte": dte, "delta": delta,
                         "cost_basis": float(p.get("avg_cost", 0)), "current_price": float(p.get("current_price") or p.get("marketPrice") or 0),
                         "premium_received": 0.0, "underlying_price": float(p.get("marketPrice", 0)),
                     })
