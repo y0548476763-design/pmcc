@@ -61,7 +61,7 @@ def render_sidebar(tws_client) -> None:
                 st.session_state["positions"] = list(config.DEMO_POSITIONS)
                 st.rerun()
 
-        is_socket_connected = getattr(tws_client, "ib", None) is not None and tws_client.ib.isConnected()
+        is_socket_connected = getattr(tws_client, "connected", False)
         connected = st.session_state.get("connected", False) and is_socket_connected
         status_html = (
             '<span class="badge badge-green">● LIVE</span>'

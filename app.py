@@ -30,6 +30,7 @@ from ui.short_calls_tab import render_short_calls_tab
 from ui.roll_tab        import render_roll_tab
 from ui.cash_tab        import render_cash_tab
 from ui.bot_tab         import render_bot_tab
+from ui.earnings_tab    import render_earnings_tab
 
 # ── Session Init ──
 _DEFAULTS = {
@@ -161,14 +162,13 @@ with c2:
         st.write("")
 with c3:
     if st.button("🔄 רענן", key="refresh", use_container_width=True):
-        if is_conn and tws.ib: 
-            tws.ib.reqPositions()
-            tws.ib.sleep(0.5)
+        if is_conn: 
+            tws._refresh_account()
         st.session_state["last_live_refresh"] = 0
         st.rerun()
 
 # ── UI: Tabs ──
-t1, t2, t3, t4, t5 = st.tabs(["📊 פרוטפוליו", "📞 שורט קולים", "🔄 גלגול LEAPS", "💰 מזומן", "🤖 בוט"])
+t1, t2, t3, t4, t5, t6 = st.tabs(["📊 פרוטפוליו", "📞 שורט קולים", "🔄 גלגול LEAPS", "📈 מודל B (דוחות)", "💰 מזומן", "🤖 בוט"])
 
 with t1:
     col_q, _ = st.columns([1,4])
@@ -183,5 +183,6 @@ with t1:
 
 with t2: render_short_calls_tab(positions, qr, tws)
 with t3: render_roll_tab(tws)
-with t4: render_cash_tab(positions, qr, tws)
-with t5: render_bot_tab(tws)
+with t4: render_earnings_tab()
+with t5: render_cash_tab(positions, qr, tws)
+with t6: render_bot_tab(tws)

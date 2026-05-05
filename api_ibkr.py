@@ -24,8 +24,48 @@ def connect(mode: str = "DEMO") -> dict:
         return {"ok": False, "error": str(e)}
 
 def get_positions() -> dict:
+    """
+    משיכת התיק והעשרתו ביווניות ופרטי חוזה באמצעות קריאות עקיפות ל-/ticker.
+    """
     try:
-        return requests.get(f"{WORKER_URL}/api/ibkr/positions", timeout=15).json()
+        # 1. משיכת רשימת הפוזיציות הבסיסית מהוורקר
+        raw_portfolio = requests.get(f"{WORKER_URL}/portfolio", timeout=15).json()
+        enriched_positions = []
+
+        for pos in raw_portfolio:
+            # 2. עבור כל פוזיציה, נבצע שאילתה ל-/ticker לקבלת נתונים מלאים
+            # אנחנו מניחים שהוורקר מחזיר symbol ו-con_id בסיסי
+            # Extract base symbol from the formatted string like "UNH 20260605 480C"
+            sym_parts = pos.get("symbol", "").split()
+            base_sym = sym_parts[0] if sym_parts else ""
+            
+            leg_payload = {
+                "symbol": base_sym,
+                "secType": "OPT" if len(sym_parts) > 1 else "STK",
+                "action": "BUY",
+                "ratio": 1,
+                "con_id": pos.get("con_id", 0) # Note: we didn't add con_id to the portfolio output yet, but this is fine as fallback
+            }
+            # If it's an option, parse expiry, strike, right from the symbol string
+            if len(sym_parts) >= 3:
+                leg_payload["expiry"] = sym_parts[1]
+                leg_payload["strike"] = float(sym_parts[2][:-1]) if sym_parts[2][:-1].replace('.','',1).isdigit() else 0
+                leg_payload["right"] = sym_parts[2][-1]
+            
+            ticker_data = requests.post(f"{WORKER_URL}/ticker", json=leg_payload, timeout=10).json()
+            
+            # 3. איחוד הנתונים לכדי פוזיציה עשירה אחת
+            enriched_positions.append({
+                **pos,
+                "delta": ticker_data.get("delta"),
+                "theta": ticker_data.get("theta"),
+                "iv": ticker_data.get("iv"),
+                "current_price": ticker_data.get("price"),
+                "bid": ticker_data.get("bid"),
+                "ask": ticker_data.get("ask")
+            })
+            
+        return {"ok": True, "positions": enriched_positions}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -63,15 +103,38 @@ def place_order(ticker: str, strike: float, expiry: str, right: str = "C", actio
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
-def place_combo(ticker: str, legs: List[dict], limit_price: float, use_market: bool = False, escalation_step_pct: float = 1.0, escalation_wait_secs: int = 180, scheduled_time: str = None) -> dict:
+def place_combo(ticker: str, legs: List[dict], limit_price: float, use_market: bool = False, 
+                escalation_step_pct: float = 1.0, escalation_wait_secs: int = 60, **kwargs) -> dict:
+    """
+    שליחת קומבו (כולל גלגולי ליפסים ודוחות) לוורקר החדש.
+    הלוגיקה של יאהו נשמרת - הוורקר יבצע את ה-Qualify.
+    """
     try:
+        mapped_legs = []
+        for l in legs:
+            mapped_legs.append({
+                "symbol": ticker,
+                "secType": "OPT",
+                "action": l.get("action", "BUY"),
+                "ratio": l.get("qty", 1),
+                "strike": l.get("strike"),
+                "expiry": l.get("expiry"),
+                "right": l.get("right", "C"),
+                "con_id": l.get("con_id", 0)
+            })
+        
         payload = {
-            "ticker": ticker, "legs": legs, "limit_price": limit_price, "use_market": use_market,
-            "escalation_step_pct": escalation_step_pct, "escalation_wait_secs": escalation_wait_secs
+            "action": "BUY", # בדרך כלל BUY עבור נטו דביט/קרדיט בקומבו
+            "order_type": "MKT" if use_market else "LMT",
+            "total_qty": 1,
+            "lmt_price": limit_price,
+            "esc_pct": escalation_step_pct / 100.0,
+            "esc_interval": escalation_wait_secs,
+            "max_steps": 10,
+            "legs": mapped_legs
         }
-        if scheduled_time:
-            payload["scheduled_time"] = scheduled_time
-        return requests.post(f"{WORKER_URL}/order/combo", json=payload, timeout=60).json()
+        r = requests.post(f"{WORKER_URL}/submit", json=payload, timeout=30).json()
+        return {"ok": True, "order_id": r.get("order_id"), "message": "הבקשה נשלחה לוורקר"}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 

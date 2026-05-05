@@ -98,7 +98,7 @@ class OrderManager:
         order_id = None
         initial_status = "PENDING"
 
-        if submit_to_tws and self._tws and getattr(self._tws, "ib", None) and self._tws.ib.isConnected():
+        if submit_to_tws and self._tws and self._tws.connected:
             try:
                 if is_combo:
                     # Generic combo (not BAG) - Note: BAG is handled outside
@@ -254,7 +254,7 @@ class OrderManager:
 
         # Attempt native modification if live
         modified = False
-        if self._tws and mo.order_id and getattr(self._tws, "ib", None) and self._tws.ib.isConnected():
+        if self._tws and mo.order_id and self._tws.connected:
             # For combos, modify_order works the same (updates the limit price of the Bag order)
             modified = self._tws.modify_order(mo.order_id, escalation_price)
         

@@ -66,177 +66,91 @@ class TWSClient:
             self._log_callback(level, msg)
 
     def connect(self, mode: str = "DEMO", host: str = "127.0.0.1", port: int = None, client_id: int = None, timeout: int = 3) -> bool:
-        """Try to connect to TWS. Returns True if successful."""
-        if not IB_AVAILABLE:
-            self._log("WARN", "⚠️ ספריית ib_insync לא מותקנת. המערכת תישאר במצב DEMO בלבד.")
-            return False
-
-        if self.connected and self.mode == mode and self.ib and self.ib.isConnected():
-            return True
-
-        if self.ib is not None:
-            try: self.ib.disconnect()
-            except: pass
-            self.ib = None
-            self.connected = False
-
+        """Connect to the standalone IBKR worker."""
         self.mode = mode
-        port = port or (config.TWS_PORT_DEMO if mode == "DEMO" else config.TWS_PORT_LIVE)
-        host = host or (config.REMOTE_TWS_HOST if config.REMOTE_TWS_HOST else config.TWS_HOST)
-        cid  = client_id or config.TWS_CLIENT_ID
-
-        # For auto-connect, we only try once and with a short timeout to prevent UI hang
         try:
-            self.ib = IB()
-            self.ib.connect(host, port, clientId=cid, timeout=timeout)
-            self.connected = True
-            self.ib.reqMarketDataType(2) # Enable frozen data
-            self.ib.reqAllOpenOrders()
-            self.ib.sleep(0.2)
-            self._refresh_account()
-            self._log("INFO", f"✅ חיבור הוקם: {mode} @ {host}:{port}")
-            return True
+            r = requests.post(f"{config.IBKR_API_URL}/connect", timeout=15).json()
+            if "status" in r and "Connected successfully" in r["status"]:
+                self.connected = True
+                self._refresh_account()
+                self._log("INFO", f"✅ חיבור הוקם לוורקר: {mode}")
+                return True
+            else:
+                self._log("WARN", f"חיבור דרך הוורקר נכשל: {r}")
+                self.connected = False
+                return False
         except Exception as e:
-            self._log("WARN", f"חיבור ל-{mode} נכשל: {e}")
-        
-        self.connected = False
-        return False
+            self._log("WARN", f"שגיאת תקשורת עם שרת הוורקר: {e}")
+            self.connected = False
+            return False
 
     async def connectAsync(self, mode: str = "DEMO", host: str = "127.0.0.1", port: int = None, client_id: int = None, timeout: int = 5) -> bool:
-        """Async connect — uses a dedicated thread with its own event loop to avoid Python 3.13 conflict."""
-        if not IB_AVAILABLE: return False
-        if self.connected and self.ib and self.ib.isConnected() and self.mode == mode:
-            return True
-
-        # Disconnect stale connection
-        if self.ib:
-            try: self.ib.disconnect()
-            except: pass
-            self.ib = None
-
-        self.mode = mode
-        port = port or (config.TWS_PORT_DEMO if mode == "DEMO" else config.TWS_PORT_LIVE)
-        host = host or (config.REMOTE_TWS_HOST if config.REMOTE_TWS_HOST else config.TWS_HOST)
-        cid  = client_id or config.TWS_CLIENT_ID
-
-        def _sync_connect():
-            """
-            Runs in a ThreadPoolExecutor thread.
-            Creates a new event loop, connects IB inside it,
-            then keeps the loop running forever (in yet another daemon thread)
-            so that run_coroutine_threadsafe() always has a live loop.
-            """
-            import asyncio as _aio
-            import threading as _th
-
-            loop = _aio.new_event_loop()
-            _aio.set_event_loop(loop)   # Must be set before anything uses asyncio in this thread
-            ib = IB()
-            ib._ib_loop = loop  # Expose loop for run_coroutine_threadsafe
-
-            # Connect synchronously inside the new loop
-            connected_result = []
-            async def _connect():
-                await ib.connectAsync(host, port, clientId=cid, timeout=timeout)
-                ib.reqMarketDataType(2)
-                ib.reqAllOpenOrders()
-                connected_result.append(True)
-
-            loop.run_until_complete(_connect())
-
-            # Now start loop.run_forever() in a daemon thread so IB stays alive
-            def _run_forever():
-                _aio.set_event_loop(loop)
-                loop.run_forever()
-
-            t = _th.Thread(target=_run_forever, daemon=True, name="ib_loop")
-            t.start()
-
-            return ib
-
-        try:
-            loop = asyncio.get_running_loop()
-            self.ib = await loop.run_in_executor(None, _sync_connect)
-            self.connected = True
-            self._refresh_account()
-            self._log("INFO", f"✅ חיבור הוקם: {mode} @ {host}:{port} (acc={self.account_id})")
-            return True
-        except Exception as e:
-            self._log("WARN", f"חיבור ל-{mode}:{port} נכשל: {e}")
-            self.connected = False
-            self.ib = None
-            return False
+        """Wrapper for sync connect."""
+        return self.connect(mode, host, port, client_id, timeout)
 
     def run_ib(self, coro, timeout: int = 20):
-        """
-        Thread-safe: dispatch any ib_insync coroutine to the IB event loop
-        and block until the result is ready. Call this from uvicorn threads.
-        Example:
-            details = tws.run_ib(tws.ib.reqContractDetailsAsync(contract))
-        """
-        ib_loop = getattr(self.ib, '_ib_loop', None)
-        if ib_loop is None:
-            raise RuntimeError("IB loop not available — not connected")
-        import asyncio as _aio
-        future = _aio.run_coroutine_threadsafe(coro, ib_loop)
-        return future.result(timeout=timeout)
+        """Deprecated: worker handles its own async loop."""
+        self._log("WARN", "run_ib called but is deprecated with new worker architecture.")
+        return None
 
     def disconnect(self) -> None:
-        if self.ib and self.connected:
-            self.ib.disconnect()
+        try:
+            requests.post(f"{config.IBKR_API_URL}/disconnect", timeout=5)
+        except: pass
         self.connected = False
-        self._log("INFO", "🔌 נותק מ-TWS.")
+        self._log("INFO", "🔌 נותק משרת הוורקר.")
 
     def _refresh_account(self) -> None:
-        if not self.connected or not self.ib: return
+        if not self.connected: return
         try:
-            accounts = self.ib.managedAccounts()
-            if accounts: self.account_id = accounts[0]
-            vals = self.ib.accountValues(self.account_id)
-            for v in vals:
-                if v.tag == "TotalCashValue" and v.currency == "USD": self.cash_balance = float(v.value)
-                if v.tag == "NetLiquidation" and v.currency == "USD": self.net_liquidation = float(v.value)
+            r = requests.get(f"{config.IBKR_API_URL}/account", timeout=5).json()
+            if "error" not in r:
+                self.cash_balance = r.get("TotalCashValue", 0.0)
+                self.net_liquidation = r.get("NetLiquidation", 0.0)
         except Exception as e:
             self._log("WARN", f"Account refresh error: {e}")
 
     def get_positions(self) -> List[Dict]:
-        if not self.connected or not self.ib: return []
-        positions = []
+        if not self.connected: return []
         try:
-            for pos in self.ib.portfolio():
-                c = pos.contract
-                qty = int(pos.position)
-                if qty == 0: continue
-
-                if c.secType == "OPT":
-                    raw_exp = c.lastTradeDateOrContractMonth
-                    try:
-                        # Handle both YYYYMMDD and YYYY-MM-DD
-                        clean_exp = str(raw_exp).replace("-", "").replace("/", "")
-                        exp = datetime.strptime(clean_exp, "%Y%m%d")
-                        dte = (exp.date() - datetime.utcnow().date()).days
-                    except: 
-                        dte = 0
+            import api_ibkr
+            r = api_ibkr.get_positions()
+            if r.get("ok"):
+                pos_list = []
+                for p in r.get("positions", []):
+                    # p format from api_ibkr: {"symbol": "UNH 20260605 480C", "qty": 1, "avg_cost": 15.83, "current_price": 16.0...}
+                    sym_parts = str(p.get("symbol", "")).split()
+                    base_sym = sym_parts[0] if sym_parts else "UNKNOWN"
+                    is_opt = len(sym_parts) >= 3
                     
-                    opt_type = "LEAPS" if (dte > 270 and qty > 0) else ("SHORT_CALL" if qty < 0 else "OTHER")
+                    strike = 0.0
+                    expiry = "—"
+                    opt_type = "STOCK"
+                    dte = 9999
+                    delta = float(p.get("delta") or (1.0 if not is_opt else 0.0))
                     
-                    positions.append({
-                        "conId": c.conId, "ticker": c.symbol, "type": opt_type,
-                        "strike": float(c.strike), "expiry": raw_exp,
-                        "qty": qty, "dte": dte, "delta": 0.0,
-                        "cost_basis": float(pos.averageCost), "current_price": float(pos.marketPrice),
-                        "premium_received": 0.0, "underlying_price": float(pos.marketValue),
+                    if is_opt:
+                        expiry = sym_parts[1]
+                        try:
+                            strike = float(sym_parts[2][:-1]) if sym_parts[2][:-1].replace('.','',1).isdigit() else 0.0
+                            from datetime import datetime as dt
+                            exp_date = dt.strptime(expiry, "%Y%m%d")
+                            dte = (exp_date.date() - dt.utcnow().date()).days
+                        except: pass
+                        qty = float(p.get("qty", 0))
+                        opt_type = "LEAPS" if (dte > 270 and qty > 0) else ("SHORT_CALL" if qty < 0 else "OTHER")
+                    
+                    pos_list.append({
+                        "conId": p.get("con_id", 0), "ticker": base_sym, "type": opt_type,
+                        "strike": strike, "expiry": expiry,
+                        "qty": float(p.get("qty", 0)), "dte": dte, "delta": delta,
+                        "cost_basis": float(p.get("avg_cost", 0)), "current_price": float(p.get("current_price") or p.get("marketPrice") or 0),
+                        "premium_received": 0.0, "underlying_price": float(p.get("marketPrice", 0)),
                     })
-                elif c.secType in ("STK", "ETF"):
-                    positions.append({
-                        "conId": c.conId, "ticker": c.symbol, "type": "STOCK",
-                        "strike": 0.0, "expiry": "—", "qty": qty, "dte": 9999, "delta": 1.0,
-                        "cost_basis": float(pos.averageCost), "current_price": float(pos.marketPrice),
-                        "premium_received": 0.0, "underlying_price": float(pos.marketValue),
-                    })
+                return pos_list
         except Exception as e:
             self._log("WARN", f"get_positions error: {e}")
-        return positions
+        return []
 
     def get_option_chain(self, ticker: str, right: str = "C",
                           min_dte: int = 14, max_dte: int = 60,
@@ -356,16 +270,37 @@ class TWSClient:
 
     def place_adaptive_order(self, ticker: str, right: str, strike: float, expiry: str,
                              action: str, qty: int, limit_price: float, algo_speed: str = "Normal") -> Optional[int]:
-        if not self.connected or not self.ib: return None
+        if not self.connected: return None
         try:
-            exp_norm = str(expiry).replace("-", "")
-            contract = Option(ticker, exp_norm, strike, right, 'SMART', 'USD', multiplier='100')
-            order = LimitOrder(action, qty, round(limit_price, 2))
-            trade = self.ib.placeOrder(contract, order)
-            return trade.order.orderId
+            import api_ibkr
+            leg = {"strike": strike, "expiry": expiry.replace("-", ""), "right": right, "action": action, "qty": qty}
+            r = api_ibkr.place_combo(ticker, [leg], limit_price, use_market=False, escalation_step_pct=1.0, escalation_wait_secs=30)
+            if r.get("ok"):
+                return r.get("order_id")
+            return None
         except Exception as e:
             self._log("WARN", f"place_order error: {e}")
             return None
+
+    def panic_close_all(self) -> int:
+        if not self.connected: return 0
+        try:
+            import requests, config
+            r = requests.post(f"{config.IBKR_API_URL}/cancel_all", timeout=10).json()
+            if r.get("ok"):
+                return 1
+            return 0
+        except Exception as e:
+            self._log("WARN", f"panic_close_all error: {e}")
+            return 0
+
+    def restart_remote_gateway(self) -> bool:
+        self._log("INFO", "Restarting remote gateway (stub)")
+        return True
+
+    def inject_remote_2fa(self, code: str) -> bool:
+        self._log("INFO", f"Injecting 2FA code (stub)")
+        return True
 
 
 # ── Singleton ──

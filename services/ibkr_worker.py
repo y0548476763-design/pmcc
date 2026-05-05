@@ -103,19 +103,35 @@ async def qualify_contract(leg: Leg):
 @app.get("/portfolio")
 async def get_portfolio():
     if not ib.isConnected(): return []
-    return sanitize([{"symbol": p.contract.symbol, "qty": p.position, "avg_cost": getattr(p, "averageCost", 0.0), "marketPrice": p.marketPrice, "unrealizedPNL": p.unrealizedPNL} for p in ib.portfolio()])
+    def get_avg_cost(p):
+        cost = getattr(p, "averageCost", 0.0)
+        if p.contract.secType == 'OPT' and getattr(p.contract, "multiplier", None):
+            try: return cost / float(p.contract.multiplier)
+            except: return cost
+        return cost
+
+    def get_sym(p):
+        if p.contract.secType == 'OPT':
+            return f"{p.contract.symbol} {p.contract.lastTradeDateOrContractMonth} {p.contract.strike}{p.contract.right}"
+        return p.contract.symbol
+
+    return sanitize([{
+        "symbol": get_sym(p), 
+        "qty": p.position, 
+        "avg_cost": get_avg_cost(p), 
+        "marketPrice": p.marketPrice, 
+        "unrealizedPNL": p.unrealizedPNL
+    } for p in ib.portfolio()])
 
 @app.get("/account")
 async def get_account():
     if not ib.isConnected(): return {"error": "Not connected"}
-    async def _get_acc():
-        summary = await ib.reqAccountSummaryAsync()
-        acc_data = {}
-        for item in summary:
+    acc_data = {}
+    try:
+        for item in ib.accountValues():
             if item.tag in ['NetLiquidation', 'AvailableFunds', 'TotalCashValue', 'BuyingPower']:
                 acc_data[item.tag] = float(item.value)
-        return acc_data
-    try: return sanitize(run_in_ib(_get_acc()))
+        return sanitize(acc_data)
     except Exception as e: return {"error": str(e)}
 
 @app.post("/ticker")

@@ -203,7 +203,7 @@ def render_order_tab(positions: List[Dict], tws_client=None) -> None:
                 st.error(f"❌ Order {iid} was explicitly REJECTED by TWS. Check parameters (e.g. invalid Strike/Expiry) or TWS connection.")
                 _push_log("WARN", f"Order {iid} rejected instantly by backend/TWS.")
             else:
-                is_live = getattr(tws_client, "ib", None) is not None and tws_client.ib.isConnected()
+                is_live = tws_client and getattr(tws_client, "connected", False)
                 prefix = "✅ " if is_live else "🟡 [SIMULATED DEMO] "
                 if is_mkt:
                     st.success(f"{prefix}Market Order {iid} submitted instantly.")
@@ -229,14 +229,7 @@ def render_order_tab(positions: List[Dict], tws_client=None) -> None:
         return
 
     rows = ""
-    # DEBUG DIAGNOSTICS
-    if tws_client and tws_client.ib and tws_client.ib.isConnected():
-        st.write("### Diagnostics")
-        for t in tws_client.ib.trades():
-            if t.orderStatus.status not in ("Filled", "Cancelled", "Inactive"):
-                st.write(f"**{t.order.orderId}**: {t.order.lmtPrice}")
-                st.write([log for log in t.log if "Error" in str(log) or "Reject" in str(log)])
-    # /DEBUG DIAGNOSTICS
+    # /DEBUG DIAGNOSTICS removed as we now use worker
     for o in reversed(orders):
         status_css = {
             "PENDING":   "badge-yellow",
