@@ -88,12 +88,33 @@ with tabs[1]:
                     v4.metric("IV Range (1Y)", f"{fmt_v(res.get('iv_low'), '.1%')} - {fmt_v(res.get('iv_high'), '.1%')}")
 
 with tabs[0]:
+    st.subheader("⚙️ הגדרות הסלמה גלובליות (חלות על כל הפקודות בשרת)")
+    try:
+        curr_settings = requests.get(f"{WORKER_URL}/settings/escalation", timeout=2).json()
+    except:
+        curr_settings = {"esc_pct": 0.01, "esc_interval": 10, "max_steps": 3}
+        
+    with st.form("global_esc_settings"):
+        e1, e2, e3 = st.columns(3)
+        esc_p = e1.slider("אחוז שיפור מחיר בכל שלב", 0.0, 0.20, float(curr_settings.get("esc_pct", 0.01)), step=0.01)
+        esc_t = e2.number_input("שניות המתנה לכל שלב", value=int(curr_settings.get("esc_interval", 10)), min_value=1)
+        esc_m = e3.number_input("מקסימום שלבים להסלמה", value=int(curr_settings.get("max_steps", 3)), min_value=1)
+        
+        if st.form_submit_button("💾 שמור הגדרות קבועות לוורקר", type="primary"):
+            try:
+                requests.post(f"{WORKER_URL}/settings/escalation", json={"esc_pct": esc_p, "esc_interval": esc_t, "max_steps": esc_m}, timeout=2)
+                st.success("הגדרות ההסלמה עודכנו בהצלחה! מעתה כל פקודה שתגיע (גם מהמערכת הראשית) תשתמש בהגדרות אלו.")
+            except Exception as e:
+                st.error(f"שגיאה בשמירת הגדרות: {e}")
+                
+    st.write("---")
+    st.subheader("📤 שיגור פקודה ידנית לטסטים")
     with st.form("order_creator"):
         c1, c2, c3, c4 = st.columns(4)
-        action = c1.selectbox("פעולה", ["BUY", "SELL"])
-        order_type = c2.selectbox("סוג פקודה", ["LMT", "MKT"])
-        qty = c3.number_input("כמות", value=1, min_value=1)
-        price = c4.number_input("מחיר LMT", value=0.0, format="%.2f")
+        order_type = c1.selectbox("סוג פקודה", ["LMT", "MKT"])
+        qty = c2.number_input("כמות", value=1, min_value=1)
+        price = c3.number_input("מחיר נטו LMT", value=0.0, format="%.2f", help="חיובי ל-Debit, שלילי ל-Credit")
+        tp_pct = c4.number_input("יעד רווח (TP %)", value=30.0, format="%.2f", help="אחוז. השאר 0 לביטול")
         
         st.write("---")
         legs = []
@@ -116,26 +137,66 @@ with tabs[0]:
                     if stype == "OPT" and sym: leg_data.update({"expiry": exp, "strike": strk, "right": rgh})
                     legs.append(leg_data)
 
-        st.write("---")
-        e1, e2, e3 = st.columns(3)
-        esc_p = e1.slider("אחוז שיפור מחיר (להסלמה)", 0.0, 0.05, 0.01)
-        esc_t = e2.number_input("שניות המתנה בין הסלמות", value=10)
-        esc_m = e3.number_input("מקסימום שלבים", value=3)
-        
         if st.form_submit_button("שגר פקודה"):
-            payload = {"action": action, "order_type": order_type, "total_qty": qty, "lmt_price": price, "legs": legs, "esc_pct": esc_p, "esc_interval": esc_t, "max_steps": esc_m}
-            res = requests.post(f"{WORKER_URL}/submit", json=payload).json()
-            st.success(res.get('message', 'הפקודה נשלחה'))
+            payload = {
+                "action": "AUTO", 
+                "order_type": order_type, 
+                "total_qty": qty, 
+                "lmt_price": price, 
+                "legs": legs, 
+                "esc_pct": esc_p, # ישמש כגיבוי, הוורקר שואב ישירות מהקובץ
+                "esc_interval": esc_t,
+                "max_steps": esc_m,
+                "tp_pct": tp_pct if tp_pct > 0 else None
+            }
+            try:
+                res = requests.post(f"{WORKER_URL}/submit", json=payload, timeout=5).json()
+                st.success(res.get('message', 'הפקודה נשלחה'))
+            except Exception as e:
+                st.error(f"שגיאת תקשורת עם הוורקר: {e}")
 
 with tabs[2]:
-    if st.button("רענן מוניטור"):
-        monitor = requests.get(f"{WORKER_URL}/monitor").json()
-        for oid, info in monitor.items():
-            st.markdown(f"### מזהה: {oid} | פנימי: {info['internal_status']} | IBKR: {info.get('ib_status', 'N/A')}")
-            for step in info.get('steps', []): st.text(f"  • {step}")
-            if info.get('final_fill'): st.success(f"מחיר סופי: {info['final_fill']}")
-            for e in info.get('errors', []): st.error(e)
-            st.divider()
+    if st.button("רענן מוניטור 🔄", type="primary"):
+        try:
+            monitor = requests.get(f"{WORKER_URL}/monitor", timeout=5).json()
+            if not monitor:
+                st.info("אין פקודות במוניטור כעת.")
+            else:
+                # הופכים את הרשימה כדי לראות פקודות חדשות למעלה
+                for oid, info in reversed(list(monitor.items())):
+                    # הגדרת אייקון לפי סטטוס
+                    status_color = "🟢" if "בוצע" in info.get('internal_status', '') else ("🔴" if "❌" in info.get('internal_status', '') else "🟡")
+                    
+                    st.markdown(f"### {status_color} מזהה פקודה: `{oid}`")
+                    
+                    # קופסת מידע מרכזית עם כל הנתונים הפיננסיים
+                    tp_display = f"{info.get('tp_pct')}%" if info.get('tp_pct') else "ללא"
+                    start_price = float(info.get('start_price', 0))
+                    
+                    st.info(f"""
+                    **🕒 זמן שיגור:** {info.get('timestamp', 'לא ידוע')} | **⚡ סוג פקודה:** {info.get('order_type', '')}  
+                    **📦 נכס / רגליים:** {info.get('legs_desc', 'N/A')}  
+                    **🎯 פעולה:** {info.get('action', '')} (כמות: {info.get('qty', '')}) | **💲 מחיר התחלתי:** ${start_price:.2f} | **💸 יעד Take Profit:** {tp_display}
+                    """)
+                    
+                    st.markdown(f"**סטטוס פנימי:** {info.get('internal_status', '')} | **סטטוס בורסה (IBKR):** {info.get('ib_status', 'N/A')}")
+                    
+                    # הצגת השלבים בתוך חלונית נפתחת אלגנטית
+                    if info.get('steps'):
+                        with st.expander("🔍 פירוט שלבי ההסלמה וטייק פרופיט", expanded=True):
+                            for step in info.get('steps', []): 
+                                st.text(f"  • {step}")
+                    
+                    # סיכום ביצוע ושגיאות
+                    if info.get('final_fill'): 
+                        st.success(f"💰 בוצע סופית במחיר: ${float(info['final_fill']):.2f}")
+                        
+                    for e in info.get('errors', []): 
+                        st.error(f"⚠️ {e}")
+                        
+                    st.divider()
+        except Exception as e:
+            st.error(f"שגיאה במשיכת הנתונים מהוורקר: {e}")
 
 with tabs[3]:
     if st.button("טען יתרות ומזומן"):

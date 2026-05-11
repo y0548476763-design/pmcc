@@ -72,47 +72,54 @@ def qualify_contract(ticker: str, strike: float, expiry: str, right: str = "C") 
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
-def place_order(ticker: str, strike: float, expiry: str, right: str = "C", action: str = "BUY", qty: int = 1, limit_price: float = None, order_type: str = "LMT", **kwargs) -> dict:
+def place_order(ticker: str, strike: float, expiry: str, right: str = "C", action: str = "BUY", qty: int = 1, limit_price: float = None, order_type: str = "LMT", tp_pct: float = None, con_id: int = 0, **kwargs) -> dict:
     try:
-        # התאמה מלאה למודל OrderRequest של הוורקר
         payload = {
             "action": action,
             "order_type": order_type,
-            "total_qty": float(qty),
-            "lmt_price": float(limit_price or 0.0),
-            "esc_pct": float(kwargs.get("esc_pct", 0.01)),
-            "esc_interval": int(kwargs.get("esc_interval", 30)),
-            "max_steps": int(kwargs.get("max_steps", 5)),
+            "total_qty": qty,
+            "lmt_price": float(limit_price) if limit_price is not None else 0.0,
+            "esc_pct": 0.01,
+            "esc_interval": 10,
+            "max_steps": 10,
             "legs": [{
                 "symbol": ticker,
                 "secType": "OPT",
                 "action": action,
-                "ratio": 1.0,
-                "strike": float(strike),
-                "expiry": str(expiry).replace("-", ""), # וודוא פורמט YYYYMMDD
+                "ratio": 1,
+                "strike": strike,
+                "expiry": expiry,
                 "right": right,
-                "con_id": int(kwargs.get("con_id", 0))
-            }]
+                "con_id": con_id
+            }],
+            "tp_pct": tp_pct if tp_pct and tp_pct > 0 else None
         }
         r = requests.post(f"{WORKER_URL}/submit", json=payload, timeout=15).json()
-        return {"ok": True, "order_id": r.get("order_id"), "message": r.get("message")}
+        return {"ok": True, "order_id": r.get("order_id"), "message": "הבקשה נשלחה לוורקר"}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
 def place_combo(ticker: str, legs: List[dict], limit_price: float, use_market: bool = False, 
-                escalation_step_pct: float = 1.0, escalation_wait_secs: int = 60, **kwargs) -> dict:
-    """
-    שליחת קומבו (כולל גלגולי ליפסים ודוחות) לוורקר החדש.
-    הלוגיקה של יאהו נשמרת - הוורקר יבצע את ה-Qualify.
-    """
+                escalation_step_pct: float = 1.0, escalation_wait_secs: int = 60, tp_pct: float = None, **kwargs) -> dict:
     try:
         mapped_legs = []
+        # אם הועבר total_qty ב-kwargs, נשתמש בו. אחרת ניקח מהרגל הראשונה.
+        total_qty = kwargs.get("total_qty")
+        if total_qty is None:
+            total_qty = max(1, int(legs[0].get("qty", legs[0].get("ratio", 1)))) if legs else 1
+
         for l in legs:
+            # ratio הוא היחס בין הרגליים. אם לא סופק, נשתמש ב-qty/ratio כ-1.
+            ratio = l.get("ratio")
+            if ratio is None:
+                # אם לא סופק יחס מפורש, נניח 1 (מתאים לגלגולים רגילים)
+                ratio = 1
+                
             mapped_legs.append({
                 "symbol": ticker,
-                "secType": "OPT",
+                "secType": l.get("secType", "OPT"),
                 "action": l.get("action", "BUY"),
-                "ratio": l.get("qty", 1),
+                "ratio": int(ratio),
                 "strike": l.get("strike"),
                 "expiry": l.get("expiry"),
                 "right": l.get("right", "C"),
@@ -120,19 +127,21 @@ def place_combo(ticker: str, legs: List[dict], limit_price: float, use_market: b
             })
         
         payload = {
-            "action": "BUY", # בדרך כלל BUY עבור נטו דביט/קרדיט בקומבו
+            "action": "BUY",
             "order_type": "MKT" if use_market else "LMT",
-            "total_qty": 1,
-            "lmt_price": limit_price,
+            "total_qty": int(total_qty),
+            "lmt_price": float(limit_price) if limit_price is not None else 0.0,
             "esc_pct": escalation_step_pct / 100.0,
             "esc_interval": escalation_wait_secs,
             "max_steps": 10,
-            "legs": mapped_legs
+            "legs": mapped_legs,
+            "tp_pct": tp_pct if tp_pct and tp_pct > 0 else None
         }
         r = requests.post(f"{WORKER_URL}/submit", json=payload, timeout=30).json()
         return {"ok": True, "order_id": r.get("order_id"), "message": "הבקשה נשלחה לוורקר"}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
 
 def get_active_orders() -> dict:
     try:

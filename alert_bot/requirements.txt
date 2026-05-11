@@ -1,6 +1,0 @@
-yfinance
-pandas
-numpy
-streamlit
-requests
-google-cloud-storage

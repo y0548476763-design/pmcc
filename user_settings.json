@@ -68,7 +68,11 @@
     ],
     "rules": {
         "dip_trigger_a_pct": 20,
-        "dip_trigger_b_pct": 30
+        "dip_trigger_b_pct": 30,
+        "time_stop_days": 50,
+        "short_dte_target": 80,
+        "take_profit_pct": 30,
+        "delta_roll_threshold": 0.2
     },
     "telegram_chat_id": "7910834714",
     "telegram_token": "8442918441:AAEZjhExbEzsP7nJtYlg_hL9eHebg08F59M"

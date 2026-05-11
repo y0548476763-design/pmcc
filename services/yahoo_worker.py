@@ -269,11 +269,20 @@ def search_options(
             opts = chain.calls if right.upper() == "C" else chain.puts
             if opts.empty: continue
                 
-            try: underlying = float(t.fast_info.last_price or 0)
-            except: underlying = 0.0
+            try: 
+                underlying = float(t.fast_info.get('lastPrice') or t.info.get('regularMarketPrice') or 0)
+                if underlying <= 0:
+                    hist = t.history(period="1d")
+                    if not hist.empty:
+                        underlying = float(hist['Close'].iloc[-1])
+            except: 
+                underlying = 0.0
             
             if underlying <= 0:
+                # Fallback to ATM strike (where bid/ask are most active) if possible
                 underlying = float(opts['strike'].iloc[len(opts)//2])
+            
+            logger.info(f"Using underlying price for {ticker}: {underlying}")
 
             for idx, row in opts.iterrows():
                 strike = float(row['strike'])
@@ -281,11 +290,20 @@ def search_options(
                 mid = (bid + ask) / 2 if (bid > 0 and ask > 0) else float(row.get('lastPrice', 0))
                 if mid <= 0: continue
                 
+                import math
                 mono = strike / underlying if underlying > 0 else 1.0
-                if right.upper() == "C":
-                    delta = max(0.05, min(0.99, 1.25 - mono * 0.75))
-                else:
-                    delta = max(0.05, min(0.99, mono * 0.75 - 0.25))
+                # Improved approximation using a logistic function to mimic the cumulative normal distribution
+                # For a typical 30-60 DTE option, delta is 0.5 at ATM (mono=1)
+                # and drops off. A factor of 15.0 provides a decent fit for 20-30% IV.
+                try:
+                    if right.upper() == "C":
+                        delta = 1.0 / (1.0 + math.exp(15.0 * (mono - 1.0)))
+                    else:
+                        delta = 1.0 / (1.0 + math.exp(15.0 * (1.0 - mono)))
+                except:
+                    delta = 0.5 # Fallback to ATM-ish if math errors
+
+                delta = max(0.01, min(0.99, delta))
 
                 results.append({
                     "ticker": ticker.upper(), "strike": round(strike, 2),

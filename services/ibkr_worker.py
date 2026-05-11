@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 import logging
 import uuid
 import threading
@@ -11,6 +12,23 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 import math
+import json
+import os
+
+WORKER_SETTINGS_FILE = "worker_settings.json"
+
+def get_worker_settings():
+    if os.path.exists(WORKER_SETTINGS_FILE):
+        try:
+            with open(WORKER_SETTINGS_FILE, "r") as f:
+                return json.load(f)
+        except:
+            pass
+    return {"esc_pct": 0.01, "esc_interval": 10, "max_steps": 3}
+
+def save_worker_settings(settings):
+    with open(WORKER_SETTINGS_FILE, "w") as f:
+        json.dump(settings, f)
 
 def sanitize(data):
     """Recursively replace NaN with None for JSON compliance."""
@@ -49,14 +67,14 @@ class Leg(BaseModel):
     symbol: str
     secType: str  
     action: str   
-    ratio: int
+    ratio: int = 1
     con_id: Optional[int] = 0       
     strike: Optional[float] = None
     expiry: Optional[str] = None
     right: Optional[str] = None
 
 class OrderRequest(BaseModel):
-    action: str 
+    action: str = "BUY"  # ברירת מחדל כדי לא לקרוס
     order_type: str = "LMT"
     total_qty: int
     lmt_price: float = 0.0
@@ -64,6 +82,21 @@ class OrderRequest(BaseModel):
     esc_pct: float = 0.01
     esc_interval: int = 30
     max_steps: int = 5
+    tp_pct: Optional[float] = None  # <-- שדה אחד לאחוז טייק פרופיט
+
+class EscalationSettings(BaseModel):
+    esc_pct: float
+    esc_interval: int
+    max_steps: int
+
+@app.post("/settings/escalation")
+async def update_escalation_settings(settings: EscalationSettings):
+    save_worker_settings(settings.dict())
+    return {"status": "Settings saved"}
+
+@app.get("/settings/escalation")
+async def get_escalation_settings():
+    return get_worker_settings()
 
 # --- נתיבי שליטה (חיבור וניתוק יזום) ---
 @app.post("/connect")
@@ -203,60 +236,179 @@ async def run_managed_order_logic(order_id: str, req: OrderRequest):
     if not ib.isConnected():
         escalation_monitor[order_id] = {"internal_status": "שגיאה: אין חיבור", "ib_status": "N/A", "steps": ["נכשל"], "errors": []}
         return
+        
     current_price = req.lmt_price
-    escalation_monitor[order_id] = {"internal_status": "מתחיל...", "ib_status": "N/A", "steps": [], "errors": [], "final_fill": None}
+    is_combo = len(req.legs) > 1
+    effective_action = "BUY" if is_combo else req.legs[0].action
+    
+    # בניית תיאור מפורט של כל הרגליים לתצוגה במוניטור
+    legs_desc_list = []
+    for l in req.legs:
+        desc = f"{l.action} {l.ratio}x {l.symbol}"
+        if l.secType == 'OPT':
+            desc += f" {l.strike}{l.right} {l.expiry}"
+        legs_desc_list.append(desc)
+    legs_desc = " | ".join(legs_desc_list)
+
+    # שמירת כל פרטי הפקודה לזיכרון המוניטור
+    escalation_monitor[order_id] = {
+        "internal_status": "מתחיל...", 
+        "ib_status": "N/A", 
+        "steps": [], 
+        "errors": [], 
+        "final_fill": None,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "action": effective_action,
+        "qty": req.total_qty,
+        "order_type": req.order_type,
+        "start_price": req.lmt_price,
+        "legs_desc": legs_desc,
+        "tp_pct": req.tp_pct
+    }
     
     try:
         if len(req.legs) == 1:
             l = req.legs[0]
-            contract = Contract(conId=l.con_id, exchange='SMART') if l.con_id else (Option(l.symbol, l.expiry, l.strike, l.right, 'SMART') if l.secType == 'OPT' else Stock(l.symbol, 'SMART', 'USD'))
+            if l.con_id:
+                contract = Contract(conId=l.con_id, exchange='SMART')
+            else:
+                c = Option(l.symbol, l.expiry, l.strike, l.right, 'SMART', currency='USD') if l.secType == 'OPT' else Stock(l.symbol, 'SMART', 'USD')
+                q = await ib.qualifyContractsAsync(c)
+                if not q:
+                    escalation_monitor[order_id]["internal_status"] = "נכשל ❌: חוזה לא חוקי"
+                    return
+                contract = q[0]
         else:
             contract = Contract(secType='BAG', symbol=req.legs[0].symbol, currency='USD', exchange='SMART')
             legs_list = []
             for l in req.legs:
-                con_id = l.con_id if l.con_id else (await ib.qualifyContractsAsync(Option(l.symbol, l.expiry, l.strike, l.right, 'SMART') if l.secType == 'OPT' else Stock(l.symbol, 'SMART')))[0].conId
+                if l.con_id:
+                    con_id = l.con_id
+                else:
+                    c = Option(l.symbol, l.expiry, l.strike, l.right, 'SMART', currency='USD') if l.secType == 'OPT' else Stock(l.symbol, 'SMART', 'USD')
+                    q = await ib.qualifyContractsAsync(c)
+                    if not q:
+                        escalation_monitor[order_id]["internal_status"] = f"נכשל ❌: רגל לא חוקית ({l.symbol})"
+                        return
+                    con_id = q[0].conId
                 legs_list.append(ComboLeg(conId=con_id, ratio=l.ratio, action=l.action, exchange='SMART'))
             contract.comboLegs = legs_list
 
         if req.order_type == "MKT":
             escalation_monitor[order_id]["internal_status"] = "שוגר כמרקט (MKT)"
-            order = MarketOrder(req.action, req.total_qty)
+            order = MarketOrder(effective_action, req.total_qty)
             trade = ib.placeOrder(contract, order)
-            for _ in range(15):
+            for _ in range(60):  # המתן עד 60 שניות
                 await asyncio.sleep(1)
                 escalation_monitor[order_id]["ib_status"] = trade.orderStatus.status
                 if trade.isDone():
-                    escalation_monitor[order_id]["internal_status"] = "בוצע בהצלחה ✅"
-                    escalation_monitor[order_id]["final_fill"] = trade.orderStatus.avgFillPrice
+                    if trade.orderStatus.status == 'Filled':
+                        escalation_monitor[order_id]["internal_status"] = "בוצע בהצלחה ✅"
+                        escalation_monitor[order_id]["final_fill"] = trade.orderStatus.avgFillPrice
+                        
+                        if req.tp_pct and req.tp_pct > 0:
+                            wait_count = 0
+                            while not trade.fills and wait_count < 20:
+                                await asyncio.sleep(0.5)
+                                wait_count += 1
+                                
+                            for fill in trade.fills:
+                                if fill.execution.side == 'SLD':
+                                    sell_price = fill.execution.price
+                                    target_price = round(sell_price * (1.0 - (req.tp_pct / 100.0)), 2)
+                                    tp_order = LimitOrder('BUY', fill.execution.shares, target_price, tif='GTC')
+                                    ib.placeOrder(fill.contract, tp_order)
+                                    escalation_monitor[order_id]["steps"].append(f"TP שוגר ב-${target_price:.2f} (בוצע ב-${sell_price:.2f})")
+                    else:
+                        escalation_monitor[order_id]["internal_status"] = f"נדחה ❌ ({trade.orderStatus.status})"
                     return
+            # הלולאה הסתיימה ללא מילוי — בטל ועדכן סטטוס
+            ib.cancelOrder(order)
+            escalation_monitor[order_id]["internal_status"] = "פג זמן ❌ — לא מולא תוך 60 שניות, הפקודה בוטלה"
+            escalation_monitor[order_id]["ib_status"] = "Cancelled"
             return
 
+        # Override parameters with global worker settings
+        w_settings = get_worker_settings()
+        actual_esc_pct = w_settings.get("esc_pct", req.esc_pct)
+        actual_esc_interval = w_settings.get("esc_interval", req.esc_interval)
+        actual_max_steps = w_settings.get("max_steps", req.max_steps)
+
         escalation_monitor[order_id]["internal_status"] = "לולאת הסלמה פעילה"
-        for step in range(req.max_steps):
-            if "בוטל" in escalation_monitor[order_id]["internal_status"]: return 
+        remaining_qty = req.total_qty
+        
+        # --- יצירת הפקודה פעם אחת בלבד מחוץ ללולאה ---
+        order = LimitOrder(effective_action, remaining_qty, round(current_price, 2))
+        trade = ib.placeOrder(contract, order)
+        processed_fills = set() # מעקב למניעת שליחת טייק-פרופיט כפול על אותה רגל
+
+        for step in range(actual_max_steps):
+            if "בוטל" in escalation_monitor[order_id]["internal_status"]:
+                ib.cancelOrder(order)
+                return 
+            if remaining_qty <= 0: return 
             
-            escalation_monitor[order_id]["steps"].append(f"שלב {step+1}: שיגור ב-{current_price:.2f}")
-            order = LimitOrder(req.action, req.total_qty, round(current_price, 2))
-            trade = ib.placeOrder(contract, order)
+            # --- משלב 2 והלאה: לא יוצרים פקודה חדשה, אלא רק מעדכנים את הקיימת! ---
+            if step > 0:
+                trade.order.lmtPrice = round(current_price, 2)
+                trade.order.totalQuantity = remaining_qty
+                ib.placeOrder(contract, trade.order) # פקודה זו רק מגישה את העדכון לברוקר
             
-            for _ in range(req.esc_interval):
+            escalation_monitor[order_id]["steps"].append(f"שלב {step+1}: שיגור ב-{current_price:.2f} (כמות: {remaining_qty})")
+            
+            step_finished_completely = False
+            
+            for _ in range(actual_esc_interval):
                 await asyncio.sleep(1)
                 escalation_monitor[order_id]["ib_status"] = trade.orderStatus.status
+                
+                # רישום שגיאות אם יש
                 for log in trade.log:
-                    if log.status in ['Cancelled', 'Inactive'] or log.errorCode:
-                        err = f"IB Error {log.errorCode}: {log.message}"
+                    if log.errorCode and log.errorCode != 0:
+                        err = f"שגיאת בורסה {log.errorCode}: {log.message}"
                         if err not in escalation_monitor[order_id]["errors"]: escalation_monitor[order_id]["errors"].append(err)
+                    elif log.status in ['Cancelled', 'Inactive'] and log.message:
+                        err = f"הודעה: {log.message}"
+                        if err not in escalation_monitor[order_id]["errors"]: escalation_monitor[order_id]["errors"].append(err)
+                
                 if trade.isDone():
-                    escalation_monitor[order_id]["internal_status"] = "בוצע בהצלחה ✅"
-                    escalation_monitor[order_id]["final_fill"] = trade.orderStatus.avgFillPrice
-                    return
+                    if trade.orderStatus.status == 'Filled':
+                        escalation_monitor[order_id]["internal_status"] = "בוצע בהצלחה ✅"
+                        escalation_monitor[order_id]["final_fill"] = trade.orderStatus.avgFillPrice
+                        step_finished_completely = True
+                    else:
+                        escalation_monitor[order_id]["internal_status"] = f"נדחה, מנסה מחיר הבא... ({trade.orderStatus.status})"
+                        break # שבירת ההמתנה ומעבר לשלב הבא
+            
+            # --- סנכרון כמויות דינמי ---
+            filled_now = trade.orderStatus.filled
+            if filled_now:
+                remaining_qty = req.total_qty - int(filled_now)
+                
+            # --- שיגור טייק פרופיט מדויק ללא כפילויות ---
+            if req.tp_pct and req.tp_pct > 0:
+                for fill in trade.fills:
+                    fill_id = fill.execution.execId
+                    if fill_id not in processed_fills:
+                        processed_fills.add(fill_id)
+                        if fill.execution.side == 'SLD':
+                            sell_price = fill.execution.price
+                            target_price = round(sell_price * (1.0 - (req.tp_pct / 100.0)), 2)
+                            tp_order = LimitOrder('BUY', fill.execution.shares, target_price, tif='GTC')
+                            ib.placeOrder(fill.contract, tp_order)
+                            escalation_monitor[order_id]["steps"].append(f"TP שוגר ב-${target_price:.2f} (עבור {fill.execution.shares} יח' ב-${sell_price:.2f})")
+            
+            if step_finished_completely or remaining_qty <= 0:
+                escalation_monitor[order_id]["internal_status"] = "בוצע בהצלחה ✅"
+                return
 
-            ib.cancelOrder(order)
-            await asyncio.sleep(1)
-            adj = abs(current_price) * req.esc_pct
-            current_price = (current_price + adj) if req.action == 'BUY' else (current_price - adj)
+            # קידום מחיר לשלב הבא (על בסיס האחוז הגלובלי המעודכן)
+            adj = max(0.01, abs(current_price) * actual_esc_pct)
+            current_price = (current_price + adj) if effective_action == 'BUY' else (current_price - adj)
 
-        escalation_monitor[order_id]["internal_status"] = "ההסלמה הסתיימה ללא ביצוע ❌"
+        # בסיום כל השלבים, אם נשאר משהו שלא בוצע - נבטל את היתרה הפתוחה בלבד
+        ib.cancelOrder(order)
+        escalation_monitor[order_id]["internal_status"] = f"ההסלמה הסתיימה, נותרו {remaining_qty} שלא בוצעו ❌"
     except Exception as e:
         escalation_monitor[order_id]["internal_status"] = f"שגיאה: {e}"
         escalation_monitor[order_id]["errors"].append(str(e))

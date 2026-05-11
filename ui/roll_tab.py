@@ -76,47 +76,35 @@ ${opt['strike']:.0f}</div>
 
 def _execute_roll(old_lp, new_tgt, esc_mins, esc_step):
     ticker = old_lp["ticker"]
-    qty    = abs(old_lp.get("qty", 1))
-
-    # Phase B-1: qualify both legs on IBKR → get conId + live mid
-    with st.spinner("🔄 מאמת חוזים ב-IBKR..."):
-        sell_q = _qualify(ticker, old_lp["strike"], old_lp["expiry"], "C")
-        buy_q  = _qualify(ticker, new_tgt["strike"], new_tgt["expiry"], "C")
-
-    if not sell_q.get("ok"):
-        st.error(f"❌ SELL leg qualification נכשל: {sell_q.get('detail', sell_q.get('error'))}")
-        return
-    if not buy_q.get("ok"):
-        st.error(f"❌ BUY leg qualification נכשל: {buy_q.get('detail', buy_q.get('error'))}")
-        return
-
-    ms = sell_q.get("mid") or float(old_lp.get("current_price", 0))
-    mb = buy_q.get("mid")  or float(new_tgt.get("mid", 0))
-    combo_net = round(mb - ms, 2)
-
-    col1, col2, col3 = st.columns(3)
-    col1.metric("SELL Mid", f"${ms:.2f}", f"conId: {sell_q['conId']}")
-    col2.metric("BUY Mid",  f"${mb:.2f}", f"conId: {buy_q['conId']}")
-    col3.metric("Net Debit" if combo_net > 0 else "Net Credit",
-                f"${abs(combo_net):.2f}",
-                "📤 עלות" if combo_net > 0 else "💰 קרדיט")
-
-    # Phase B-2: send N-leg BAG to api_ibkr
-    legs = [
-        {"strike": float(old_lp["strike"]), "expiry": str(old_lp["expiry"]),
-         "right": "C", "action": "SELL", "qty": qty},
-        {"strike": float(new_tgt["strike"]), "expiry": str(new_tgt["expiry"]),
-         "right": "C", "action": "BUY",  "qty": qty},
-    ]
-    with st.spinner("⏳ שולח פקודת COMBO (BAG)..."):
-        resp = _send_combo(ticker, legs, combo_net, esc_step, esc_mins * 60)
-
-    if resp.get("ok"):
-        r = resp.get("result", {})
-        oid = r.get("order_id", "—")
-        st.success(f"✅ פקודה {oid} נשלחה — עקוב במוניטור למטה")
-    else:
-        st.error(f"❌ {resp.get('detail', resp.get('error', resp))}")
+    qty    = abs(int(old_lp.get("qty", 1)))
+    
+    with st.spinner("מעביר פקודה לביצוע..."):
+        # 1. Prepare legs (Ratio 1:1 for a standard roll)
+        legs = [
+            {"strike": float(old_lp['strike']), "expiry": str(old_lp['expiry']).replace("-", ""), "right": "C", "action": "SELL", "ratio": 1, "secType": "OPT"},
+            {"strike": float(new_tgt['strike']), "expiry": str(new_tgt['expiry']).replace("-", ""), "right": "C", "action": "BUY", "ratio": 1, "secType": "OPT"}
+        ]
+        
+        # 2. Calculate initial limit price (Net Debit)
+        ms = float(old_lp.get("current_price", 0))
+        mb = float(new_tgt.get("mid", 0))
+        lmt_price = round(mb - ms, 2)
+        
+        # 3. Place Combo
+        resp = api_ibkr.place_combo(
+             ticker=ticker, 
+             legs=legs, 
+             limit_price=lmt_price, 
+             use_market=False, 
+             escalation_step_pct=esc_step, 
+             escalation_wait_secs=esc_mins * 60,
+             total_qty=qty
+        )
+        
+        if resp.get("ok"):
+            st.success(f"✅ נשלח בהצלחה! מזהה: {resp.get('order_id')}")
+        else:
+            st.error(f"❌ שגיאה בשליחה: {resp.get('error')}")
 
 # ── Main render ────────────────────────────────────────────────────────────
 
@@ -154,10 +142,11 @@ def render_roll_tab(tws=None) -> None:
                                    key="roll_ticker_input", placeholder="META").upper().strip()
         with c2:
             min_dte = st.number_input("מינ׳ DTE", 200, 1000, 650, step=30, key="roll_min_dte")
-        with c3:
-            tgt_delta = st.slider("דלתא יעד", 0.50, 0.99, 0.80, step=0.01, key="roll_tgt_delta",
-                                  format="%.2f")
-        with c4:
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            st.markdown("<div style='text-align: right; font-weight: bold; margin-bottom: 5px;'>🎯 בחר יעד דלתא (Δ)</div>", unsafe_allow_html=True)
+            tgt_delta = st.selectbox("", [0.70, 0.75, 0.80, 0.85, 0.90], index=2, label_visibility="collapsed", key="roll_tgt_delta")
+        with col2:
             st.markdown('<div style="height:28px;"></div>', unsafe_allow_html=True)
             search_btn = st.button("🔍 חפש", key="roll_search", type="primary", use_container_width=True)
 
@@ -321,36 +310,30 @@ border-radius:10px;padding:0.8rem 1rem;margin-bottom:1rem;">
             col_send, col_clr = st.columns(2)
             with col_send:
                 if st.button("📤 שלח פקודת רכישה", key="buy_send_order", type="primary", use_container_width=True):
-                    # Step 1: qualify via IBKR to get conId
-                    with st.spinner("🔄 מאמת חוזה ב-IBKR..."):
-                        q = _qualify(buy_sel["ticker"], buy_sel["strike"], buy_sel["expiry"], "C")
-
-                    if not q.get("ok"):
-                        st.error(f"❌ Qualification נכשל: {q.get('detail', q.get('error'))}")
+                    # הוורקר מבצע Qualify פנימית — שולחים ישירות דרך place_combo
+                    legs = [{
+                        "strike": float(buy_sel["strike"]),
+                        "expiry": str(buy_sel["expiry"]).replace("-", ""),
+                        "right": "C",
+                        "action": "BUY",
+                        "qty": buy_qty,
+                        "secType": "OPT"
+                    }]
+                    with st.spinner("📤 שולח פקודת רכישה לוורקר..."):
+                        resp = api_ibkr.place_combo(
+                            ticker=buy_sel["ticker"],
+                            legs=legs,
+                            limit_price=buy_limit,
+                            use_market=False,
+                            escalation_step_pct=1.0,
+                            escalation_wait_secs=60
+                        )
+                    if resp.get("ok"):
+                        st.success(f"✅ פקודה נשלחה! מזהה: {resp.get('order_id', '—')}")
+                        st.session_state.pop("buy_selected", None)
+                        st.session_state.pop("buy_options", None)
                     else:
-                        st.info(f"✅ conId={q['conId']} | Mid=${q.get('mid', 0):.2f}")
-                        # Step 2: send single-leg BUY order
-                        try:
-                            resp = requests.post(f"{IBKR}/order/place", json={
-                                "ticker": buy_sel["ticker"],
-                                "strike": float(buy_sel["strike"]),
-                                "expiry": str(buy_sel["expiry"]),
-                                "right": "C",
-                                "action": "BUY",
-                                "qty": buy_qty,
-                                "limit_price": buy_limit,
-                                "order_type": "LMT",
-                                "tif": buy_tif,
-                            }, timeout=15)
-                            rj = resp
-                            if rj.get("ok"):
-                                st.success(f"✅ פקודה נשלחה! Order ID: {rj.get('order_id','—')}")
-                                st.session_state.pop("buy_selected", None)
-                                st.session_state.pop("buy_options", None)
-                            else:
-                                st.error(f"❌ {rj.get('detail', rj)}")
-                        except Exception as e:
-                            st.error(f"❌ שגיאת תקשורת: {e}")
+                        st.error(f"❌ שגיאה: {resp.get('error', str(resp))}")
 
             with col_clr:
                 if st.button("↩️ ביטול", key="buy_cancel", use_container_width=True):
@@ -361,33 +344,24 @@ border-radius:10px;padding:0.8rem 1rem;margin-bottom:1rem;">
     # Live Order Monitor (shared)
     # ══════════════════════════════════════════════════
     st.markdown("---")
-    st.markdown("""
-<div style="font-size:0.85rem;font-weight:700;color:#94a3b8;
-letter-spacing:0.05em;text-transform:uppercase;padding:0.5rem 0;">
-📋 Live Order Monitor
-</div>""", unsafe_allow_html=True)
-
+    col_m1, col_m2 = st.columns([5, 1])
+    with col_m1:
+        st.markdown("###### 📝 צג בקרה לפקודות גלגול")
+    with col_m2:
+        if st.button("🔄 רענן מוניטור", key="refresh_roll_monitor"):
+            pass # לחיצה על כפתור תגרום אוטומטית ל-rerun של הדף
+            
     try:
-        r = requests.get(f"{IBKR}/api/orders/active", timeout=5)
-        if r.status_code == 200:
-            orders = r.get("orders", []) if isinstance(r, dict) else []
-            if not orders:
-                st.info("אין פקודות פעילות.")
-            else:
-                import pandas as pd
-                df = pd.DataFrame(orders)
-                df = df.rename(columns={
-                    "internal_id": "ID", "ticker": "Ticker", "strike": "Strike",
-                    "expiry": "Expiry", "status": "Status", "ibkr_status": "IBKR",
-                    "current_price": "Price", "escalation_count": "Escals", "is_combo": "Combo?"
-                })
-                st.dataframe(df, use_container_width=True, hide_index=True)
+        monitor_resp = api_ibkr.get_escalations_status()
+        if not monitor_resp.get("ok"):
+            st.warning(f"מוניטור לא זמין: {monitor_resp.get('error', '')}")
+        elif not monitor_resp.get("escalations"):
+             st.info("אין פקודות גלגול (Escalations) פעילות כעת בשרת.")
         else:
-            st.error("שגיאה במשיכת פקודות מה-API")
+             for esc in monitor_resp["escalations"]:
+                 oid = esc["order_id"]
+                 st.markdown(f"**מזהה פקודה:** `{oid}` | **סטטוס לולאה:** `{esc.get('status', 'N/A')}` | **סטטוס בורסה:** `{esc.get('ib_status', 'N/A')}`")
+                 if esc.get("current_price") and esc.get("current_price") > 0:
+                     st.success(f"התמלא סופית במחיר: ${esc.get('current_price')}")
     except Exception as e:
-        st.warning(f"api_ibkr לא זמין: {e}")
-
-    auto_ref = st.checkbox("🔄 רענון אוטומטי (5 שניות)", value=False, key="roll_auto_ref")
-    if auto_ref:
-        time.sleep(5)
-        st.rerun()
+        st.error(f"שגיאה בהצגת המוניטור: {e}")

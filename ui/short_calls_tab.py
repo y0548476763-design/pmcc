@@ -17,7 +17,7 @@ import api_yahoo
 _SIG_META = {
     "NO_TRADE":   {"icon": "⛔", "label": "NO TRADE",   "color": "#f87171", "delta": 0.00},
     "DEFENSIVE":  {"icon": "🛡️", "label": "DEFENSIVE",  "color": "#fbbf24", "delta": 0.05},
-    "NORMAL":     {"icon": "✅", "label": "NORMAL",      "color": "#34d399", "delta": 0.10},
+    "NORMAL":     {"icon": "✅", "label": "NORMAL",      "color": "#34d399", "delta": 0.20},
     "AGGRESSIVE": {"icon": "🚀", "label": "AGGRESSIVE",  "color": "#38bdf8", "delta": 0.20},
 }
 
@@ -37,7 +37,6 @@ def _send_telegram(msg: str) -> bool:
     api_ibkr.notify(msg)
 
     try:
-        import requests
         token   = settings_manager.get_telegram_token()
         chat_id = settings_manager.get_telegram_chat_id()
         url     = f"https://api.telegram.org/bot{token}/sendMessage"
@@ -64,40 +63,36 @@ def render_short_calls_tab(positions: list, quant_results: dict, tws=None) -> No
 
     # ── Rules Panel ────────────────────────────────────────────────────────
     with st.expander("⚙️ כללי מכירה וגלגול (לחץ לעריכה)", expanded=False):
-        c1, c2, c3, c4 = st.columns(4)
-        with c1:
-            tp_pct = st.number_input("Take Profit %", 10, 80,
-                                     int(settings_manager.get_rule("take_profit_pct", 30)),
-                                     step=5, help="סגירת שורט לאחר X% רווח")
-            if st.button("💾 שמור TP", key="save_tp_short"):
+        with st.form("short_rules_form", border=False):
+            c1, c2, c3, c4 = st.columns(4)
+            with c1:
+                tp_pct = st.number_input("Take Profit %", 10, 80,
+                                         int(settings_manager.get_rule("take_profit_pct", 30)),
+                                         step=5, help="סגירת שורט לאחר X% רווח")
+            with c2:
+                time_stop = st.number_input("Time Stop (ימים)", 7, 60,
+                                            int(settings_manager.get_rule("time_stop_days", 21)),
+                                            help="סגירה חובה X ימים לפני פקיעה")
+            with c3:
+                delta_roll = st.number_input("גלגול דלתא (Δ)", 0.20, 0.60,
+                                       float(settings_manager.get_rule("delta_roll_threshold", 0.40)),
+                                       step=0.01, help="גלגול מיידי אם דלתא עוברת ערך זה")
+            with c4:
+                short_dte = st.number_input("יעד DTE שורט", 20, 90,
+                                            int(settings_manager.get_rule("short_dte_target", 45)),
+                                            help="מכירה ל-X ימים לפניה")
+            
+            # כפתור שמירה מרכזי אחד רחב ויפה
+            if st.form_submit_button("💾 שמור את כל ההגדרות", type="primary", use_container_width=True):
                 settings_manager.set_rule("take_profit_pct", tp_pct)
-                st.success("נשמר!")
-        with c2:
-            time_stop = st.number_input("Time Stop (ימים)", 7, 60,
-                                        int(settings_manager.get_rule("time_stop_days", 21)),
-                                        help="סגירה חובה X ימים לפני פקיעה")
-            if st.button("💾 שמור TS", key="save_ts_short"):
                 settings_manager.set_rule("time_stop_days", time_stop)
-                st.success("נשמר!")
-        with c3:
-            delta_roll = st.slider("גלגול דלתא", 0.20, 0.60,
-                                   float(settings_manager.get_rule("delta_roll_threshold", 0.40)),
-                                   step=0.01, help="גלגול מיידי אם דלתא עוברת ערך זה")
-            if st.button("💾 שמור Δ", key="save_dr_short"):
                 settings_manager.set_rule("delta_roll_threshold", delta_roll)
-                st.success("נשמר!")
-        with c4:
-            short_dte = st.number_input("יעד DTE שורט", 20, 90,
-                                        int(settings_manager.get_rule("short_dte_target", 45)),
-                                        help="מכירה ל-X ימים לפניה")
-            if st.button("💾 שמור DTE", key="save_dte_short"):
                 settings_manager.set_rule("short_dte_target", short_dte)
-                st.success("נשמר!")
+                st.success("✅ כל ההגדרות נשמרו בהצלחה!")
 
         st.markdown("""
-<div style="font-size:0.72rem;color:#64748b;margin-top:0.5rem;direction:rtl;">
-📝 <b>זכור:</b> פקודות המכירה נשלחות כ-Limit חכם עם הסלמה לכיוון הביד — 
-מחיר אמצע → ביד בכל X דקות. פקודות Take Profit נשלחות מיד לאחר מכירה (GTC Limit).
+<div style="font-size:0.75rem;color:#64748b;margin-top:0.2rem;direction:rtl;text-align:center;">
+📝 <b>זכור:</b> פקודות המכירה נשלחות כ-Limit חכם עם הסלמה לכיוון הביד. פקודות Take Profit נשלחות מיד לאחריהן.
 </div>
 """, unsafe_allow_html=True)
 
@@ -187,26 +182,32 @@ border:1px solid {meta['color']};">{meta['label']}</span>
                                                      "max_dte": short_dte + 20,
                                                      "target_delta": tgt_delta,
                                                      "right": "C",
-                                                     "n": 3},
+                                                     "n": 10},
                                              timeout=20)
                             data = r.json()
                             chain = data.get("data", []) if data.get("ok") else []
-                            if chain:
-                                st.session_state[f"sc_res_{ticker}"] = chain[0]
+                            
+                            valid_opts = [opt for opt in chain if float(opt.get("delta", 0)) <= tgt_delta]
+                            if valid_opts:
+                                st.session_state[f"sc_candidates_{ticker}"] = valid_opts
                             else:
-                                st.session_state[f"sc_res_{ticker}"] = None
-                                st.error(f"לא נמצאו אופציות מתאימות ל-{ticker} (DTE {max(14,short_dte-15)}-{short_dte+20})")
+                                st.session_state[f"sc_candidates_{ticker}"] = []
+                                st.error(f"לא נמצאו אופציות מתאימות ל-{ticker} (DTE {max(14,short_dte-15)}-{short_dte+20}) בדלתא <= {tgt_delta:.2f}")
                         except requests.exceptions.ConnectionError:
                             st.error("❌ api_yahoo לא פועל")
                         except Exception as e:
                             st.error(f"שגיאה: {e}")
 
-            # Show chain results if available
-            res = st.session_state.get(f"sc_res_{ticker}")
-            if res and isinstance(res, dict):
-                st.success(f"נמצא חוזה: {res.get('strike')} | דלתא: {res.get('delta')}")
+            # Show candidates selection and details if available
+            candidates = st.session_state.get(f"sc_candidates_{ticker}", [])
+            if candidates:
+                st.write("---")
+                # Create a selection box for the found candidates
+                opt_map = {f"${c['strike']} | {c['expiry']} (Δ {c.get('delta', 'N/A')})": c for c in candidates}
+                selected_label = st.selectbox(f"🎯 בחר חוזה לביצוע עבור {ticker}:", options=list(opt_map.keys()), key=f"sel_cand_{ticker}")
+                res = opt_map[selected_label]
                 
-                # Render the contract details manually as per user requirement
+                # Render the beautiful card for the selected contract
                 strike = float(res.get("strike", 0))
                 expiry = res.get("expiry", "")
                 mid    = float(res.get("mid", 0))
@@ -216,22 +217,39 @@ border:1px solid {meta['color']};">{meta['label']}</span>
 
                 st.markdown(f"""
                 <div class="pmcc-card" style="border-top:3px solid {meta['color']};
-                padding:0.9rem;text-align:center;min-height:200px;">
-                <div style="font-size:0.62rem;color:#64748b;">אופציה מוצעת</div>
+                padding:0.9rem;text-align:center;min-height:180px; margin-bottom:10px;">
+                <div style="font-size:0.62rem;color:#64748b;">חוזה נבחר</div>
                 <div style="font-size:1.6rem;font-weight:900;color:#f1f5f9;">${strike:.0f}</div>
                 <div style="font-size:0.72rem;color:#64748b;">{expiry} · {dte_o}d</div>
                 <div style="margin:0.5rem 0;">
                 <span style="color:{meta['color']};font-weight:700;">Δ {delta:.3f}</span>
                 </div>
                 <div style="font-size:1.2rem;font-weight:800;color:#34d399;">Mid ${mid:.2f}</div>
-                <div style="font-size:0.7rem;color:#64748b;">TP Target: ${tp_price:.2f}</div>
+                <div style="font-size:0.7rem;color:#64748b;">יעד רווח: ${tp_price:.2f}</div>
                 </div>""", unsafe_allow_html=True)
 
-                if st.button("🚀 פתח שורט קול (SELL)", key=f"sell_{ticker}_res",
-                             use_container_width=True, type="primary"):
-                    _execute_short_sell(tws, lp, res, tp_pct, bot_mode)
-            elif res is None:
-                st.info("ממתין לסריקה...")
+                col_e1, col_e2 = st.columns(2)
+                with col_e1:
+                    if st.button("🚀 פתח שורט קול (SELL)", key=f"sell_{ticker}_res",
+                                 use_container_width=True, type="primary"):
+                        _execute_short_sell(tws, lp, res, tp_pct, bot_mode)
+                        del st.session_state[f"sc_candidates_{ticker}"]
+                        st.rerun()
+                with col_e2:
+                    if st.button("🎯 הזן לטופס ידני", key=f"auto_btn_{ticker}", use_container_width=True):
+                        # כתיבה ישירה למפתחות ה-widget כדי ש-Streamlit יטען אותם ברנדור הבא
+                        st.session_state['man_sc_ticker'] = ticker
+                        st.session_state['man_sc_strike'] = float(res['strike'])
+                        st.session_state['man_sc_expiry'] = str(res['expiry'])
+                        st.session_state['man_sc_mid'] = float(res.get('mid', 0.0))
+                        # שמירת נתונים גיבוי לסטייט האחר
+                        st.session_state['auto_sc_ticker'] = ticker
+                        st.session_state['auto_sc_strike'] = float(res['strike'])
+                        st.session_state['auto_sc_expiry'] = str(res['expiry'])
+                        st.session_state['auto_sc_bid'] = float(res.get('mid', 0.0))
+                        st.rerun()
+            elif f"sc_candidates_{ticker}" in st.session_state:
+                st.info("ממתין לסריקה או שלא נמצאו תוצאות...")
 
     # ── ROW 3: Active Short Calls Management ───────────────────────────────
     if shorts:
@@ -298,26 +316,95 @@ border-radius:14px;padding:0.9rem 1.2rem;margin-bottom:0.6rem;">
             with col_actions:
                 if not is_ok and action_btn_label:
                     st.write("")
-                    if st.button(action_btn_label, key=f"action_{ticker}_{strike}_{expiry}",
-                                 use_container_width=True):
-                        _handle_short_action(tws, sc, needs_tp, needs_time or needs_roll,
-                                             positions, quant_results, bot_mode, short_dte)
+                    if needs_tp:
+                        # סגירת רווח - פותחת תמיד ביצוע ישיר
+                        if st.button(action_btn_label, key=f"action_tp_{ticker}_{strike}_{expiry}", use_container_width=True):
+                            _handle_short_action(tws, sc, True, False, positions, quant_results, bot_mode, short_dte)
+                    else:
+                        # גלגול: בירוק מפעיל את הבוט, באדום/צהוב פותח את התפריט לבחירה אינטראקטיבית
+                        if bot_mode == 2:
+                            if st.button(f"{action_btn_label} (אוטומטי)", key=f"action_bot_roll_{ticker}_{strike}_{expiry}", use_container_width=True):
+                                _handle_short_action(tws, sc, False, True, positions, quant_results, bot_mode, short_dte)
+                        else:
+                            if st.button(action_btn_label, key=f"action_roll_{ticker}_{strike}_{expiry}", use_container_width=True):
+                                st.session_state[f"show_roll_{ticker}"] = True
+                                with st.spinner("סורק חלופות ביאהו..."):
+                                    qr = quant_results.get(ticker)
+                                    sig = getattr(qr, "signal", "NORMAL") if qr else "NORMAL"
+                                    meta = _SIG_META.get(sig, _SIG_META["NORMAL"])
+                                    tgt_delta = meta["delta"]
+                                    try:
+                                        r_search = requests.get(f"{config.YAHOO_API_URL}/api/yahoo/options/search", params={"ticker": ticker, "min_dte": max(14, short_dte - 15), "max_dte": short_dte + 20, "target_delta": tgt_delta, "right": "C", "n": 5}, timeout=15).json()
+                                        if r_search.get("ok"):
+                                            st.session_state[f"roll_cands_{ticker}"] = r_search["data"]
+                                        else:
+                                            st.session_state[f"roll_cands_{ticker}"] = []
+                                    except Exception as e:
+                                        st.error("שגיאה בסריקת חלופות")
+
+            # --- תפריט הגלגול האינטראקטיבי (מופיע רק אחרי שלחצו על הכפתור) ---
+            if st.session_state.get(f"show_roll_{ticker}") and bot_mode != 2:
+                cands = st.session_state.get(f"roll_cands_{ticker}", [])
+                if not cands:
+                    st.warning("לא נמצאו אופציות לגלגול בטווח שהוגדר. נסה לשנות DTE או סרוק ידנית.")
+                else:
+                    st.markdown("---")
+                    st.markdown(f"##### 🔄 בחירת יעד לגלגול השורט קול של {ticker}:")
+                    opt_map = {f"${c['strike']} | {c['expiry']} (Δ {c.get('delta', 'N/A')}) -> פרמיה: ${c.get('mid',0):.2f}": c for c in cands}
+                    selected_label = st.selectbox("בחר אופציה חדשה לפתיחה (SELL):", list(opt_map.keys()), key=f"roll_sel_{ticker}")
+                    res = opt_map[selected_label]
+                    
+                    new_mid = res.get('mid', 0)
+                    net_cost = round(cur_px - new_mid, 2)
+                    
+                    st.info(f"**סיכום עסקה:** סגירת הישן ב-${cur_px:.2f} ופתיחת חדש ב-${new_mid:.2f} | נטו: **${abs(net_cost):.2f} {'קרדיט (מכניס)' if net_cost <= 0 else 'דביט (עולה)'}**")
+                    
+                    tp_pct_roll = st.number_input("הגדר טייק פרופיט לחוזה החדש (%)", min_value=0, max_value=100, value=int(tp_pct*100), step=5, key=f"roll_tp_pct_{ticker}")
+                    
+                    c_exec, c_cancel = st.columns(2)
+                    with c_exec:
+                        if st.button("🚀 שגר קומבו לגלגול + TP", key=f"roll_exec_btn_{ticker}", type="primary", use_container_width=True):
+                            _execute_short_roll_combo(tws, sc, res, net_cost, tp_pct_roll, bot_mode)
+                            st.session_state[f"show_roll_{ticker}"] = False
+                            st.rerun()
+                    with c_cancel:
+                        if st.button("ביטול", key=f"roll_cancel_{ticker}", use_container_width=True):
+                            st.session_state[f"show_roll_{ticker}"] = False
+                            st.rerun()
 
     # ── ROW 4: Manual Order Entry ──────────────────────────────────────────
     st.markdown("<br>", unsafe_allow_html=True)
-    with st.expander("🛠️ כניסה ידנית לפקודה", expanded=False):
+    
+    # משיכת הנתונים מהזיכרון אם המשתמש לחץ על "הזנה אוטומטית"
+    def_ticker = st.session_state.get('auto_sc_ticker', config.WATCHLIST_TICKERS[0] if config.WATCHLIST_TICKERS else "AAPL")
+    def_strike = float(st.session_state.get('auto_sc_strike', 400.0))
+    def_expiry = st.session_state.get('auto_sc_expiry', "")
+    def_bid = float(st.session_state.get('auto_sc_bid', 5.0))
+    
+    try:
+        ticker_idx = config.WATCHLIST_TICKERS.index(def_ticker)
+    except ValueError:
+        ticker_idx = 0
+
+    # אתחול ערכים ב-Session State כדי למנוע כפילות עם ארגומנט ה-value
+    if 'man_sc_strike' not in st.session_state:
+        st.session_state['man_sc_strike'] = def_strike
+    if 'man_sc_mid' not in st.session_state:
+        st.session_state['man_sc_mid'] = def_bid
+
+    with st.expander("🛠️ כניסה ידנית לפקודה (ידנית / מהסריקה)", expanded=bool(def_expiry)):
         c1, c2, c3, c4, c5, c6 = st.columns(6)
         with c1:
-            man_ticker = st.selectbox("מניה", config.WATCHLIST_TICKERS, key="man_sc_ticker")
+            man_ticker = st.selectbox("מניה", config.WATCHLIST_TICKERS, index=ticker_idx, key="man_sc_ticker")
         with c2:
             man_action = st.selectbox("פעולה", ["SELL", "BUY"], key="man_sc_action")
         with c3:
-            man_strike = st.number_input("Strike", 1.0, 10000.0, 400.0, step=5.0, key="man_sc_strike")
+            man_strike = st.number_input("Strike", 1.0, 10000.0, step=5.0, key="man_sc_strike")
         with c4:
             man_expiry = st.text_input("פקיעה (YYYY-MM-DD)", key="man_sc_expiry",
                                        placeholder="2026-06-20")
         with c5:
-            man_mid = st.number_input("Mid Price", 0.01, 500.0, 5.0, step=0.05, key="man_sc_mid")
+            man_mid = st.number_input("Mid Price", 0.01, 500.0, step=0.05, key="man_sc_mid")
         with c6:
             man_qty = st.number_input("כמות", 1, 50, 1, key="man_sc_qty")
 
@@ -326,8 +413,10 @@ border-radius:14px;padding:0.9rem 1.2rem;margin-bottom:0.6rem;">
             esc_mins = st.number_input("המתנה (דקות)", 1, 30, config.ESCALATION_WAIT_MINUTES, key="man_esc_mins_sc")
         with esc_col2:
             esc_step = st.number_input("הסלמה %", 0.1, 5.0, config.ESCALATION_STEP_PCT, step=0.1, key="man_esc_step_sc")
+        with esc_col3:
+            tp_pct_man = st.number_input("Take Profit % (לדוגמה 30)", min_value=0, max_value=100, value=30, step=5, key="man_tp_pct_sc")
 
-        if st.button("📤 שלח פקודה ידנית", key="man_send_sc", type="primary", use_container_width=True):
+        if st.button("📤 שלח פקודה לוורקר", key="man_send_sc", type="primary", use_container_width=True):
             if not man_expiry:
                 st.error("יש להזין תאריך פקיעה")
             else:
@@ -335,17 +424,18 @@ border-radius:14px;padding:0.9rem 1.2rem;margin-bottom:0.6rem;">
                     q = api_ibkr.qualify_contract(man_ticker, man_strike, str(man_expiry).replace("-", ""), "C")
                     con_id = q.get("conId", 0) if q.get("ok") else 0
                     
-                    payload = {
-                        "ticker": man_ticker, "right": "C", "strike": man_strike,
-                        "expiry": man_expiry, "action": man_action, "qty": man_qty,
-                        "limit_price": man_mid, "order_type": "LMT", "tif": "DAY"
-                    }
-                    r = api_ibkr.place_order(payload["ticker"], payload["strike"], payload["expiry"], payload["right"], payload["action"], payload["qty"], payload.get("limit_price"), con_id=con_id)
+                    tp_decimal = (tp_pct_man / 100.0) if tp_pct_man > 0 else None
+
+                    r = api_ibkr.place_order(
+                        ticker=man_ticker, strike=man_strike, expiry=man_expiry, right="C", 
+                        action=man_action, qty=man_qty, limit_price=man_mid, con_id=con_id, 
+                        tp_pct=tp_pct_man
+                    )
                     if r.get("ok"):
                         st.success(f"✅ פקודה נשלחה: {r.get('order_id','')}")
                         if bot_mode >= 1:
                             _send_telegram(
-                                f"📤 פקודה ידנית: {man_action} {man_qty}x {man_ticker} "
+                                f"📤 פקודה מסריקה/ידנית: {man_action} {man_qty}x {man_ticker} "
                                 f"${man_strike:.0f} {man_expiry} @ ${man_mid:.2f}"
                             )
                     else:
@@ -403,20 +493,15 @@ def _execute_short_sell(tws, leaps_pos: dict, opt: dict, tp_pct: float,
             "action": "SELL", "qty": qty, "limit_price": mid,
             "order_type": "LMT", "tif": "DAY"
         }
-        r_sell = api_ibkr.place_order(sell_payload["ticker"], sell_payload["strike"], sell_payload["expiry"], sell_payload["right"], sell_payload["action"], sell_payload["qty"], sell_payload.get("limit_price"), con_id=con_id)
+        r_sell = api_ibkr.place_order(
+            sell_payload["ticker"], sell_payload["strike"], sell_payload["expiry"], 
+            sell_payload["right"], sell_payload["action"], sell_payload["qty"], 
+            sell_payload.get("limit_price"), con_id=con_id, tp_pct=tp_pct * 100 if tp_pct else None
+        )
         if not r_sell.get("ok"):
             st.error(f"כשל במכירה: {r_sell.get('error', r_sell)}")
             return
         oid = r_sell.get("order_id", "???")
-        
-        # 2. Place TP Order (GTC)
-        if tp_price > 0:
-            tp_payload = {
-                "ticker": ticker, "strike": strike, "expiry": expiry, "right": "C",
-                "action": "BUY", "qty": qty, "limit_price": tp_price,
-                "order_type": "LMT", "tif": "GTC"
-            }
-            api_ibkr.place_order(tp_payload["ticker"], tp_payload["strike"], tp_payload["expiry"], tp_payload["right"], tp_payload["action"], tp_payload["qty"], tp_payload.get("limit_price"), tp_payload.get("order_type", "LMT"), con_id=con_id)
 
         msg = (f"🚀 <b>שורט קול נמכר!</b>\n"
                f"📞 SELL {qty}x {ticker} ${strike:.0f}C {expiry} @ ${mid:.2f}\n"
@@ -445,13 +530,13 @@ def _handle_short_action(tws, sc: dict, is_tp: bool, is_roll: bool,
     action_word = "Take Profit" if is_tp else "גלגול שורט"
 
     if bot_mode == 1:
-        # Send Telegram first
-        msg = (f"{'💰' if is_tp else '🔄'} <b>{action_word} — {ticker}</b>\n"
-               f"📞 BUY {qty}x {ticker} ${strike:.0f}C {expiry}\n"
-               f"{'✅ רווח הושג!' if is_tp else '⚠️ DTE/Delta הצריכו גלגול'}\n"
-               f"⚡ ענה YES לאישור")
+        # מצב צהוב: שולח התראה בלבד ללא ביצוע וללא המתנה לתשובה
+        msg = (f"{'💰' if is_tp else '🔄'} <b>{action_word} נדרש — {ticker}</b>\n"
+               f"📞 Short Call: {qty}x {ticker} ${strike:.0f}C {expiry}\n"
+               f"{'✅ יעד הרווח הושג!' if is_tp else '⚠️ מצב DTE או Delta מצריך גלגול'}\n"
+               f"<i>(הבוט במצב התראות בלבד. גש למערכת לביצוע)</i>")
         ok = _send_telegram(msg)
-        st.info("📱 אישור נשלח לטלגרם!" if ok else "❌ שליחה נכשלה")
+        st.info("📱 התראה נשלחה לטלגרם (מצב צהוב - ללא ביצוע פקודות)" if ok else "❌ שליחת התראה נכשלה")
         return
 
     if bot_mode == 0 and not is_tp:
@@ -482,47 +567,36 @@ def _handle_short_action(tws, sc: dict, is_tp: bool, is_roll: bool,
                 st.success(f"✅ פקודת סגירה (TP) נשלחה עבור {ticker}")
             else:
                 st.error(f"כשל בסגירה: {r.get('error', r)}")
-        
-        elif is_roll:
-            # 1. Search for new target short call
-            qr   = quant_results.get(ticker)
-            sig  = getattr(qr, "signal", "NORMAL") if qr else "NORMAL"
-            meta = _SIG_META.get(sig, _SIG_META["NORMAL"])
-            tgt_delta = meta["delta"]
-            
-            with st.spinner(f"מחפש יעד לגלגול עבור {ticker}..."):
-                r_search = requests.get(f"{config.YAHOO_API_URL}/api/yahoo/options/search", params={
-                    "ticker": ticker, "min_dte": short_dte - 10, "max_dte": short_dte + 20,
-                    "target_delta": tgt_delta, "right": "C", "n": 1
-                }, timeout=15)
-                search_data = r_search.json()
-                targets = search_data.get("data", []) if search_data.get("ok") else []
-            
-            if not targets:
-                st.error("לא נמצא יעד מתאים לגלגול. בצע פעולה ידנית.")
-                return
-            
-            new_opt = targets[0]
-            new_strike = new_opt["strike"]
-            new_expiry = new_opt["expiry"]
-            new_mid    = new_opt["mid"]
-            
-            # 2. Construct Combo (BUY old, SELL new)
-            # Limit Price for credit roll: (BUY_mid - SELL_mid). Usually negative (credit).
-            combo_mid = round(cur_px - new_mid, 2)
-            
-            combo_legs = [
-                {"strike": strike, "expiry": expiry, "right": "C", "action": "BUY", "qty": qty},
-                {"strike": new_strike, "expiry": new_expiry, "right": "C", "action": "SELL", "qty": qty}
-            ]
-            
-            r_combo = api_ibkr.place_combo(ticker, combo_legs, limit_price=combo_mid, escalation_step_pct=1.0)
-            if r_combo.get("ok"):
-                st.success(f"✅ פקודת גלגול קומבו נשלחה עבור {ticker}!")
-                st.info(f"🔄 גלגול: {strike}@{expiry} -> {new_strike}@{new_expiry} | Net Mid: ${combo_mid:.2f}")
-            else:
-                st.error(f"כשל בגלגול: {r_combo.get('error', r_combo)}")
 
     except Exception as e:
         st.error(f"שגיאת ביצוע פעולה: {e}")
+
+
+def _execute_short_roll_combo(tws, old_sc: dict, new_opt: dict, limit_price: float, tp_pct: float, bot_mode: int) -> None:
+    """משגרת קומבו גלגול מהתפריט האינטראקטיבי"""
+    ticker = old_sc.get("ticker", "")
+    qty = abs(int(old_sc.get("qty", 1)))
+    old_strike = float(old_sc.get("strike", 0))
+    old_expiry = old_sc.get("expiry", "")
+    new_strike = float(new_opt["strike"])
+    new_expiry = new_opt["expiry"]
+    
+    # בניית הרגליים: BUY לסגירת הישן, SELL לפתיחת החדש
+    combo_legs = [
+        {"strike": old_strike, "expiry": str(old_expiry).replace("-", ""), "right": "C", "action": "BUY", "qty": qty, "secType": "OPT"},
+        {"strike": new_strike, "expiry": str(new_expiry).replace("-", ""), "right": "C", "action": "SELL", "qty": qty, "secType": "OPT"}
+    ]
+    
+    with st.spinner("שולח פקודת קומבו לגלגול אל הוורקר..."):
+        r_combo = api_ibkr.place_combo(
+            ticker=ticker, legs=combo_legs, limit_price=limit_price, 
+            escalation_step_pct=1.0, escalation_wait_secs=10, tp_pct=float(tp_pct)
+        )
+        
+    if r_combo.get("ok"):
+        st.success(f"✅ פקודת גלגול קומבו שוגרה בהצלחה! מזהה: {r_combo.get('order_id')}")
+        if bot_mode >= 1:
+            _send_telegram(f"🔄 <b>גלגול שורט קול ידני: {ticker}</b>\nסגירת {old_strike}C ופתיחת {new_strike}C\nנטו: ${limit_price:.2f} | TP הוגדר: {tp_pct}%")
+    else:
+        st.error(f"כשל בשיגור הקומבו לגלגול: {r_combo.get('error')}")
 
